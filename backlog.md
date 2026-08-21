@@ -31,27 +31,27 @@ Continue the platform foundation in delivery order:
 ```text
 Epic:    IG-1  — Platform Foundation and Delivery
 Story:   IG-16 — Automate build and delivery validation
-Subtask: IG-79 — Configure frontend and backend build pipelines
+Subtask: IG-80 — Enforce automated quality gates
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-1>
 - <https://appitometechnologies.atlassian.net/browse/IG-16>
-- <https://appitometechnologies.atlassian.net/browse/IG-79>
+- <https://appitometechnologies.atlassian.net/browse/IG-80>
 
 ## Next Task
 
-`IG-15` (S03) is Done — both its Subtasks (`IG-77`, `IG-78`) are complete. Next Story is `IG-16 — Automate build and delivery validation` (S04), with two To Do Subtasks: `IG-79 — Configure frontend and backend build pipelines` (T007) and `IG-80 — Enforce automated quality gates` (T008).
+`IG-79` is Done. Next is `IG-80 — Enforce automated quality gates` (T008), the second and last Subtask under `IG-16`/S04.
 
 Before implementation:
 
-1. Check `IG-79`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-79`, its parent `IG-16` and Epic `IG-1` in Jira for live criteria.
-3. Re-read `docs/SAD.md`'s CI/CD-relevant sections (build pipeline, quality gates) before choosing a CI provider/config format — this is likely the first Subtask that touches deployment/provider choices, which `AGENTS.md` says should be resolved through their own Jira work rather than invented.
-4. Note there is no git repository yet in this working directory (see Blockers) — a build pipeline conventionally lives in a CI config tied to a git host (e.g. `.github/workflows/`), so confirm whether repository initialization is a prerequisite before this Subtask can be meaningfully completed.
+1. Check `IG-80`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-80`, its parent `IG-16` and Epic `IG-1` in Jira for live criteria.
+3. `IG-79` built `.github/workflows/ci.yml` with `backend`/`frontend` build jobs (restore, build, publish/build, upload artifact) deliberately scoped to *building*, not testing. `IG-80` most likely means: (a) add `dotnet test`/`npm run lint` (and `next build`'s own type-check, already implicit) as steps in those same jobs, and (b) configure the `main` branch as protected with those checks marked required in GitHub, so a failing check actually blocks merge — extend the existing workflow rather than creating a second one.
+4. Branch protection (required status checks) is a GitHub repository *setting*, not a file in the repo — it has to be configured via `gh api`/the GitHub UI/`gh ruleset`, not just by editing YAML. Confirm this is in scope before skipping it.
 
-The local Postgres container (`docker compose -f infrastructure/docker/docker-compose.yml up -d`, host port 5433 — deliberately not 5432, see Blockers) is no longer needed until a future migration/persistence Subtask.
+The local Postgres container (`docker compose -f infrastructure/docker/docker-compose.yml up -d`, host port 5433 — deliberately not 5432, see Blockers) is not needed for `IG-80` unless test execution requires a live database.
 
 ## Last Execution
 
@@ -59,35 +59,32 @@ The local Postgres container (`docker compose -f infrastructure/docker/docker-co
 
 Completed:
 
-- Implemented `IG-78 — Add repeatable migration and seed verification` (T006, S03/`IG-15`), completing S03.
-- **Fixed a design/implementation mismatch found while implementing this Subtask**: `docs/DATABASE_SCHEMA.md` (written during `IG-77`) documented `snake_case` columns, but the EF Core configurations never actually enforced that — columns defaulted to PascalCase (matching C# property names), only caught because a raw unquoted `psql` query for `template_code` failed with "column does not exist". Fixed by adding the `EFCore.NamingConventions` package and calling `.UseSnakeCaseNamingConvention()` in both `PersistenceServiceCollectionExtensions` and `ApplicationDbContextDesignTimeFactory`, then regenerating migrations from scratch. Documented the mechanism in `docs/DATABASE_SCHEMA.md` section 2.
-- Seeded the three built-in invoice templates (`classic`, `modern`, `minimal`) via `HasData` on `TemplateConfiguration` — `document.templates` had zero rows after `IG-77`, but the Templates page (`docs/FSD.md` section 73) and `Business.DefaultTemplateId`/`Invoice.TemplateId` both assume at least one exists.
-- Regenerated migrations in the correct order to produce a genuine two-step upgrade: `InitialCreate` (schema only, matching what `IG-77` actually delivered) then `SeedTemplates` (the `InsertData` for the three templates) — not one migration with everything baked in, so the "upgrade" path is real, not simulated.
+- Initialized this directory as a git repository (it was not one before) and created a new public GitHub repository, **<https://github.com/hassham/invoice-generator>**, at the user's explicit direction ("we will be using github for pipelines"). Pushed the full platform-foundation snapshot (`IG-73` through `IG-78`) as the initial commit.
+- Implemented `IG-79 — Configure frontend and backend build pipelines` (T007, S04/`IG-16`).
+- Added `.github/workflows/ci.yml`: two parallel jobs on push/PR to `main` — `backend` (`dotnet restore`/`build`/`publish` for `InvoiceApp.Api`) and `frontend` (`npm ci`/`next build`) — each uploading its output as a workflow artifact. Deliberately scoped to build-only; test execution and required-check enforcement are `IG-80`'s job, to be layered onto these same jobs rather than a second workflow.
+- Fixed the frontend artifact path bug caught during local verification: `next.config.ts` sets `distDir: "generated"`, so the build output is `frontend/generated`, not the Next.js default `frontend/.next` — using the wrong path would have silently uploaded nothing.
+- Added `/publish/` to `.gitignore` (the local `dotnet publish` output directory used to test the same command the workflow runs).
 
 Files changed or created:
 
-- `docs/DATABASE_SCHEMA.md` (naming-convention mechanism documented in section 2; reference-data note added to section 9; `HasData` idempotency explanation added to section 12)
-- `backend/README.md` ("Database" section extended with naming convention + seeding/idempotency verification)
-- `backend/src/InvoiceApp.Infrastructure/InvoiceApp.Infrastructure.csproj` (added `EFCore.NamingConventions` 8.0.3)
-- `backend/src/InvoiceApp.Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs` (`.UseSnakeCaseNamingConvention()`)
-- `backend/src/InvoiceApp.Infrastructure/Persistence/ApplicationDbContextDesignTimeFactory.cs` (same, for design-time tooling)
-- `backend/src/InvoiceApp.Infrastructure/Persistence/Configurations/TemplateConfiguration.cs` (`HasData` seed)
-- `backend/src/InvoiceApp.Infrastructure/Persistence/Migrations/*` (regenerated: `InitialCreate` + `SeedTemplates`)
+- `.git/` (repository initialized), pushed to `https://github.com/hassham/invoice-generator`
+- `.github/workflows/ci.yml`
+- `.gitignore` (added `/publish/`)
+- `README.md` (CI badge)
+- `backend/README.md` (new "CI" section)
 - `backlog.md`
 
 Verification performed:
 
-- `dotnet build backend/InvoiceApp.sln --configuration Release` — 0 warnings, 0 errors. `dotnet test` — 18/18 passed.
-- Dropped the database, applied `InitialCreate` alone, confirmed `document.templates` had 0 rows (proves the seed isn't accidentally baked into the schema migration).
-- Applied `SeedTemplates` as a genuine upgrade on top — confirmed exactly 3 rows with the correct data (`classic`/`modern`/`minimal`, correct `sort_order`).
-- Reran `dotnet ef database update` a second time: EF Core reported "No migrations were applied. The database is already up to date," and the row count stayed at 3 — concrete proof of idempotency and no duplicate reference data, not just an assertion.
-- Checked `__EFMigrationsHistory` directly: both migrations recorded exactly once.
-- Real runtime check: ran the Api as Development against the fully migrated + seeded database — started cleanly, `GET /api/v1/health` returned `200`. Stopped the background process afterward.
-- Did not re-run the frontend build/lint since no frontend files were touched in this execution.
+- Ran the exact backend commands locally first (`dotnet restore`/`build`/`publish`) and the exact frontend commands (`npm ci`/`npm run build`) — both succeeded before trusting the workflow.
+- **Pushed and watched a real GitHub Actions run to completion** (`gh run watch`, run ID `32449842002`), not just written-and-assumed-correct YAML: both `Frontend build` (31s) and `Backend build` (37s) jobs passed every step, and `gh run view` confirmed both `backend-api` and `frontend-build` artifacts were actually produced — the literal wording of `IG-79`'s completion criteria, verified rather than asserted.
+- Full run: <https://github.com/hassham/invoice-generator/actions/runs/32449842002>.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-79`.
+No blocker is currently recorded for starting `IG-80`.
+
+**This directory is now a git repository** (it was not, as of the previous handoff) with a remote at `https://github.com/hassham/invoice-generator` (public, owned by GitHub account `hassham`, authenticated via `gh`). The default branch is `main`. Do not re-run `git init` or treat the repository as absent in a future session — check `git remote -v` / `git log` first.
 
 `docs/DATABASE_SCHEMA.md` documents the intended design; always verify newly-generated migration SQL/column names actually match it before trusting the doc, per the naming-convention mismatch caught and fixed during `IG-78`.
 
@@ -99,8 +96,6 @@ The `dotnet-ef` global tool is now installed at version 8.0.11 (matching the pro
 
 The installed environment provides .NET SDK 8.0.300. Two approved attempts to install .NET 10 stalled, so the backend currently targets supported .NET 8 to retain a verified clean build. Upgrade the target to .NET 10 when that SDK is reliably available; do not represent the current target as .NET 10.
 
-This directory is not currently a Git repository, so no Git status or commit history is available. Repository initialization should be explicitly handled before relying on source-control workflows.
-
 Both Claude and Codex are authorized to work in this repository and Jira project concurrently but must not work the same Subtask at once. Before starting a Subtask, check its live Jira status/assignee/comments; claim it by transitioning To Do → In Progress with a short comment before beginning implementation.
 
 Provider and deployment choices that are not needed for the current structural task should be resolved through their relevant Jira work before implementation depends on them. Do not invent credentials, production environments or provider contracts.
@@ -109,7 +104,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-21 Australia/Sydney
 
-Jira `IG-15` is Done (closed with a comment recording acceptance-criteria verification). `IG-78` is Done with a claim comment (start) and a verification comment (completion). Next Story `IG-16` is To Do with two To Do Subtasks (`IG-79`, `IG-80`). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+Jira `IG-79` is Done with a claim comment (start) and a verification comment (completion, including the live GitHub Actions run URL as evidence). Parent Story `IG-16` is In Progress with one remaining Subtask, `IG-80` (To Do). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
