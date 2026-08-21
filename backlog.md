@@ -8,9 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Construction started; modular application foundation is in place.
-
-The initial frontend and backend solution structure has been implemented and builds successfully. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
+**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete — modular solution structure, architecture-boundary enforcement, environment/secrets handling, database schema and migrations, CI with quality gates and branch protection, health checks, and structured error diagnostics are all in place and verified against real infrastructure (a live Postgres container, a live GitHub Actions pipeline). Construction is moving into Epic `IG-2` (Public Website and Acquisition) — the first genuinely frontend/product-content work. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
 Jira backlog created and verified:
 
@@ -29,27 +27,27 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 Continue the platform foundation in delivery order:
 
 ```text
-Epic:    IG-1  — Platform Foundation and Delivery
-Story:   IG-17 — Observe application health and failures
-Subtask: IG-82 — Implement structured error diagnostics
+Epic:    IG-2  — Public Website and Acquisition
+Story:   IG-18 — Discover the product from the landing page
+Subtask: IG-83 — Build the responsive landing-page content
 ```
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-1>
-- <https://appitometechnologies.atlassian.net/browse/IG-17>
-- <https://appitometechnologies.atlassian.net/browse/IG-82>
+- <https://appitometechnologies.atlassian.net/browse/IG-2>
+- <https://appitometechnologies.atlassian.net/browse/IG-18>
+- <https://appitometechnologies.atlassian.net/browse/IG-83>
 
 ## Next Task
 
-`IG-81` is Done. Next is `IG-82 — Implement structured error diagnostics`, the second and last Subtask under `IG-17`/S05.
+**Epic `IG-1` — Platform Foundation and Delivery — is complete.** All 5 Stories (`IG-13` through `IG-17`) and their 10 Subtasks are Done. The next Epic is `IG-2 — Public Website and Acquisition`, first Story `IG-18 — Discover the product from the landing page`, first Subtask `IG-83 — Build the responsive landing-page content`.
 
-Before implementation:
+**This is a significant pivot, not a routine continuation** — flagged rather than started automatically:
 
-1. Check `IG-82`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-82`, its parent `IG-17` and Epic `IG-1` in Jira for live criteria.
-3. `docs/SAD.md` section 81 (Error Handling) specifies a central exception-handling middleware mapping exception types to HTTP status codes (`ValidationException`→400, unauthenticated→401, forbidden→403, not-found→404, conflict→409, unexpected→500) and says not to expose internal stack traces in production. Section 78 (context: request/application-operation/logging/external-provider-calls) is about structured logging correlation, which is likely what "structured error diagnostics" actually means — read both before assuming scope.
-4. No Domain-level exception types exist yet (no `ValidationException`, etc.) — this Subtask may need to define them, or may only need the middleware if error-throwing code doesn't exist yet either. Confirm scope doesn't silently pull in business-rule validation work that belongs to a later Invoicing/Payments Story.
+1. Everything since `IG-73` has been backend/platform infrastructure with no real product UI. `IG-83` is the first genuinely frontend/product-content Subtask — it needs `docs/FSD.md` section 6 (Public Website) and `docs/PRD.md` for actual landing-page content/copy, not just architecture docs.
+2. Check `IG-83`'s live status/assignee/comments first — Codex may have picked it up, and may be more likely to be working frontend/product Epics than backend infra ones.
+3. Read `IG-83`, its parent `IG-18` and Epic `IG-2` in Jira for live criteria before starting.
+4. The frontend (`frontend/app/`) is still the Next.js starter template (default `page.tsx`/`layout.tsx`, no real content) — this Subtask likely replaces it entirely.
 
 ## Last Execution
 
@@ -57,32 +55,34 @@ Before implementation:
 
 Completed:
 
-- Implemented `IG-81 — Implement application and dependency health checks` (T009, S05/`IG-17`).
-- Replaced the `IG-73` placeholder `GET /api/v1/health` with `GET /health/live` and `GET /health/ready`, per `docs/SAD.md` section 80. Liveness has no dependency checks; readiness runs a `"ready"`-tagged database connectivity check.
-- Added `InvoiceApp.Infrastructure/HealthChecks/DatabaseHealthCheck.cs`: calls `Database.CanConnectAsync()`, classifies the result as `Unhealthy` (can't connect), `Degraded` (connects but takes >500ms), or `Healthy`. The decision logic (`Evaluate`) is a pure static method, unit-tested without needing a real database.
-- Added `InvoiceApp.Api/HealthCheckResponseWriter.cs`: JSON response serializing only check name/status, deliberately never `Description`/`Exception`, so a failure can't leak a connection string or other detail through this endpoint regardless of what a future check's own description text says.
+- Implemented `IG-82 — Implement structured error diagnostics` (T010, S05/`IG-17`), completing S05 **and Epic `IG-1` in full**.
+- Added `InvoiceApp.Application/Exceptions/{Validation,NotFound,Conflict}Exception.cs` — the first real content in the shared Application project beyond its assembly marker.
+- Added `InvoiceApp.Api/Diagnostics/CorrelationIdMiddleware.cs`: uses `HttpContext.TraceIdentifier` as the correlation ID, echoes it in `X-Correlation-Id`, wraps the pipeline in a logging scope so every log statement carries it.
+- Added `InvoiceApp.Api/Diagnostics/GlobalExceptionHandler.cs` (`IExceptionHandler`): maps the three typed exceptions above to 400/404/409 with their (client-safe) message; anything else maps to 500 with a generic message and no detail — an internal exception's message can never reach the client regardless of what it contains.
+- **Found and fixed a real ordering bug via manual verification, not by reasoning about it**: `CorrelationIdMiddleware` must be registered *before* `UseExceptionHandler()`. With the opposite (initially chosen) order, an exception unwinds past and disposes the correlation logging scope before the handler runs, so its own log entry silently lost the `CorrelationId` enrichment. Caught by actually reading the console log output, not assumed correct from the code.
 
 Files changed or created:
 
-- `backend/src/InvoiceApp.Infrastructure/InvoiceApp.Infrastructure.csproj` (added `Microsoft.Extensions.Diagnostics.HealthChecks` 8.0.11)
-- `backend/src/InvoiceApp.Infrastructure/HealthChecks/DatabaseHealthCheck.cs`
-- `backend/src/InvoiceApp.Infrastructure/HealthChecks/InfrastructureHealthChecksExtensions.cs`
-- `backend/src/InvoiceApp.Api/HealthCheckResponseWriter.cs`
-- `backend/src/InvoiceApp.Api/Program.cs` (mapped `/health/live`, `/health/ready`; removed `/api/v1/health`)
-- `backend/src/InvoiceApp.Api/InvoiceApp.Api.http` (updated from stale template content)
-- `backend/tests/InvoiceApp.Infrastructure.Tests/HealthChecks/DatabaseHealthCheckTests.cs`
-- `backend/README.md` (new "Health checks" section)
+- `backend/src/InvoiceApp.Application/Exceptions/ValidationException.cs`, `NotFoundException.cs`, `ConflictException.cs`
+- `backend/src/InvoiceApp.Api/Diagnostics/CorrelationIdMiddleware.cs`
+- `backend/src/InvoiceApp.Api/Diagnostics/GlobalExceptionHandler.cs`
+- `backend/src/InvoiceApp.Api/Program.cs` (logging scopes enabled, middleware wired in the correct order)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/InvoiceApp.Infrastructure.Tests.csproj` (added a ProjectReference to `InvoiceApp.Api` to test its diagnostics code)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Diagnostics/GlobalExceptionHandlerTests.cs`
+- `backend/README.md` (new "Error diagnostics" section)
 - `backlog.md`
 
 Verification performed:
 
-- `dotnet build`/`dotnet test` — 0 warnings, 24/24 tests passed (10 in `InvoiceApp.Infrastructure.Tests`, up from 4).
-- **All three health states verified against the real local Postgres container, not simulated**: `/health/ready` returned `Degraded` on the very first request after app startup (cold connection-pool latency genuinely exceeded 500ms — not forced), then `Healthy` on every request after; `docker stop invoiceapp-postgres` made it return `Unhealthy` with HTTP 503; `/health/live` stayed `Healthy`/200 throughout, confirming liveness is actually independent of dependency health, not just structurally separate in the code. Restarted the container afterward.
-- Pushed and watched a real GitHub Actions run to completion (both quality gates from `IG-80` passed): <https://github.com/hassham/invoice-generator/actions/runs/32455961812>.
+- `dotnet build`/`dotnet test` — 0 warnings, 28/28 tests passed.
+- **Real end-to-end runtime verification** using temporary endpoints (removed before committing): confirmed correct status/body for all three typed exceptions, and for a deliberately "sensitive-looking" unexpected exception (`Host=db.internal;Password=supersecret`) confirmed the client response had **no** `detail` field at all, while the server-side console log for that same request showed the full exception tagged with the identical `CorrelationId` as the response header/body — proving the correlation-to-logs link actually works, not just that the code compiles.
+- Pushed and watched a real GitHub Actions run to completion: <https://github.com/hassham/invoice-generator/actions/runs/32458911833>.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-82`.
+No blocker is currently recorded for starting `IG-83`.
+
+**Structured logging note for future work:** `builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true)` is what makes correlation IDs (and any future `logger.BeginScope`) actually visible in log output — the default console configuration does not include scopes. If a future Subtask introduces a different/additional log provider (Seq, Application Insights, etc. per `docs/SAD.md` section 76), confirm it's still configured to surface scopes, or the correlation ID will silently stop appearing in logs even though the code is unchanged.
 
 **`main` now has branch protection** requiring `Backend build` and `Frontend build` to pass before a PR can merge (force-push/deletion of `main` also disallowed). `enforce_admins` is off and no PR-review count is required, so direct pushes to `main` by an authenticated owner still work (as used throughout this project so far) — only PR merges are actually gated. Revisit if the team/workflow around PRs changes.
 
@@ -108,7 +108,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-21 Australia/Sydney
 
-Jira `IG-81` is Done with a claim comment (start) and a verification comment (completion). Parent Story `IG-17` is In Progress with one remaining Subtask, `IG-82` (To Do). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+Jira `IG-17` is Done. **Epic `IG-1` is Done** (all 5 Stories complete, closed with a comment recording acceptance-criteria verification). `IG-82` is Done with a claim comment (start) and a verification comment (completion). Next Epic `IG-2` is To Do; first Story `IG-18` is To Do with two To Do Subtasks (`IG-83`, `IG-84`). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
