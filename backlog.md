@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete — modular solution structure, architecture-boundary enforcement, environment/secrets handling, database schema and migrations, CI with quality gates and branch protection, health checks, and structured error diagnostics are all in place and verified against real infrastructure (a live Postgres container, a live GitHub Actions pipeline). Construction is moving into Epic `IG-2` (Public Website and Acquisition) — the first genuinely frontend/product-content work. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
+**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete. Within Epic `IG-2` (Public Website and Acquisition), Story `IG-18` (Discover the product from the landing page) is now complete — landing page content and its Create Invoice navigation tests are both done and verified in a real CI run. Next up is Story `IG-19` (Navigate public product pages). Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
 Jira backlog created and verified:
 
@@ -28,56 +28,59 @@ Continue the platform foundation in delivery order:
 
 ```text
 Epic:    IG-2  — Public Website and Acquisition
-Story:   IG-18 — Discover the product from the landing page
-Subtask: IG-84 — Connect landing-page creation calls to action
+Story:   IG-19 — Navigate public product pages
+Subtask: IG-85 — Build accessible public navigation
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-2>
-- <https://appitometechnologies.atlassian.net/browse/IG-18>
-- <https://appitometechnologies.atlassian.net/browse/IG-84>
+- <https://appitometechnologies.atlassian.net/browse/IG-19>
+- <https://appitometechnologies.atlassian.net/browse/IG-85>
 
 ## Next Task
 
-`IG-83` is Done. Next is `IG-84 — Connect landing-page creation calls to action`, the second and last Subtask under `IG-18`/S06.
+`IG-18` (S06, both Subtasks IG-83/IG-84) is Done. Next is Story `IG-19 — Navigate public product pages` (S07), starting with its first Subtask `IG-85 — Build accessible public navigation`. `IG-19` also has a second Subtask, `IG-86 — Verify responsive navigation states`.
 
 Before implementation:
 
-1. Check `IG-84`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-84`, its parent `IG-18` and Epic `IG-2` in Jira for live criteria.
-3. The landing page's CTAs (`Create Free Invoice`, template links, pricing plan buttons) already point at `/invoice/create`, `/login`, `/signup` — none of those pages exist yet (they belong to later Epics: Invoice Generator, Authentication). Read `IG-84`'s completion criteria carefully before assuming scope: it may be about the CTAs' *behaviour* (e.g. anchor scrolling, analytics/acquisition tracking per `docs/PRD.md`'s SEO Acquisition Strategy section) rather than building the destination pages themselves, which would be a much bigger, out-of-scope pull-forward.
-4. `docs/FSD.md` section 6.1 already specifies the primary CTA's destination (`/invoice/create`) and label (`Create Free Invoice`) — both already implemented in `IG-83`. Confirm what's actually left before adding anything new.
+1. Check `IG-85`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-85`, its parent `IG-19` and Epic `IG-2` in Jira for live criteria.
+3. `IG-19`'s acceptance criteria call for navigation exposing approved public destinations (Create Invoice, authentication, supporting info), usable on mobile and by keyboard. `SiteHeader.tsx` (built in `IG-83`) already has basic nav links — check what it currently covers before assuming this is greenfield work; this Subtask is likely about completing/hardening it (keyboard operability, mobile menu state, correct destination set) rather than building nav from scratch.
+4. `/login`, `/signup` and `/invoice/create` still don't exist as pages (later Epics) — nav links to them are expected to remain non-functional destinations for now, consistent with `IG-84`'s precedent of testing route wiring, not building destinations.
 
 ## Last Execution
 
-**Date:** 2026-08-21 Australia/Sydney
+**Date:** 2026-08-22 Australia/Sydney
 
 Completed:
 
-- Implemented `IG-83 — Build the responsive landing-page content` (T011, S06/`IG-18`) — the first genuinely frontend/product-content Subtask in the project.
-- Replaced the Next.js starter template with a real landing page (`frontend/app/page.tsx` composing new components in `frontend/app/components/landing/`), covering every component `docs/FSD.md` section 6.1 requires: header nav, hero (headline "Create it. Send it. Get paid." per `docs/PRD.md` section 35's stated positioning, already present in the scaffold and kept), product benefits, template preview, how it works, feature overview, pricing teaser, FAQ, footer.
-- Template preview names/codes (`classic`/`modern`/`minimal`) deliberately match the three rows already seeded in `document.templates` by the backend (`IG-78`) rather than inventing separate marketing names.
-- Pricing teaser content grounded in `docs/PRD.md` section 24's Freemium Model (Free vs Pro feature lists, indicative Pro price) — informational only, no checkout/payment flow (Subscriptions module is explicitly future/out of MVP scope).
-- FAQ content grounded in FSD/AGENTS.md facts already true of the product (anonymous preview before account, GST support, PDF download after sign-in) rather than invented claims.
+- Implemented `IG-84 — Connect landing-page creation calls to action` (T012, S06/`IG-18`) — the second and final Subtask under `IG-18`, which is now Done.
+- Determined (from `IG-84`'s completion criteria: "passes navigation tests") that this Subtask was about proving the CTAs wired in `IG-83` route correctly, not about building `/invoice/create`/`/login`/`/signup` themselves — those stay out of scope for later Epics.
+- Introduced frontend component testing: Vitest + `@testing-library/react`/`jest-dom`/`user-event` + jsdom, `frontend/vitest.config.ts` + `frontend/vitest.setup.ts`, `"test": "vitest run"` script.
+- Wrote navigation tests: `Hero.test.tsx` and `PricingTeaserSection.test.tsx` (per-component), `page.test.tsx` (full page, asserts exactly 2 "Create Free Invoice" links both pointing at `/invoice/create`, and the Pro plan CTA pointing at `/signup` instead).
+- Added a `Test` step to the frontend CI job in `.github/workflows/ci.yml`, before `Build`, matching the backend job's existing gate-before-artifact pattern.
+- Closed `IG-18` (Story) — both its Subtasks are Done.
 
 Files changed or created:
 
-- `frontend/app/page.tsx` (rewritten)
-- `frontend/app/components/landing/{SiteHeader,Hero,BenefitsSection,TemplatePreviewSection,HowItWorksSection,FeatureOverviewSection,PricingTeaserSection,FaqSection,SiteFooter}.tsx`
-- `frontend/README.md` (new — first frontend README; documents the landing page and the browser-verification approach)
+- `frontend/vitest.config.ts`, `frontend/vitest.setup.ts` (new)
+- `frontend/app/components/landing/Hero.test.tsx`, `frontend/app/components/landing/PricingTeaserSection.test.tsx`, `frontend/app/page.test.tsx` (new)
+- `frontend/package.json` / `package-lock.json` (new devDependencies + `test` script)
+- `.github/workflows/ci.yml` (frontend job: added `Test` step)
+- `frontend/README.md` (documents the Vitest setup and the RTL cleanup gotcha)
 - `backlog.md`
 
 Verification performed:
 
-- `npm run lint` / `npm run build` — both clean (build also type-checks).
-- **Real browser verification, not just a successful build** — no project skill covered this yet, so used a small ad-hoc Playwright script (`chromium-cli` unavailable on this machine; Playwright installed to a scratch directory, not the repo) to actually load the running dev server: confirmed all 7 section headings render, the FAQ `<details>` disclosure opens on click, zero browser console errors, and **no horizontal overflow at 1440px, 375px or 320px** (the FSD's minimum supported width) — screenshots reviewed at all three sizes, not just asserted.
-- **Caught and worked around a real environment gotcha**: port 3000 was already occupied by a completely unrelated project's dev server on this machine ("Lead → Launch"); Next.js correctly auto-selected port 3002, and the first verification attempt against the assumed port 3000 hit the wrong app entirely before this was noticed and fixed. Documented in `frontend/README.md` for future sessions.
-- Pushed and watched two real GitHub Actions runs to completion (the landing page commit, then the README commit): <https://github.com/hassham/invoice-generator/actions/runs/32462727335>.
+- **Ran the tests locally and hit a real failure, not a hypothetical one**: `PricingTeaserSection.test.tsx`'s second test failed with a `getByRole` ambiguity because a prior test's DOM wasn't unmounted — React Testing Library's automatic `afterEach(cleanup)` only self-registers under Jest/Vitest globals, which `vitest.config.ts` doesn't enable. Fixed by adding an explicit `afterEach(cleanup)` in `vitest.setup.ts`; re-ran and confirmed all 4 tests pass.
+- Pushed and watched a real GitHub Actions run to completion, confirming the new frontend `Test` step actually executes `npm run test` in CI (not just locally) alongside the pre-existing Lint/Build steps: <https://github.com/hassham/invoice-generator/actions/runs/32494052580> (both jobs green).
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-84`.
+No blocker is currently recorded for starting `IG-85`.
+
+**Frontend component tests need explicit RTL cleanup.** `vitest.config.ts` does not set `test.globals: true`, so React Testing Library's automatic `afterEach(cleanup)` never self-registers; `vitest.setup.ts` now calls `cleanup()` in its own `afterEach` to compensate. Any future change to `vitest.config.ts`/`vitest.setup.ts` must preserve this or multi-`it()` test files will silently leak DOM state between tests.
 
 **Port 3000 on this machine may be occupied by an unrelated project's dev server.** Next.js handles this gracefully on its own (auto-selects the next free port, e.g. 3002) — but always check the dev server's own startup log for the actual port before scripting/testing against `localhost:3000`, per the mixup caught during `IG-83`.
 
@@ -107,9 +110,9 @@ Provider and deployment choices that are not needed for the current structural t
 
 ## Jira Synchronization
 
-**Last synchronized:** 2026-08-21 Australia/Sydney
+**Last synchronized:** 2026-08-22 Australia/Sydney
 
-Jira `IG-83` is Done with a claim comment (start) and a verification comment (completion, including the browser-verification evidence). Parent Story `IG-18` is In Progress with one remaining Subtask, `IG-84` (To Do). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+`IG-84` is Done with a claim comment (start) and a verification comment (completion, including the CI-run evidence and the RTL cleanup bug/fix). Parent Story `IG-18` is Done (both Subtasks complete). Next Story `IG-19` (Navigate public product pages) is To Do with two Subtasks, `IG-85` and `IG-86`, both To Do/unclaimed as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
