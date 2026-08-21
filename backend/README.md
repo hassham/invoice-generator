@@ -156,3 +156,41 @@ connection-pool latency exceeded 500ms) and `Healthy` on every request after tha
 container (`docker stop invoiceapp-postgres`) made it return `Unhealthy` with HTTP 503, while
 `/health/live` stayed `Healthy` with HTTP 200 throughout - confirming liveness is genuinely
 independent of dependency health, not just structurally separate in the code.
+
+## Error diagnostics
+
+Per `docs/SAD.md` sections 76-78 (structured `ILogger` logging, log fields, correlation IDs) and
+81 (central exception handling, no stack traces to the client):
+
+- `CorrelationIdMiddleware` (`InvoiceApp.Api/Diagnostics`) uses `HttpContext.TraceIdentifier`
+  (already unique per request) as the correlation ID rather than inventing a second one. It's
+  echoed in the `X-Correlation-Id` response header and wraps the rest of the pipeline in a logging
+  scope (`logger.BeginScope("CorrelationId:{CorrelationId}", ...)`) so every log statement made
+  while handling the request - including `GlobalExceptionHandler`'s own - carries it.
+- `GlobalExceptionHandler` (`IExceptionHandler`, registered via `AddExceptionHandler`/
+  `UseExceptionHandler`) maps typed `InvoiceApp.Application.Exceptions` types to HTTP status codes:
+  `ValidationException`→400, `NotFoundException`→404, `ConflictException`→409, anything else→500.
+  The full exception is always logged server-side; the client response only ever gets the message
+  from a *known, typed* exception (written to be client-safe by the code that throws it) or, for
+  anything unexpected, a generic message with **no** detail at all - so an internal exception's
+  message (which could contain a connection string or other implementation detail) can never reach
+  the client, regardless of what that message says.
+
+**Middleware order matters and was gotten wrong once, then fixed and verified**:
+`CorrelationIdMiddleware` must be registered *before* `UseExceptionHandler()`, not after. Both
+orders let `UseExceptionHandler` catch downstream exceptions either way, but only this order keeps
+the correlation logging scope active while `GlobalExceptionHandler` itself logs - with the other
+order, an exception unwinds past (and disposes) the scope before the handler runs, so its own log
+entry silently loses the `CorrelationId` enrichment every other log statement gets. Confirmed by
+running the app and checking actual console log output before and after reordering, not by
+reasoning about it in the abstract.
+
+Verified against the running app for all three mapped cases plus one deliberately "sensitive"
+message, using temporary endpoints removed before committing:
+`{"title":"Validation failed.","status":400,"detail":"Email is required.","correlationId":"..."}`,
+a matching 404/409 shape, and for an `InvalidOperationException("Host=db.internal;Password=...")`:
+`{"title":"An unexpected error occurred.","status":500,"correlationId":"..."}` - no `detail` field
+at all on the client response, while the server console log for that same request showed the full
+exception (including the connection-like message) tagged with the identical `CorrelationId`,
+confirming a caller can report the ID and an operator can find the real cause in logs without the
+client ever seeing it.

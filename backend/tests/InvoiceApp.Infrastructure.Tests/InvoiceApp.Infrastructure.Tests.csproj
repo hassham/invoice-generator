@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\InvoiceApp.Infrastructure\InvoiceApp.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Api\InvoiceApp.Api.csproj" />
   </ItemGroup>
 
 </Project>

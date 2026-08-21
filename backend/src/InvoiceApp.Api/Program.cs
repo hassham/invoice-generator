@@ -1,4 +1,5 @@
 using InvoiceApp.Api;
+using InvoiceApp.Api.Diagnostics;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.HealthChecks;
 using InvoiceApp.Infrastructure.Persistence;
@@ -6,11 +7,26 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Structured logging (docs/SAD.md section 76): scopes must be rendered for the correlation ID
+// (section 78) added by CorrelationIdMiddleware to actually appear in log output - the default
+// console formatter does not include them otherwise.
+builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true);
+
 builder.Services.AddInfrastructureConfiguration(builder.Configuration);
 builder.Services.AddInfrastructurePersistence();
 builder.Services.AddInfrastructureHealthChecks();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+// CorrelationIdMiddleware first (outermost): UseExceptionHandler still catches everything
+// downstream regardless of this order, but registering it second means a caught exception is
+// handled (and logged) *inside* the correlation logging scope rather than after it has already
+// unwound past that scope and been disposed - otherwise GlobalExceptionHandler's own log entry
+// would be missing the CorrelationId enrichment that every other log statement gets.
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseExceptionHandler();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the
 // app look like it needs to be restarted.
