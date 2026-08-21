@@ -30,28 +30,26 @@ Continue the platform foundation in delivery order:
 
 ```text
 Epic:    IG-1  — Platform Foundation and Delivery
-Story:   IG-16 — Automate build and delivery validation
-Subtask: IG-80 — Enforce automated quality gates
+Story:   IG-17 — Observe application health and failures
+Subtask: IG-81 — Implement application and dependency health checks
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-1>
-- <https://appitometechnologies.atlassian.net/browse/IG-16>
-- <https://appitometechnologies.atlassian.net/browse/IG-80>
+- <https://appitometechnologies.atlassian.net/browse/IG-17>
+- <https://appitometechnologies.atlassian.net/browse/IG-81>
 
 ## Next Task
 
-`IG-79` is Done. Next is `IG-80 — Enforce automated quality gates` (T008), the second and last Subtask under `IG-16`/S04.
+`IG-16` (S04) is Done — both its Subtasks (`IG-79`, `IG-80`) are complete. Next Story is `IG-17 — Observe application health and failures` (S05), with two To Do Subtasks: `IG-81 — Implement application and dependency health checks` and `IG-82 — Implement structured error diagnostics`.
 
 Before implementation:
 
-1. Check `IG-80`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-80`, its parent `IG-16` and Epic `IG-1` in Jira for live criteria.
-3. `IG-79` built `.github/workflows/ci.yml` with `backend`/`frontend` build jobs (restore, build, publish/build, upload artifact) deliberately scoped to *building*, not testing. `IG-80` most likely means: (a) add `dotnet test`/`npm run lint` (and `next build`'s own type-check, already implicit) as steps in those same jobs, and (b) configure the `main` branch as protected with those checks marked required in GitHub, so a failing check actually blocks merge — extend the existing workflow rather than creating a second one.
-4. Branch protection (required status checks) is a GitHub repository *setting*, not a file in the repo — it has to be configured via `gh api`/the GitHub UI/`gh ruleset`, not just by editing YAML. Confirm this is in scope before skipping it.
-
-The local Postgres container (`docker compose -f infrastructure/docker/docker-compose.yml up -d`, host port 5433 — deliberately not 5432, see Blockers) is not needed for `IG-80` unless test execution requires a live database.
+1. Check `IG-81`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-81`, its parent `IG-17` and Epic `IG-1` in Jira for live criteria.
+3. The existing `/api/v1/health` endpoint (`Program.cs`) is a placeholder that always returns `{"status":"healthy"}` regardless of actual state — "dependency health checks" almost certainly means it needs to actually check the database connection (`ApplicationDbContext`/Npgsql), not just liveness. `Microsoft.Extensions.Diagnostics.HealthChecks` + `AspNetCore.HealthChecks.NpgSql` is the conventional ASP.NET Core approach; check package cache/nuget.org availability before assuming a specific package name/version.
+4. The local Postgres container (`docker compose -f infrastructure/docker/docker-compose.yml up -d`, host port 5433 — deliberately not 5432, see Blockers) will be needed to verify a real dependency health check actually detects both the healthy and unhealthy (DB down) cases.
 
 ## Last Execution
 
@@ -59,30 +57,34 @@ The local Postgres container (`docker compose -f infrastructure/docker/docker-co
 
 Completed:
 
-- Initialized this directory as a git repository (it was not one before) and created a new public GitHub repository, **<https://github.com/hassham/invoice-generator>**, at the user's explicit direction ("we will be using github for pipelines"). Pushed the full platform-foundation snapshot (`IG-73` through `IG-78`) as the initial commit.
-- Implemented `IG-79 — Configure frontend and backend build pipelines` (T007, S04/`IG-16`).
-- Added `.github/workflows/ci.yml`: two parallel jobs on push/PR to `main` — `backend` (`dotnet restore`/`build`/`publish` for `InvoiceApp.Api`) and `frontend` (`npm ci`/`next build`) — each uploading its output as a workflow artifact. Deliberately scoped to build-only; test execution and required-check enforcement are `IG-80`'s job, to be layered onto these same jobs rather than a second workflow.
-- Fixed the frontend artifact path bug caught during local verification: `next.config.ts` sets `distDir: "generated"`, so the build output is `frontend/generated`, not the Next.js default `frontend/.next` — using the wrong path would have silently uploaded nothing.
-- Added `/publish/` to `.gitignore` (the local `dotnet publish` output directory used to test the same command the workflow runs).
+- Implemented `IG-80 — Enforce automated quality gates` (T008, S04/`IG-16`), completing S04.
+- Extended `.github/workflows/ci.yml`: added a `Test` step (`dotnet test`) to the `backend` job before `Publish Api`, and a `Lint` step (`npm run lint`) to the `frontend` job before `Build` — ordered so a failure stops the job before the artifact-producing step runs at all.
+- **Found and fixed a real, previously-undetected bug** via this pipeline: `ModuleReferenceBoundaryTests` (from `IG-74`) parses `ProjectReference` paths with `Path.GetFileNameWithoutExtension`, which only treats `/` as a separator on non-Windows platforms — the `.csproj` files use Windows-style `\`. This passed on every Windows dev-machine run all session and failed for every single project the moment it ran on the Ubuntu GitHub Actions runner. Fixed in `ProjectFile.cs` by normalizing `\` to `/` first.
+- Configured GitHub branch protection on `main` (`gh api .../branches/main/protection`) requiring both `Backend build` and `Frontend build` status checks (up to date with `main`) before a PR can merge, and disallowing force-push/deletion of `main` — confirmed with the user first, since it's a workflow-affecting decision, not just a YAML change.
 
 Files changed or created:
 
-- `.git/` (repository initialized), pushed to `https://github.com/hassham/invoice-generator`
-- `.github/workflows/ci.yml`
-- `.gitignore` (added `/publish/`)
-- `README.md` (CI badge)
-- `backend/README.md` (new "CI" section)
+- `.github/workflows/ci.yml` (Test/Lint steps added)
+- `backend/tests/InvoiceApp.ArchitectureTests/ProjectFile.cs` (cross-platform path fix)
+- `backend/README.md` (documented quality gates, the bug fix, and branch protection)
+- GitHub repository setting: branch protection on `main` (not a file in the repo)
 - `backlog.md`
 
 Verification performed:
 
-- Ran the exact backend commands locally first (`dotnet restore`/`build`/`publish`) and the exact frontend commands (`npm ci`/`npm run build`) — both succeeded before trusting the workflow.
-- **Pushed and watched a real GitHub Actions run to completion** (`gh run watch`, run ID `32449842002`), not just written-and-assumed-correct YAML: both `Frontend build` (31s) and `Backend build` (37s) jobs passed every step, and `gh run view` confirmed both `backend-api` and `frontend-build` artifacts were actually produced — the literal wording of `IG-79`'s completion criteria, verified rather than asserted.
-- Full run: <https://github.com/hassham/invoice-generator/actions/runs/32449842002>.
+- Ran `dotnet test`/`npm run lint` locally first — both passed.
+- **Proved the gate actually gates, not just "should" gate it**: deliberately broke a test assertion, ran the exact step chain locally (`dotnet test && dotnet publish`) — confirmed the chain stopped after the failing test and no `publish/` output was created.
+- **Pushed and watched three real GitHub Actions runs**: (1) with the deliberate test break still in the CI-pushed commit, `Test` failed and `Publish Api`/artifact-upload were correctly skipped (run `32450591579`) — this is also where the real cross-platform bug above was discovered, independent of the deliberate break; (2) after fixing both the deliberate break and the real bug, a fully green run with both artifacts produced (run `32450714431`); (3) after the documentation commit, another fully green run (run `32451376565`).
+- Verified branch protection is live: `gh api` response confirmed `required_status_checks.contexts = ["Backend build", "Frontend build"]`; the next direct push to `main` was met with GitHub's own message "Bypassed rule violations for refs/heads/main: 2 of 2 required status checks are expected" — confirming the rule exists and is evaluated (bypassed only because the push was made with admin/owner rights and `enforce_admins: false`).
+- Did not touch the local Postgres container for this Subtask — not needed.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-80`.
+No blocker is currently recorded for starting `IG-81`.
+
+**`main` now has branch protection** requiring `Backend build` and `Frontend build` to pass before a PR can merge (force-push/deletion of `main` also disallowed). `enforce_admins` is off and no PR-review count is required, so direct pushes to `main` by an authenticated owner still work (as used throughout this project so far) — only PR merges are actually gated. Revisit if the team/workflow around PRs changes.
+
+Architecture-boundary tests (`InvoiceApp.ArchitectureTests`) must be validated against what actually runs in CI (Linux), not only a Windows dev machine — a real cross-platform bug in `ProjectFile.cs` (fixed during `IG-80`) sat undetected through `IG-74` and every session since, because it only manifested on the Ubuntu CI runner.
 
 **This directory is now a git repository** (it was not, as of the previous handoff) with a remote at `https://github.com/hassham/invoice-generator` (public, owned by GitHub account `hassham`, authenticated via `gh`). The default branch is `main`. Do not re-run `git init` or treat the repository as absent in a future session — check `git remote -v` / `git log` first.
 
@@ -104,7 +106,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-21 Australia/Sydney
 
-Jira `IG-79` is Done with a claim comment (start) and a verification comment (completion, including the live GitHub Actions run URL as evidence). Parent Story `IG-16` is In Progress with one remaining Subtask, `IG-80` (To Do). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+Jira `IG-16` is Done (closed with a comment recording acceptance-criteria verification). `IG-80` is Done with a claim comment (start) and a verification comment (completion, including all three CI run URLs and the branch-protection API confirmation as evidence). Next Story `IG-17` is To Do with two To Do Subtasks (`IG-81`, `IG-82`). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
