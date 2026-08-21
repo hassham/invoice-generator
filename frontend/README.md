@@ -7,7 +7,21 @@ npm install
 npm run dev     # starts on :3000, or the next free port if that's taken
 npm run build   # production build; also runs TypeScript type-checking
 npm run lint    # eslint
+npm run test    # vitest run (component tests)
 ```
+
+## Component tests
+
+Vitest + `@testing-library/react`, jsdom environment (`vitest.config.ts`).
+Component tests (`*.test.tsx` colocated with the component) render plain
+components in isolation and are not a substitute for a real browser check
+of the full page - see "Landing page" below for that. React Testing
+Library's automatic `afterEach(cleanup)` only self-registers when it
+detects Jest/Vitest globals; since `vitest.config.ts` doesn't set
+`test.globals: true`, `vitest.setup.ts` calls `cleanup()` in an explicit
+`afterEach` itself - without it, a test file with multiple `it()` blocks
+leaks DOM nodes between tests and `getByRole` queries can match stale
+elements from a prior test.
 
 ## Landing page
 
