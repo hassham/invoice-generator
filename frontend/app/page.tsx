@@ -1,11 +1,27 @@
+import { BenefitsSection } from "./components/landing/BenefitsSection";
+import { FaqSection } from "./components/landing/FaqSection";
+import { FeatureOverviewSection } from "./components/landing/FeatureOverviewSection";
+import { Hero } from "./components/landing/Hero";
+import { HowItWorksSection } from "./components/landing/HowItWorksSection";
+import { PricingTeaserSection } from "./components/landing/PricingTeaserSection";
+import { SiteFooter } from "./components/landing/SiteFooter";
+import { SiteHeader } from "./components/landing/SiteHeader";
+import { TemplatePreviewSection } from "./components/landing/TemplatePreviewSection";
+
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl items-center px-6">
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Invoice App</p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950">Create it. Send it. Get paid.</h1>
-        <p className="mt-4 max-w-xl text-lg text-slate-600">The application foundation is ready for feature development.</p>
-      </section>
-    </main>
+    <>
+      <SiteHeader />
+      <main>
+        <Hero />
+        <BenefitsSection />
+        <TemplatePreviewSection />
+        <HowItWorksSection />
+        <FeatureOverviewSection />
+        <PricingTeaserSection />
+        <FaqSection />
+      </main>
+      <SiteFooter />
+    </>
   );
 }
