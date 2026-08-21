@@ -24,6 +24,12 @@ dependency on ASP.NET Core, Entity Framework Core, Npgsql or `System.Net.Http`. 
 dotnet test backend/tests/InvoiceApp.ArchitectureTests/InvoiceApp.ArchitectureTests.csproj
 ```
 
+`ProjectFile.cs` normalizes `\` to `/` before extracting a project name from a `ProjectReference`
+path - `.csproj` files here use Windows-style backslashes, and `Path.GetFileNameWithoutExtension`
+only treats `/` as a separator on non-Windows platforms. This passed on Windows and failed on
+every project when CI (Ubuntu) first ran it under IG-80 - a concrete reason this suite is run in
+CI on Linux, not only locally on Windows.
+
 ## Environment configuration
 
 Infrastructure-owned settings are bound through the `Microsoft.Extensions.Options` pattern and
@@ -97,8 +103,25 @@ reference data).
 
 ## CI
 
-`.github/workflows/ci.yml` (GitHub Actions) restores, builds and publishes `InvoiceApp.Api` on
-every push/PR to `main`, uploading the publish output as a workflow artifact (`backend-api`). It
-does not run tests or gate merges - that's a separate concern (IG-80/T008) layered onto the same
-jobs, not a second workflow. A live example run:
-<https://github.com/hassham/invoice-generator/actions/runs/32449842002>.
+`.github/workflows/ci.yml` (GitHub Actions) runs on every push/PR to `main`. Each job orders its
+steps so a quality-gate failure stops the job before the artifact-producing step ever runs -
+`dotnet test`/`npm run lint` come before `dotnet publish`/`next build`'s artifact upload:
+
+- `backend`: restore -> build -> **test** -> publish `InvoiceApp.Api` -> upload `backend-api`.
+- `frontend`: install -> **lint** -> build (`next build`, which also type-checks) -> upload
+  `frontend-build`.
+
+Verified both directions for real, not just written and assumed correct: a genuine backend test
+failure (a real cross-platform bug in `ProjectFile.cs`, caught by this very pipeline - see
+"Architecture-boundary verification" above) produced a run where `Test` failed and `Publish
+Api`/the artifact upload were skipped entirely; after fixing it, the same run type passed cleanly
+with both artifacts produced. Example runs:
+<https://github.com/hassham/invoice-generator/actions/runs/32450591579> (blocked, as intended) and
+<https://github.com/hassham/invoice-generator/actions/runs/32450714431> (green).
+
+`main` has branch protection requiring both `Backend build` and `Frontend build` to pass (and be
+up to date with `main`) before a PR can merge, and disallows force-pushes/deletion of `main`. This
+is a GitHub repository setting (`gh api repos/hassham/invoice-generator/branches/main/protection`),
+not something the workflow YAML itself can express. `enforce_admins` is off and no PR-review count
+is required, so the existing direct-push workflow (used throughout this project's early
+development) still works - only *merging a PR* into `main` is actually gated by the checks.
