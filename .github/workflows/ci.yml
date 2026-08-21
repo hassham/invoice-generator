@@ -6,9 +6,10 @@ on:
   pull_request:
     branches: [main]
 
-# IG-79 scope: restore dependencies and produce both build artifacts for a clean pipeline run.
-# Test execution and required-check enforcement are IG-80's scope (docs/TASKS.md T008), added on
-# top of these same jobs rather than duplicated into a separate workflow.
+# IG-79: restore dependencies and produce both build artifacts for a clean pipeline run.
+# IG-80 (docs/TASKS.md T008): test/lint run before build/publish in each job, so a failure stops
+# the job before the artifact-producing steps run at all - this is what "prevents an invalid
+# release artifact" means in practice, not just a check that fails after the fact.
 jobs:
   backend:
     name: Backend build
@@ -28,6 +29,9 @@ jobs:
 
       - name: Build
         run: dotnet build InvoiceApp.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test InvoiceApp.sln --configuration Release --no-build --logger "console;verbosity=normal"
 
       - name: Publish Api
         run: dotnet publish src/InvoiceApp.Api/InvoiceApp.Api.csproj --configuration Release --no-build --output ../publish/api
@@ -54,6 +58,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build
