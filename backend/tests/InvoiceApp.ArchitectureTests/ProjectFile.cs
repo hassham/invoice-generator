@@ -34,7 +34,11 @@ internal sealed class ProjectFile
         _document.Descendants("ProjectReference")
             .Select(element => element.Attribute("Include")?.Value)
             .Where(include => include is not null)
-            .Select(include => Path.GetFileNameWithoutExtension(include!))
+            // MSBuild accepts '\' path separators in ProjectReference Include values on every OS
+            // (it normalizes them internally), but Path.GetFileNameWithoutExtension only treats
+            // '/' as a separator on non-Windows platforms - without this replace, a Windows-style
+            // path here silently fails to extract the project name on Linux/macOS CI runners.
+            .Select(include => Path.GetFileNameWithoutExtension(include!.Replace('\\', '/')))
             .ToArray();
 
     public string[] PackageReferenceNames =>
