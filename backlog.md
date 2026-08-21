@@ -29,25 +29,25 @@ Continue the platform foundation in delivery order:
 ```text
 Epic:    IG-2  — Public Website and Acquisition
 Story:   IG-18 — Discover the product from the landing page
-Subtask: IG-83 — Build the responsive landing-page content
+Subtask: IG-84 — Connect landing-page creation calls to action
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-2>
 - <https://appitometechnologies.atlassian.net/browse/IG-18>
-- <https://appitometechnologies.atlassian.net/browse/IG-83>
+- <https://appitometechnologies.atlassian.net/browse/IG-84>
 
 ## Next Task
 
-**Epic `IG-1` — Platform Foundation and Delivery — is complete.** All 5 Stories (`IG-13` through `IG-17`) and their 10 Subtasks are Done. The next Epic is `IG-2 — Public Website and Acquisition`, first Story `IG-18 — Discover the product from the landing page`, first Subtask `IG-83 — Build the responsive landing-page content`.
+`IG-83` is Done. Next is `IG-84 — Connect landing-page creation calls to action`, the second and last Subtask under `IG-18`/S06.
 
-**This is a significant pivot, not a routine continuation** — flagged rather than started automatically:
+Before implementation:
 
-1. Everything since `IG-73` has been backend/platform infrastructure with no real product UI. `IG-83` is the first genuinely frontend/product-content Subtask — it needs `docs/FSD.md` section 6 (Public Website) and `docs/PRD.md` for actual landing-page content/copy, not just architecture docs.
-2. Check `IG-83`'s live status/assignee/comments first — Codex may have picked it up, and may be more likely to be working frontend/product Epics than backend infra ones.
-3. Read `IG-83`, its parent `IG-18` and Epic `IG-2` in Jira for live criteria before starting.
-4. The frontend (`frontend/app/`) is still the Next.js starter template (default `page.tsx`/`layout.tsx`, no real content) — this Subtask likely replaces it entirely.
+1. Check `IG-84`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-84`, its parent `IG-18` and Epic `IG-2` in Jira for live criteria.
+3. The landing page's CTAs (`Create Free Invoice`, template links, pricing plan buttons) already point at `/invoice/create`, `/login`, `/signup` — none of those pages exist yet (they belong to later Epics: Invoice Generator, Authentication). Read `IG-84`'s completion criteria carefully before assuming scope: it may be about the CTAs' *behaviour* (e.g. anchor scrolling, analytics/acquisition tracking per `docs/PRD.md`'s SEO Acquisition Strategy section) rather than building the destination pages themselves, which would be a much bigger, out-of-scope pull-forward.
+4. `docs/FSD.md` section 6.1 already specifies the primary CTA's destination (`/invoice/create`) and label (`Create Free Invoice`) — both already implemented in `IG-83`. Confirm what's actually left before adding anything new.
 
 ## Last Execution
 
@@ -55,32 +55,33 @@ Direct links:
 
 Completed:
 
-- Implemented `IG-82 — Implement structured error diagnostics` (T010, S05/`IG-17`), completing S05 **and Epic `IG-1` in full**.
-- Added `InvoiceApp.Application/Exceptions/{Validation,NotFound,Conflict}Exception.cs` — the first real content in the shared Application project beyond its assembly marker.
-- Added `InvoiceApp.Api/Diagnostics/CorrelationIdMiddleware.cs`: uses `HttpContext.TraceIdentifier` as the correlation ID, echoes it in `X-Correlation-Id`, wraps the pipeline in a logging scope so every log statement carries it.
-- Added `InvoiceApp.Api/Diagnostics/GlobalExceptionHandler.cs` (`IExceptionHandler`): maps the three typed exceptions above to 400/404/409 with their (client-safe) message; anything else maps to 500 with a generic message and no detail — an internal exception's message can never reach the client regardless of what it contains.
-- **Found and fixed a real ordering bug via manual verification, not by reasoning about it**: `CorrelationIdMiddleware` must be registered *before* `UseExceptionHandler()`. With the opposite (initially chosen) order, an exception unwinds past and disposes the correlation logging scope before the handler runs, so its own log entry silently lost the `CorrelationId` enrichment. Caught by actually reading the console log output, not assumed correct from the code.
+- Implemented `IG-83 — Build the responsive landing-page content` (T011, S06/`IG-18`) — the first genuinely frontend/product-content Subtask in the project.
+- Replaced the Next.js starter template with a real landing page (`frontend/app/page.tsx` composing new components in `frontend/app/components/landing/`), covering every component `docs/FSD.md` section 6.1 requires: header nav, hero (headline "Create it. Send it. Get paid." per `docs/PRD.md` section 35's stated positioning, already present in the scaffold and kept), product benefits, template preview, how it works, feature overview, pricing teaser, FAQ, footer.
+- Template preview names/codes (`classic`/`modern`/`minimal`) deliberately match the three rows already seeded in `document.templates` by the backend (`IG-78`) rather than inventing separate marketing names.
+- Pricing teaser content grounded in `docs/PRD.md` section 24's Freemium Model (Free vs Pro feature lists, indicative Pro price) — informational only, no checkout/payment flow (Subscriptions module is explicitly future/out of MVP scope).
+- FAQ content grounded in FSD/AGENTS.md facts already true of the product (anonymous preview before account, GST support, PDF download after sign-in) rather than invented claims.
 
 Files changed or created:
 
-- `backend/src/InvoiceApp.Application/Exceptions/ValidationException.cs`, `NotFoundException.cs`, `ConflictException.cs`
-- `backend/src/InvoiceApp.Api/Diagnostics/CorrelationIdMiddleware.cs`
-- `backend/src/InvoiceApp.Api/Diagnostics/GlobalExceptionHandler.cs`
-- `backend/src/InvoiceApp.Api/Program.cs` (logging scopes enabled, middleware wired in the correct order)
-- `backend/tests/InvoiceApp.Infrastructure.Tests/InvoiceApp.Infrastructure.Tests.csproj` (added a ProjectReference to `InvoiceApp.Api` to test its diagnostics code)
-- `backend/tests/InvoiceApp.Infrastructure.Tests/Diagnostics/GlobalExceptionHandlerTests.cs`
-- `backend/README.md` (new "Error diagnostics" section)
+- `frontend/app/page.tsx` (rewritten)
+- `frontend/app/components/landing/{SiteHeader,Hero,BenefitsSection,TemplatePreviewSection,HowItWorksSection,FeatureOverviewSection,PricingTeaserSection,FaqSection,SiteFooter}.tsx`
+- `frontend/README.md` (new — first frontend README; documents the landing page and the browser-verification approach)
 - `backlog.md`
 
 Verification performed:
 
-- `dotnet build`/`dotnet test` — 0 warnings, 28/28 tests passed.
-- **Real end-to-end runtime verification** using temporary endpoints (removed before committing): confirmed correct status/body for all three typed exceptions, and for a deliberately "sensitive-looking" unexpected exception (`Host=db.internal;Password=supersecret`) confirmed the client response had **no** `detail` field at all, while the server-side console log for that same request showed the full exception tagged with the identical `CorrelationId` as the response header/body — proving the correlation-to-logs link actually works, not just that the code compiles.
-- Pushed and watched a real GitHub Actions run to completion: <https://github.com/hassham/invoice-generator/actions/runs/32458911833>.
+- `npm run lint` / `npm run build` — both clean (build also type-checks).
+- **Real browser verification, not just a successful build** — no project skill covered this yet, so used a small ad-hoc Playwright script (`chromium-cli` unavailable on this machine; Playwright installed to a scratch directory, not the repo) to actually load the running dev server: confirmed all 7 section headings render, the FAQ `<details>` disclosure opens on click, zero browser console errors, and **no horizontal overflow at 1440px, 375px or 320px** (the FSD's minimum supported width) — screenshots reviewed at all three sizes, not just asserted.
+- **Caught and worked around a real environment gotcha**: port 3000 was already occupied by a completely unrelated project's dev server on this machine ("Lead → Launch"); Next.js correctly auto-selected port 3002, and the first verification attempt against the assumed port 3000 hit the wrong app entirely before this was noticed and fixed. Documented in `frontend/README.md` for future sessions.
+- Pushed and watched two real GitHub Actions runs to completion (the landing page commit, then the README commit): <https://github.com/hassham/invoice-generator/actions/runs/32462727335>.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-83`.
+No blocker is currently recorded for starting `IG-84`.
+
+**Port 3000 on this machine may be occupied by an unrelated project's dev server.** Next.js handles this gracefully on its own (auto-selects the next free port, e.g. 3002) — but always check the dev server's own startup log for the actual port before scripting/testing against `localhost:3000`, per the mixup caught during `IG-83`.
+
+**No project skill exists yet for running the frontend in a browser**, and `chromium-cli` isn't available on this machine. `IG-83` used an ad-hoc Playwright script in a scratch directory; consider `/run-skill-generator` if browser verification becomes routine for future frontend Subtasks (`frontend/README.md` has the detail).
 
 **Structured logging note for future work:** `builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true)` is what makes correlation IDs (and any future `logger.BeginScope`) actually visible in log output — the default console configuration does not include scopes. If a future Subtask introduces a different/additional log provider (Seq, Application Insights, etc. per `docs/SAD.md` section 76), confirm it's still configured to surface scopes, or the correlation ID will silently stop appearing in logs even though the code is unchanged.
 
@@ -108,7 +109,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-21 Australia/Sydney
 
-Jira `IG-17` is Done. **Epic `IG-1` is Done** (all 5 Stories complete, closed with a comment recording acceptance-criteria verification). `IG-82` is Done with a claim comment (start) and a verification comment (completion). Next Epic `IG-2` is To Do; first Story `IG-18` is To Do with two To Do Subtasks (`IG-83`, `IG-84`). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+Jira `IG-83` is Done with a claim comment (start) and a verification comment (completion, including the browser-verification evidence). Parent Story `IG-18` is In Progress with one remaining Subtask, `IG-84` (To Do). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
