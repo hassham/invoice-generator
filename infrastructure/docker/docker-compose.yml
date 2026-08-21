@@ -1,0 +1,26 @@
+name: invoiceapp
+
+# Local development database only, per docs/SAD.md section 70. `invoice-api` and `invoice-web`
+# services are added when their own containerisation Subtask (build/delivery automation, S04) is
+# implemented - inventing Dockerfiles for them here would be out of scope for a database-schema
+# Subtask.
+#
+# Host port 5433 is deliberate, not 5432: this machine may already have another project's
+# PostgreSQL container bound to 5432, and this compose file must never collide with or touch data
+# that doesn't belong to this project.
+services:
+  postgres:
+    image: postgres:16
+    container_name: invoiceapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: invoiceapp
+      POSTGRES_USER: invoiceapp
+      POSTGRES_PASSWORD: invoiceapp
+    ports:
+      - "5433:5432"
+    volumes:
+      - invoiceapp-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  invoiceapp-postgres-data:

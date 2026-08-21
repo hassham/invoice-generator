@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\InvoiceApp.Api\InvoiceApp.Api.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Application\InvoiceApp.Application.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Domain\InvoiceApp.Domain.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Infrastructure\InvoiceApp.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Audit\InvoiceApp.Modules.Audit.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Businesses\InvoiceApp.Modules.Businesses.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Catalog\InvoiceApp.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Customers\InvoiceApp.Modules.Customers.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Documents\InvoiceApp.Modules.Documents.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Identity\InvoiceApp.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Invoicing\InvoiceApp.Modules.Invoicing.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceApp.Modules.Payments\InvoiceApp.Modules.Payments.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+# .NET
+**/bin/
+**/obj/
+
+# Next.js / Node
+frontend/node_modules/
+frontend/.next/
+frontend/generated/
+frontend/out/
+
+# Local SDK and tooling
+.dotnet/
+.npm-cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local secret overrides (real secrets belong in `dotnet user-secrets` or hosting-environment
+# configuration, never in a committed file - docs/SAD.md section 73)
+appsettings.*.local.json
+**/secrets.json
+
+# Editor / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

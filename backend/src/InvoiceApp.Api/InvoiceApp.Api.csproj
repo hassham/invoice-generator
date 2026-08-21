@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\InvoiceApp.Application\InvoiceApp.Application.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Infrastructure\InvoiceApp.Infrastructure.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Identity\InvoiceApp.Modules.Identity.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Businesses\InvoiceApp.Modules.Businesses.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Customers\InvoiceApp.Modules.Customers.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Catalog\InvoiceApp.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Invoicing\InvoiceApp.Modules.Invoicing.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Payments\InvoiceApp.Modules.Payments.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Documents\InvoiceApp.Modules.Documents.csproj" />
+    <ProjectReference Include="..\InvoiceApp.Modules.Audit\InvoiceApp.Modules.Audit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>1bb70798-d419-459c-9213-a684a846ba1a</UserSecretsId>
+  </PropertyGroup>
+
+</Project>
