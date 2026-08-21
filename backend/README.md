@@ -94,3 +94,11 @@ single-shot create: dropped the database, applied only `InitialCreate` (0 templa
 `SeedTemplates` on top (3 rows, matching `docs/DATABASE_SCHEMA.md`), then reran `dotnet ef database
 update` again - EF Core reported "already up to date" and the row count stayed at 3 (no duplicate
 reference data).
+
+## CI
+
+`.github/workflows/ci.yml` (GitHub Actions) restores, builds and publishes `InvoiceApp.Api` on
+every push/PR to `main`, uploading the publish output as a workflow artifact (`backend-api`). It
+does not run tests or gate merges - that's a separate concern (IG-80/T008) layered onto the same
+jobs, not a second workflow. A live example run:
+<https://github.com/hassham/invoice-generator/actions/runs/32449842002>.

@@ -1,5 +1,7 @@
 # Invoice App
 
+[![CI](https://github.com/hassham/invoice-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/hassham/invoice-generator/actions/workflows/ci.yml)
+
 SaaS invoice generation and lightweight billing platform for freelancers, sole traders and small businesses.
 
 ## Repository structure
