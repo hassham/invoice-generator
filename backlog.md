@@ -31,25 +31,25 @@ Continue the platform foundation in delivery order:
 ```text
 Epic:    IG-1  — Platform Foundation and Delivery
 Story:   IG-17 — Observe application health and failures
-Subtask: IG-81 — Implement application and dependency health checks
+Subtask: IG-82 — Implement structured error diagnostics
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-1>
 - <https://appitometechnologies.atlassian.net/browse/IG-17>
-- <https://appitometechnologies.atlassian.net/browse/IG-81>
+- <https://appitometechnologies.atlassian.net/browse/IG-82>
 
 ## Next Task
 
-`IG-16` (S04) is Done — both its Subtasks (`IG-79`, `IG-80`) are complete. Next Story is `IG-17 — Observe application health and failures` (S05), with two To Do Subtasks: `IG-81 — Implement application and dependency health checks` and `IG-82 — Implement structured error diagnostics`.
+`IG-81` is Done. Next is `IG-82 — Implement structured error diagnostics`, the second and last Subtask under `IG-17`/S05.
 
 Before implementation:
 
-1. Check `IG-81`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-81`, its parent `IG-17` and Epic `IG-1` in Jira for live criteria.
-3. The existing `/api/v1/health` endpoint (`Program.cs`) is a placeholder that always returns `{"status":"healthy"}` regardless of actual state — "dependency health checks" almost certainly means it needs to actually check the database connection (`ApplicationDbContext`/Npgsql), not just liveness. `Microsoft.Extensions.Diagnostics.HealthChecks` + `AspNetCore.HealthChecks.NpgSql` is the conventional ASP.NET Core approach; check package cache/nuget.org availability before assuming a specific package name/version.
-4. The local Postgres container (`docker compose -f infrastructure/docker/docker-compose.yml up -d`, host port 5433 — deliberately not 5432, see Blockers) will be needed to verify a real dependency health check actually detects both the healthy and unhealthy (DB down) cases.
+1. Check `IG-82`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-82`, its parent `IG-17` and Epic `IG-1` in Jira for live criteria.
+3. `docs/SAD.md` section 81 (Error Handling) specifies a central exception-handling middleware mapping exception types to HTTP status codes (`ValidationException`→400, unauthenticated→401, forbidden→403, not-found→404, conflict→409, unexpected→500) and says not to expose internal stack traces in production. Section 78 (context: request/application-operation/logging/external-provider-calls) is about structured logging correlation, which is likely what "structured error diagnostics" actually means — read both before assuming scope.
+4. No Domain-level exception types exist yet (no `ValidationException`, etc.) — this Subtask may need to define them, or may only need the middleware if error-throwing code doesn't exist yet either. Confirm scope doesn't silently pull in business-rule validation work that belongs to a later Invoicing/Payments Story.
 
 ## Last Execution
 
@@ -57,30 +57,32 @@ Before implementation:
 
 Completed:
 
-- Implemented `IG-80 — Enforce automated quality gates` (T008, S04/`IG-16`), completing S04.
-- Extended `.github/workflows/ci.yml`: added a `Test` step (`dotnet test`) to the `backend` job before `Publish Api`, and a `Lint` step (`npm run lint`) to the `frontend` job before `Build` — ordered so a failure stops the job before the artifact-producing step runs at all.
-- **Found and fixed a real, previously-undetected bug** via this pipeline: `ModuleReferenceBoundaryTests` (from `IG-74`) parses `ProjectReference` paths with `Path.GetFileNameWithoutExtension`, which only treats `/` as a separator on non-Windows platforms — the `.csproj` files use Windows-style `\`. This passed on every Windows dev-machine run all session and failed for every single project the moment it ran on the Ubuntu GitHub Actions runner. Fixed in `ProjectFile.cs` by normalizing `\` to `/` first.
-- Configured GitHub branch protection on `main` (`gh api .../branches/main/protection`) requiring both `Backend build` and `Frontend build` status checks (up to date with `main`) before a PR can merge, and disallowing force-push/deletion of `main` — confirmed with the user first, since it's a workflow-affecting decision, not just a YAML change.
+- Implemented `IG-81 — Implement application and dependency health checks` (T009, S05/`IG-17`).
+- Replaced the `IG-73` placeholder `GET /api/v1/health` with `GET /health/live` and `GET /health/ready`, per `docs/SAD.md` section 80. Liveness has no dependency checks; readiness runs a `"ready"`-tagged database connectivity check.
+- Added `InvoiceApp.Infrastructure/HealthChecks/DatabaseHealthCheck.cs`: calls `Database.CanConnectAsync()`, classifies the result as `Unhealthy` (can't connect), `Degraded` (connects but takes >500ms), or `Healthy`. The decision logic (`Evaluate`) is a pure static method, unit-tested without needing a real database.
+- Added `InvoiceApp.Api/HealthCheckResponseWriter.cs`: JSON response serializing only check name/status, deliberately never `Description`/`Exception`, so a failure can't leak a connection string or other detail through this endpoint regardless of what a future check's own description text says.
 
 Files changed or created:
 
-- `.github/workflows/ci.yml` (Test/Lint steps added)
-- `backend/tests/InvoiceApp.ArchitectureTests/ProjectFile.cs` (cross-platform path fix)
-- `backend/README.md` (documented quality gates, the bug fix, and branch protection)
-- GitHub repository setting: branch protection on `main` (not a file in the repo)
+- `backend/src/InvoiceApp.Infrastructure/InvoiceApp.Infrastructure.csproj` (added `Microsoft.Extensions.Diagnostics.HealthChecks` 8.0.11)
+- `backend/src/InvoiceApp.Infrastructure/HealthChecks/DatabaseHealthCheck.cs`
+- `backend/src/InvoiceApp.Infrastructure/HealthChecks/InfrastructureHealthChecksExtensions.cs`
+- `backend/src/InvoiceApp.Api/HealthCheckResponseWriter.cs`
+- `backend/src/InvoiceApp.Api/Program.cs` (mapped `/health/live`, `/health/ready`; removed `/api/v1/health`)
+- `backend/src/InvoiceApp.Api/InvoiceApp.Api.http` (updated from stale template content)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/HealthChecks/DatabaseHealthCheckTests.cs`
+- `backend/README.md` (new "Health checks" section)
 - `backlog.md`
 
 Verification performed:
 
-- Ran `dotnet test`/`npm run lint` locally first — both passed.
-- **Proved the gate actually gates, not just "should" gate it**: deliberately broke a test assertion, ran the exact step chain locally (`dotnet test && dotnet publish`) — confirmed the chain stopped after the failing test and no `publish/` output was created.
-- **Pushed and watched three real GitHub Actions runs**: (1) with the deliberate test break still in the CI-pushed commit, `Test` failed and `Publish Api`/artifact-upload were correctly skipped (run `32450591579`) — this is also where the real cross-platform bug above was discovered, independent of the deliberate break; (2) after fixing both the deliberate break and the real bug, a fully green run with both artifacts produced (run `32450714431`); (3) after the documentation commit, another fully green run (run `32451376565`).
-- Verified branch protection is live: `gh api` response confirmed `required_status_checks.contexts = ["Backend build", "Frontend build"]`; the next direct push to `main` was met with GitHub's own message "Bypassed rule violations for refs/heads/main: 2 of 2 required status checks are expected" — confirming the rule exists and is evaluated (bypassed only because the push was made with admin/owner rights and `enforce_admins: false`).
-- Did not touch the local Postgres container for this Subtask — not needed.
+- `dotnet build`/`dotnet test` — 0 warnings, 24/24 tests passed (10 in `InvoiceApp.Infrastructure.Tests`, up from 4).
+- **All three health states verified against the real local Postgres container, not simulated**: `/health/ready` returned `Degraded` on the very first request after app startup (cold connection-pool latency genuinely exceeded 500ms — not forced), then `Healthy` on every request after; `docker stop invoiceapp-postgres` made it return `Unhealthy` with HTTP 503; `/health/live` stayed `Healthy`/200 throughout, confirming liveness is actually independent of dependency health, not just structurally separate in the code. Restarted the container afterward.
+- Pushed and watched a real GitHub Actions run to completion (both quality gates from `IG-80` passed): <https://github.com/hassham/invoice-generator/actions/runs/32455961812>.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-81`.
+No blocker is currently recorded for starting `IG-82`.
 
 **`main` now has branch protection** requiring `Backend build` and `Frontend build` to pass before a PR can merge (force-push/deletion of `main` also disallowed). `enforce_admins` is off and no PR-review count is required, so direct pushes to `main` by an authenticated owner still work (as used throughout this project so far) — only PR merges are actually gated. Revisit if the team/workflow around PRs changes.
 
@@ -106,7 +108,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-21 Australia/Sydney
 
-Jira `IG-16` is Done (closed with a comment recording acceptance-criteria verification). `IG-80` is Done with a claim comment (start) and a verification comment (completion, including all three CI run URLs and the branch-protection API confirmation as evidence). Next Story `IG-17` is To Do with two To Do Subtasks (`IG-81`, `IG-82`). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+Jira `IG-81` is Done with a claim comment (start) and a verification comment (completion). Parent Story `IG-17` is In Progress with one remaining Subtask, `IG-82` (To Do). Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
