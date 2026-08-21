@@ -125,3 +125,34 @@ is a GitHub repository setting (`gh api repos/hassham/invoice-generator/branches
 not something the workflow YAML itself can express. `enforce_admins` is off and no PR-review count
 is required, so the existing direct-push workflow (used throughout this project's early
 development) still works - only *merging a PR* into `main` is actually gated by the checks.
+
+## Health checks
+
+`GET /health/live` and `GET /health/ready` (`docs/SAD.md` section 80) are unversioned - not under
+`/api/v1` - since health checks are infrastructure-level, not part of the public API surface.
+
+- `/health/live`: process is running. No dependency checks (`Predicate = _ => false` in
+  `Program.cs`) - a database outage must never make liveness probes think the process itself needs
+  restarting.
+- `/health/ready`: dependencies required to serve requests. Currently one check, `database`
+  (`InvoiceApp.Infrastructure/HealthChecks/DatabaseHealthCheck.cs`), tagged `"ready"`.
+
+Both return JSON (`{"status": "...", "checks": [{"name": "...", "status": "..."}]}`) with exactly
+three possible per-check/overall statuses - `Healthy`, `Degraded`, `Unhealthy` - satisfying IG-81's
+completion criteria. The response writer (`HealthCheckResponseWriter.cs`) deliberately serializes
+only check name and status, never `HealthReportEntry.Description`/`Exception`, so a failure can
+never leak a connection string or other sensitive detail even if some future check's own
+description text isn't as careful.
+
+`DatabaseHealthCheck` calls `Database.CanConnectAsync()` and classifies the result:
+`Unhealthy` if it throws or returns false, `Degraded` if it succeeds but takes longer than 500ms,
+else `Healthy`. The decision logic (`Evaluate`) is a pure static method, unit-tested directly in
+`InvoiceApp.Infrastructure.Tests.HealthChecks.DatabaseHealthCheckTests` without needing a real
+database connection.
+
+All three states were also verified against the real local Postgres container, not only unit
+tests: `/health/ready` returned `Degraded` on the very first request after the app started (cold
+connection-pool latency exceeded 500ms) and `Healthy` on every request after that; stopping the
+container (`docker stop invoiceapp-postgres`) made it return `Unhealthy` with HTTP 503, while
+`/health/live` stayed `Healthy` with HTTP 200 throughout - confirming liveness is genuinely
+independent of dependency health, not just structurally separate in the code.

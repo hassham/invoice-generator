@@ -1,6 +1,11 @@
 @InvoiceApp.Api_HostAddress = http://localhost:5094
 
-GET {{InvoiceApp.Api_HostAddress}}/weatherforecast/
+GET {{InvoiceApp.Api_HostAddress}}/health/live
+Accept: application/json
+
+###
+
+GET {{InvoiceApp.Api_HostAddress}}/health/ready
 Accept: application/json
 
 ###
