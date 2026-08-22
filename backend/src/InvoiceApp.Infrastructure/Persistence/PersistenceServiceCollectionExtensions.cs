@@ -18,9 +18,23 @@ public static class PersistenceServiceCollectionExtensions
         });
 
         services
-            .AddIdentityCore<ApplicationUser>()
+            .AddIdentityCore<ApplicationUser>(options =>
+            {
+                // FSD 7.1 password rules exactly - Identity's own defaults are stricter
+                // (require a non-alphanumeric character), which would reject FSD-valid
+                // passwords, so every rule is set explicitly rather than left at default.
+                options.Password.RequiredLength = 8;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireDigit = true;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequiredUniqueChars = 1;
+                options.User.RequireUniqueEmail = true;
+            })
             .AddRoles<IdentityRole<Guid>>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddSignInManager()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
         return services;
     }
