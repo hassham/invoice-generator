@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete. Within Epic `IG-2` (Public Website and Acquisition), Story `IG-18` (Discover the product from the landing page) is now complete — landing page content and its Create Invoice navigation tests are both done and verified in a real CI run. Next up is Story `IG-19` (Navigate public product pages). Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
+**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete. Within Epic `IG-2` (Public Website and Acquisition), Story `IG-18` is complete. Story `IG-19` (Navigate public product pages) is in progress — its first Subtask `IG-85` (accessible mobile navigation) is done; its second and last Subtask `IG-86` (verify responsive navigation states) is next. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
 Jira backlog created and verified:
 
@@ -29,25 +29,24 @@ Continue the platform foundation in delivery order:
 ```text
 Epic:    IG-2  — Public Website and Acquisition
 Story:   IG-19 — Navigate public product pages
-Subtask: IG-85 — Build accessible public navigation
+Subtask: IG-86 — Verify responsive navigation states
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-2>
 - <https://appitometechnologies.atlassian.net/browse/IG-19>
-- <https://appitometechnologies.atlassian.net/browse/IG-85>
+- <https://appitometechnologies.atlassian.net/browse/IG-86>
 
 ## Next Task
 
-`IG-18` (S06, both Subtasks IG-83/IG-84) is Done. Next is Story `IG-19 — Navigate public product pages` (S07), starting with its first Subtask `IG-85 — Build accessible public navigation`. `IG-19` also has a second Subtask, `IG-86 — Verify responsive navigation states`.
+`IG-85` is Done. Next is `IG-86 — Verify responsive navigation states`, the second and last Subtask under `IG-19`/S07 — completing it closes `IG-19`.
 
 Before implementation:
 
-1. Check `IG-85`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-85`, its parent `IG-19` and Epic `IG-2` in Jira for live criteria.
-3. `IG-19`'s acceptance criteria call for navigation exposing approved public destinations (Create Invoice, authentication, supporting info), usable on mobile and by keyboard. `SiteHeader.tsx` (built in `IG-83`) already has basic nav links — check what it currently covers before assuming this is greenfield work; this Subtask is likely about completing/hardening it (keyboard operability, mobile menu state, correct destination set) rather than building nav from scratch.
-4. `/login`, `/signup` and `/invoice/create` still don't exist as pages (later Epics) — nav links to them are expected to remain non-functional destinations for now, consistent with `IG-84`'s precedent of testing route wiring, not building destinations.
+1. Check `IG-86`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-86`, its parent `IG-19` and Epic `IG-2` in Jira for live criteria.
+3. `IG-85` already built and verified the mobile navigation disclosure in `SiteHeader.tsx` (hamburger toggle, keyboard Tab/Enter/Escape, all 5 destinations reachable) with both component tests (`SiteHeader.test.tsx`) and a real Playwright check at 1440px/375px. `IG-86`'s completion criteria may call for something beyond what `IG-85` already covered — read carefully before re-doing verification that already exists (e.g. it may want the responsive breakpoint itself asserted, additional viewport sizes per FSD 85's 320px minimum, or coverage of `SiteFooter.tsx`'s nav, which was not touched in `IG-85`).
 
 ## Last Execution
 
@@ -55,30 +54,27 @@ Before implementation:
 
 Completed:
 
-- Implemented `IG-84 — Connect landing-page creation calls to action` (T012, S06/`IG-18`) — the second and final Subtask under `IG-18`, which is now Done.
-- Determined (from `IG-84`'s completion criteria: "passes navigation tests") that this Subtask was about proving the CTAs wired in `IG-83` route correctly, not about building `/invoice/create`/`/login`/`/signup` themselves — those stay out of scope for later Epics.
-- Introduced frontend component testing: Vitest + `@testing-library/react`/`jest-dom`/`user-event` + jsdom, `frontend/vitest.config.ts` + `frontend/vitest.setup.ts`, `"test": "vitest run"` script.
-- Wrote navigation tests: `Hero.test.tsx` and `PricingTeaserSection.test.tsx` (per-component), `page.test.tsx` (full page, asserts exactly 2 "Create Free Invoice" links both pointing at `/invoice/create`, and the Pro plan CTA pointing at `/signup` instead).
-- Added a `Test` step to the frontend CI job in `.github/workflows/ci.yml`, before `Build`, matching the backend job's existing gate-before-artifact pattern.
-- Closed `IG-18` (Story) — both its Subtasks are Done.
+- Implemented `IG-85 — Build accessible public navigation` (T013, S07/`IG-19`) — the first of two Subtasks under `IG-19`.
+- Found and fixed a real accessibility gap: `SiteHeader.tsx`'s primary nav (`Invoice Generator`, `Templates`, `Pricing`) was `hidden md:flex`, i.e. `display:none` below the `md` breakpoint with no alternative — those destinations were completely unreachable on mobile, not just visually hidden.
+- Added a disclosure-style mobile menu: a real `<button>` toggle with `aria-expanded`/`aria-controls`, mobile links only mounted in the DOM while open (never sit in the tab order when closed), closes on Escape or on choosing a destination. Login/Sign Up moved into the same panel on mobile.
+- All 5 FSD 6.1 header destinations preserved exactly (no destinations added or removed) — this was a reachability fix, not a redesign.
 
 Files changed or created:
 
-- `frontend/vitest.config.ts`, `frontend/vitest.setup.ts` (new)
-- `frontend/app/components/landing/Hero.test.tsx`, `frontend/app/components/landing/PricingTeaserSection.test.tsx`, `frontend/app/page.test.tsx` (new)
-- `frontend/package.json` / `package-lock.json` (new devDependencies + `test` script)
-- `.github/workflows/ci.yml` (frontend job: added `Test` step)
-- `frontend/README.md` (documents the Vitest setup and the RTL cleanup gotcha)
+- `frontend/app/components/landing/SiteHeader.tsx` (rewritten as a client component)
+- `frontend/app/components/landing/SiteHeader.test.tsx` (new)
 - `backlog.md`
 
 Verification performed:
 
-- **Ran the tests locally and hit a real failure, not a hypothetical one**: `PricingTeaserSection.test.tsx`'s second test failed with a `getByRole` ambiguity because a prior test's DOM wasn't unmounted — React Testing Library's automatic `afterEach(cleanup)` only self-registers under Jest/Vitest globals, which `vitest.config.ts` doesn't enable. Fixed by adding an explicit `afterEach(cleanup)` in `vitest.setup.ts`; re-ran and confirmed all 4 tests pass.
-- Pushed and watched a real GitHub Actions run to completion, confirming the new frontend `Test` step actually executes `npm run test` in CI (not just locally) alongside the pre-existing Lint/Build steps: <https://github.com/hassham/invoice-generator/actions/runs/32494052580> (both jobs green).
+- Component tests (`SiteHeader.test.tsx`): desktop nav hrefs; mobile menu closed/absent from DOM by default; opens on click with all 5 destinations reachable (scoped queries via `within()` — jsdom doesn't compute the CSS media queries that keep the desktop/mobile navs mutually exclusive in a real browser, so unscoped queries hit real `getByRole` ambiguity errors during development, same class of issue as `IG-84`'s RTL cleanup bug); Tab→Enter opens, Escape closes; closes after choosing a destination. 9/9 tests pass across the full suite.
+- **Real headless-browser check (Playwright), not just component tests**: at 1440px the hamburger is absent and the desktop nav is visible; at 375px the reverse; opening the mobile menu makes all 5 destinations pointer-clickable; keyboard Tab→Enter opens it and Escape closes it; zero console errors; no horizontal overflow at 375px. Screenshots reviewed (`mobile-nav-closed.png`, `mobile-nav-open.png`).
+- `npm run lint` / `npm run build` clean.
+- Pushed and watched a real GitHub Actions run to completion, both jobs green including the frontend `Test` step: <https://github.com/hassham/invoice-generator/actions/runs/32548766323>.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-85`.
+No blocker is currently recorded for starting `IG-86`.
 
 **Frontend component tests need explicit RTL cleanup.** `vitest.config.ts` does not set `test.globals: true`, so React Testing Library's automatic `afterEach(cleanup)` never self-registers; `vitest.setup.ts` now calls `cleanup()` in its own `afterEach` to compensate. Any future change to `vitest.config.ts`/`vitest.setup.ts` must preserve this or multi-`it()` test files will silently leak DOM state between tests.
 
@@ -112,7 +108,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-22 Australia/Sydney
 
-`IG-84` is Done with a claim comment (start) and a verification comment (completion, including the CI-run evidence and the RTL cleanup bug/fix). Parent Story `IG-18` is Done (both Subtasks complete). Next Story `IG-19` (Navigate public product pages) is To Do with two Subtasks, `IG-85` and `IG-86`, both To Do/unclaimed as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+`IG-85` is Done with a claim comment (start) and a verification comment (completion, including the CI-run evidence and the mobile-reachability fix). Parent Story `IG-19` is still In Progress — its second Subtask `IG-86 — Verify responsive navigation states` is To Do/unclaimed as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
