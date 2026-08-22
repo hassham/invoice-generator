@@ -8,7 +8,11 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` (Platform Foundation and Delivery) and Epic `IG-2` (Public Website and Acquisition — all four Stories, `IG-18` through `IG-21`) are both complete. Next is Epic `IG-3` (Identity, Authentication and Account Security), starting with Story `IG-22` (Register with email and password). This Epic is a significant step up in scope/sensitivity from the frontend-content work so far — it includes Google OAuth sign-in (`IG-23`, needs a real Google client ID/secret), password recovery (`IG-25`, needs an email-delivery provider — none chosen yet, same class of decision as the analytics provider question), and session/token security (`IG-26`). Flagged this Epic boundary to the user before starting, per established practice. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
+**Phase:** Epic `IG-1` (Platform Foundation and Delivery) and Epic `IG-2` (Public Website and Acquisition — all four Stories, `IG-18` through `IG-21`) are both complete in Jira. Next is Epic `IG-3` (Identity, Authentication and Account Security), starting with Story `IG-22` (Register with email and password). This Epic is a significant step up in scope/sensitivity from the frontend-content work so far — it includes Google OAuth sign-in (`IG-23`, needs a real Google client ID/secret), password recovery (`IG-25`, needs an email-delivery provider — none chosen yet, same class of decision as the analytics provider question), and session/token security (`IG-26`). Flagged this Epic boundary to the user before starting, per established practice.
+
+**Open follow-up carried over from `IG-21`, not yet resolved:** the acquisition events built in `IG-89`/`IG-90` only reach a console sink so far — nothing durably captures them yet. See "Blockers and Open Decisions" below for the full note; revisit once an analytics provider is chosen so this doesn't get silently forgotten.
+
+Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
 Jira backlog created and verified:
 
@@ -81,6 +85,8 @@ Verification performed:
 ## Blockers and Open Decisions
 
 **Resolved during `IG-89`/`IG-90`, pattern to reuse:** no analytics provider was named in `docs/`; asked the user directly rather than inventing one, and built the instrumentation behind a pluggable sink so a real provider can be wired later without touching call sites. `frontend/lib/analytics/track.ts`'s `setAnalyticsSink()` is the swap point when one is chosen.
+
+**`IG-21` is not truly end-to-end complete yet — open follow-up, do not lose track of this.** The events `IG-89`/`IG-90` built (`landing_page_view`, `invoice_editor_start`) currently only reach the default `ConsoleAnalyticsSink` — they are emitted correctly and safely, but nothing durably captures/stores them yet, so "acquisition activity can be measured" (`IG-21`'s Story-level acceptance criteria) isn't actually satisfiable in practice until a real sink is wired in. This needs its own follow-up once an analytics provider (or a self-hosted capture endpoint) is chosen — call `setAnalyticsSink()` with the real implementation, wire it near app startup, and add verification that events actually land in the chosen destination (not just that `track()` was called). Raise this explicitly with the user when Epic `IG-3`'s provider decisions come up, since it's the same class of "provider not yet chosen" gap — don't let it quietly stay as console-only.
 
 **Expect the same class of decision repeatedly in Epic `IG-3`** (Identity, Authentication and Account Security): a Google OAuth client ID/secret for `IG-23`, and an email-delivery provider for `IG-25` (password recovery) — neither is named anywhere in `docs/`. Ask before implementing real delivery/OAuth; don't invent credentials or a provider.
 
