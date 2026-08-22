@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const navLinks = [
   { href: "/invoice/create", label: "Invoice Generator" },
@@ -11,6 +11,7 @@ const navLinks = [
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -20,6 +21,7 @@ export function SiteHeader() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsMenuOpen(false);
+        toggleRef.current?.focus();
       }
     }
 
@@ -62,6 +64,7 @@ export function SiteHeader() {
         </div>
 
         <button
+          ref={toggleRef}
           type="button"
           className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950 md:hidden"
           aria-expanded={isMenuOpen}

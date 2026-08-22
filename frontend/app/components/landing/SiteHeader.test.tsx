@@ -46,7 +46,7 @@ describe("SiteHeader", () => {
     expect(within(mobileNav).getByRole("link", { name: "Sign Up" })).toHaveAttribute("href", "/signup");
   });
 
-  it("is operable by keyboard: Tab reaches the toggle, Enter opens it, Escape closes it", async () => {
+  it("is operable by keyboard: Tab reaches the toggle, Enter opens it, Escape closes it and returns focus to the toggle", async () => {
     const user = userEvent.setup();
     render(<SiteHeader />);
 
@@ -61,6 +61,9 @@ describe("SiteHeader", () => {
     await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("navigation", { name: "Mobile primary" })).not.toBeInTheDocument();
+    // WAI-ARIA disclosure pattern: cancelling via Escape must not strand keyboard focus -
+    // it returns to the control that opened the panel.
+    expect(screen.getByRole("button", { name: "Open menu" })).toHaveFocus();
   });
 
   it("closes the mobile menu after a destination is chosen", async () => {
