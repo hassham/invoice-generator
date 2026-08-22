@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` (Platform Foundation and Delivery) and Epic `IG-2` (Public Website and Acquisition — all four Stories, `IG-18` through `IG-21`) are both complete in Jira. Next is Epic `IG-3` (Identity, Authentication and Account Security), starting with Story `IG-22` (Register with email and password). This Epic is a significant step up in scope/sensitivity from the frontend-content work so far — it includes Google OAuth sign-in (`IG-23`, needs a real Google client ID/secret), password recovery (`IG-25`, needs an email-delivery provider — none chosen yet, same class of decision as the analytics provider question), and session/token security (`IG-26`). Flagged this Epic boundary to the user before starting, per established practice.
+**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Story `IG-22` (Register with email and password) is complete — the first real backend API endpoint in the project (`POST /api/v1/auth/register`) is live, tested, and verified against a real Postgres instance. `IG-3` has 5 Stories remaining: `IG-23` (Google sign-in — likely blocked, needs real OAuth credentials), `IG-24` (sign in/out — likely unblocked, builds directly on `IG-22`'s new cookie-auth infrastructure), `IG-25` (password recovery — likely blocked, needs an email-delivery provider), `IG-26` (secure session), `IG-27` (delete account).
 
 **Open follow-up carried over from `IG-21`, not yet resolved:** the acquisition events built in `IG-89`/`IG-90` only reach a console sink so far — nothing durably captures them yet. See "Blockers and Open Decisions" below for the full note; revisit once an analytics provider is chosen so this doesn't get silently forgotten.
 
@@ -28,61 +28,72 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Move into the next Epic:
+Continue Epic `IG-3`:
 
 ```text
 Epic:    IG-3  — Identity, Authentication and Account Security
-Story:   IG-22 — Register with email and password
-Subtask: (check IG-22's live Subtasks — not yet identified in this handoff)
+Story:   IG-24 — Sign in and sign out securely (tentative - confirm live status/order first)
+Subtask: (check IG-24's live Subtasks before starting)
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-3>
-- <https://appitometechnologies.atlassian.net/browse/IG-22>
+- <https://appitometechnologies.atlassian.net/browse/IG-24>
 
 ## Next Task
 
-Epic `IG-2` is Done (all four Stories: `IG-18`–`IG-21`). Next is Epic `IG-3 — Identity, Authentication and Account Security`, starting with Story `IG-22 — Register with email and password`. `IG-3` has 6 Stories total: `IG-22` (email/password registration), `IG-23` (Google sign-in), `IG-24` (sign in/out), `IG-25` (password recovery), `IG-26` (secure session), `IG-27` (delete account).
+`IG-22` (S10, both Subtasks IG-91/IG-92) is Done. `IG-3` has 5 remaining Stories: `IG-23`, `IG-24`, `IG-25`, `IG-26`, `IG-27`.
 
 Before implementation:
 
-1. Check `IG-22`'s Subtasks and their live status/assignee/comments first — Codex may have picked something up. This Epic boundary was flagged to the user before starting (per established practice for Epic-level pivots); confirm the user wants to proceed before claiming anything.
-2. Read `IG-22`'s Subtasks, `IG-22` itself and Epic `IG-3` in Jira for live criteria.
-3. **Expect more provider-decision blockers in this Epic, same class as the analytics-provider question resolved in `IG-89`/`IG-90`:**
-   - `IG-23` (Google sign-in) needs a real Google OAuth client ID/secret — cannot be invented; needs the user to create a real Google Cloud OAuth client and supply credentials, or defer this Story until they do.
-   - `IG-25` (password recovery) needs an email-delivery provider — none is chosen anywhere in `docs/`. Same pattern as the analytics decision: ask via `AskUserQuestion` before implementing real email delivery, don't invent a provider.
-   - `IG-26` (secure session) will need decisions about JWT/session secret storage — check `docs/SAD.md` for whether ASP.NET Core Identity's existing conventions (already scaffolded in `IG-77`/`IG-78`) cover this, since `ApplicationUser : IdentityUser<Guid>` already exists in `InvoiceApp.Infrastructure/Identity/`.
-4. `IG-22` (email/password registration) itself likely has no such blocker — ASP.NET Core Identity already provides password hashing/registration primitives, and the Identity module's backend scaffolding exists from `IG-77`. This is probably the safe starting point even if the later Stories in this Epic need user input first.
+1. Check each remaining Story's Subtasks and their live status/assignee/comments first — Codex may have picked something up.
+2. **`IG-23` (Google sign-in) is likely blocked** — needs a real Google Cloud OAuth client ID/secret, which can't be invented. Don't start it without asking the user first (`AskUserQuestion`), same pattern as the analytics-provider decision in `IG-89`/`IG-90`.
+3. **`IG-24` (sign in and sign out) is likely the safe next pick** — it builds directly on `IG-22`'s new cookie-auth infrastructure (`IAuthSessionService`, `AddInfrastructureAuthentication`, the `IdentityConstants.ApplicationScheme` cookie scheme already wired in `Program.cs`). A login endpoint (`POST /api/v1/auth/login` per FSD §91) and logout (`POST /api/v1/auth/logout`) are natural extensions of what already exists — check FSD §8 (Login) for the exact fields/behavior (Email, Password, Remember Me) before implementing.
+4. **`IG-25` (password recovery) is likely blocked** — needs an email-delivery provider, none chosen anywhere in `docs/`. Same pattern: ask before implementing real delivery.
+5. `IG-26` (secure session) and `IG-27` (delete account) haven't been read in detail yet — check their live Jira descriptions before assuming scope.
+6. Reuse the architecture pattern established in `IG-91`/`IG-92`: Application-layer interface + Infrastructure implementation + Modules.Identity validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check.
 
 ## Last Execution
 
-**Date:** 2026-08-22/23 Australia/Sydney
+**Date:** 2026-08-23 Australia/Sydney
 
 Completed:
 
-- Implemented `IG-89 — Instrument acquisition funnel events` and `IG-90 — Verify privacy-safe analytics behavior` (T017/T018, S09/`IG-21`) **together in a single commit**, per explicit user request. Both Subtasks Done; parent Story `IG-21` closed; this completed Epic `IG-2` (all four Stories done) — Epic closed too.
-- **Provider decision surfaced and resolved before implementing**: no analytics vendor is named anywhere in `docs/`, and the backend's Audit module (SAD §24) is scoped to authenticated business-entity actions, not anonymous frontend tracking — doesn't fit. Asked the user via `AskUserQuestion`; agreed to build a provider-agnostic instrumentation layer now (pluggable sink, console default) rather than block on picking a real vendor.
-- New `frontend/lib/analytics/` module: closed event union (`landing_page_view`, `invoice_editor_start`), `resolveAcquisitionSource()` (reduces referrer/query string to an approved category — sanitized utm token, direct, known search engine, or hostname-only referral — never the full URL/path/query), `track()` (swallows sink failures so analytics can never block navigation).
-- Wired `PageViewTracker` (fires once per landing-page load) into `page.tsx`, and `AnalyticsCtaLink` (fires on click, preserves existing navigation) into the Hero and Pricing free-plan "Create Free Invoice" CTAs only — the two acquisition-funnel entry points from `IG-84`'s precedent.
+- Implemented `IG-91 — Implement email registration workflow` and `IG-92 — Test registration security and outcomes` (T019/T020, S10/`IG-22`) **together in a single commit**, per explicit user request. Both Subtasks Done; parent Story `IG-22` closed — the first Story completed in Epic `IG-3`.
+- **The first real business API endpoint in the project**: `POST /api/v1/auth/register` (Minimal API — no controllers precedent existed yet). Established an architecture pattern intended for reuse by future backend features: `InvoiceApp.Application` defines use-case interfaces (`IAccountRegistrationService`, `IAuthSessionService`); `InvoiceApp.Infrastructure` implements them against `UserManager`/`SignInManager`/EF Core; `InvoiceApp.Modules.Identity` holds framework-free validation/orchestration (it's barred from referencing `Infrastructure` by the enforced module-boundary test); `InvoiceApp.Api` composes everything.
+- Design choices grounded in docs, not invented: password rules from FSD §7.1 exactly (min 8, upper/lower/digit, explicitly no special-character requirement — Identity's own default requires one and had to be overridden); cookie-based auth (not JWT) per SAD §37's explicit preference for a browser-only first-party frontend; default business profile Country=AU/DefaultCurrency=AUD per PRD §23's "Australia can be an initial target market" framing.
+- User + default business creation wrapped in one DB transaction, guarded by `Database.IsRelational()` so it still runs correctly under EF Core's InMemory provider in tests while getting real atomicity against Postgres.
+- **Real gap found and fixed while wiring this up**: `SignInManager` requires `IHttpContextAccessor`, which nothing in the project had ever registered — would have thrown at first real use in production (DI doesn't validate constructor dependencies for services that are never resolved until a request needs them), not at startup. Fixed in `AddInfrastructureAuthentication`.
+- Duplicate email and password-rule failures flow through the existing `ValidationException`/`ConflictException` → `GlobalExceptionHandler` pipeline from `IG-82`, so registration errors get the same `ProblemDetails` shape and correlation ID as every other endpoint.
 
 Files changed or created:
 
-- `frontend/lib/analytics/{types,resolveAcquisitionSource,track,index}.ts` (new)
-- `frontend/lib/analytics/{resolveAcquisitionSource,track}.test.ts` (new)
-- `frontend/app/components/analytics/{PageViewTracker,AnalyticsCtaLink}.tsx` (new)
-- `frontend/app/components/analytics/{PageViewTracker,AnalyticsCtaLink}.test.tsx` (new)
-- `frontend/app/page.tsx`, `frontend/app/components/landing/{Hero,PricingTeaserSection}.tsx` (wired in)
+- `backend/src/InvoiceApp.Application/Identity/{IAccountRegistrationService,IAuthSessionService,RegisterAccountRequest,RegisteredAccount}.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Authentication/{AccountRegistrationService,AuthSessionService,InfrastructureAuthenticationExtensions}.cs` (new)
+- `backend/src/InvoiceApp.Modules.Identity/Registration/RegistrationRequestValidator.cs` (new — first real content in a previously-stub module project)
+- `backend/src/InvoiceApp.Api/Endpoints/AuthEndpoints.cs` (new)
+- `backend/src/InvoiceApp.Api/Program.cs` (wired `AddInfrastructureAuthentication`, `UseAuthentication`/`UseAuthorization`, `MapAuthEndpoints`)
+- `backend/src/InvoiceApp.Infrastructure/InvoiceApp.Infrastructure.csproj` (added `FrameworkReference Microsoft.AspNetCore.App` — needed for cookie auth/`SignInManager`, not available via NuGet alone on a non-Web SDK project)
+- `backend/src/InvoiceApp.Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs` (FSD password-rule configuration, `AddSignInManager`, `AddDefaultTokenProviders`)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/{AccountRegistrationServiceTests,AuthSessionServiceTests,AuthenticationTestHarness}.cs` (new)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Modules/Identity/Registration/RegistrationRequestValidatorTests.cs` (new)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/InvoiceApp.Infrastructure.Tests.csproj` (added `Microsoft.EntityFrameworkCore.InMemory`, test-only)
 - `backlog.md`
 
 Verification performed:
 
-- Unit tests: source categorization/sanitization (including an explicit assertion that an email address and URL path in a referrer's query string do NOT survive into the resolved event), `track()`'s failure-swallowing, both components' emission and entry points, and a throwing-sink case proving `AnalyticsCtaLink`'s click handler still completes.
-- Real headless-browser check of the actual console output on a running dev server: `landing_page_view` fires exactly once per load, `invoice_editor_start` fires with the correct `entryPoint` for each CTA, and — checked via `waitForURL`, not just DOM state, after an initial 300ms-wait false negative was diagnosed as a script timing issue, not a product bug — navigation to `/invoice/create` genuinely completes afterward.
-- 13 test files / 37 tests pass across the full suite; `npm run lint` / `npm run build` clean.
-- Pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32582741149>.
+- 16 new automated tests against a real Identity + EF Core InMemory stack (not mocks — Identity's actual password/uniqueness validators genuinely run): successful registration creates exactly one user and one business; duplicate email rejected with zero partial state (asserted via row counts); each FSD password rule independently enforced; confirmed the *absence* of Identity's default special-character requirement actually took effect; confirm-password mismatch and malformed email rejected; sign-in authenticates the session; unknown user id fails safely.
+- **Real end-to-end verification against a live Postgres instance** (not just tests, matching this project's established discipline): registered a real account via curl (200, `Set-Cookie` present), retried with the same email (409), weak password (400 listing which rules failed), mismatched confirm password (400) — then queried Postgres directly and confirmed exactly one row each in `identity.users`/`business.businesses`, correctly linked, with `Country=AU`/`DefaultCurrency=AUD` as designed, and that none of the three rejected attempts left any row. Cleaned up the test data afterward.
+- Full solution build and test suite (44 tests: 14 architecture + 30 infrastructure) pass; pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32584330350>.
 
 ## Blockers and Open Decisions
+
+**Architecture pattern established during `IG-91`/`IG-92`, reuse for future backend features:** Application defines use-case interfaces (`Application/{Module}/I{UseCase}Service.cs`), Infrastructure implements them against EF Core/Identity/whatever framework technology is needed, the relevant `Modules.*` project holds framework-free validation/orchestration, Api composes and exposes a Minimal API endpoint. Test against EF Core's InMemory provider (real Identity/EF behavior, no live DB needed in CI) plus a real Postgres end-to-end check performed manually by the agent (not wired into CI — see the CI-provider precedent from earlier Subtasks).
+
+**`IHttpContextAccessor` must stay registered.** `AddInfrastructureAuthentication()` (`backend/src/InvoiceApp.Infrastructure/Authentication/InfrastructureAuthenticationExtensions.cs`) now calls `services.AddHttpContextAccessor()` because `SignInManager` requires it and nothing else in the project registers it. If this extension method is ever refactored, keep that call or `SignInManager` resolution will throw at first real use.
+
+**Non-Web-SDK projects need an explicit `FrameworkReference` for ASP.NET Core types beyond what Identity's NuGet packages pull in.** `InvoiceApp.Infrastructure.csproj` uses plain `Microsoft.NET.Sdk` (not `Microsoft.NET.Sdk.Web`), so `Microsoft.AspNetCore.Authentication.Cookies`, `Microsoft.AspNetCore.Http`, and `SignInManager<TUser>` weren't available until `<FrameworkReference Include="Microsoft.AspNetCore.App" />` was added — the `Microsoft.AspNetCore.Identity.EntityFrameworkCore` NuGet package alone only covers `UserManager`/`ApplicationUser`-level types, not the full ASP.NET Core surface.
 
 **Resolved during `IG-89`/`IG-90`, pattern to reuse:** no analytics provider was named in `docs/`; asked the user directly rather than inventing one, and built the instrumentation behind a pluggable sink so a real provider can be wired later without touching call sites. `frontend/lib/analytics/track.ts`'s `setAnalyticsSink()` is the swap point when one is chosen.
 
@@ -128,7 +139,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-23 Australia/Sydney
 
-`IG-89` and `IG-90` are both Done, each with a claim comment (start, including the analytics-provider scope note) and a verification comment (completion). Parent Story `IG-21` is Done (both Subtasks complete), and Epic `IG-2` is Done (all four Stories complete) — both closed with summary comments. Epic `IG-3` (Identity, Authentication and Account Security) is To Do with 6 Stories (`IG-22`–`IG-27`), none started. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
+`IG-91` and `IG-92` are both Done, each with a claim comment (start, including the design-decision notes) and a verification comment (completion, including both the automated-test and real-Postgres evidence). Parent Story `IG-22` is Done (both Subtasks complete) — closed with a summary comment. Epic `IG-3` has 5 remaining Stories (`IG-23`–`IG-27`), none started; `IG-23` and `IG-25` are expected to need a user decision (OAuth credentials, email provider) before they can be claimed. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
 
 ## Handoff Update Template
 
