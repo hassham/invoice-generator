@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete. Within Epic `IG-2` (Public Website and Acquisition), Stories `IG-18` and `IG-19` are both complete. Next is Story `IG-20` (Find public pages through search engines), starting with Subtask `IG-87` (Add public-page SEO metadata). Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
+**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete. Within Epic `IG-2` (Public Website and Acquisition), Stories `IG-18` and `IG-19` are both complete. Story `IG-20` (Find public pages through search engines) is in progress — its first Subtask `IG-87` (public-page SEO metadata) is done; its second and last Subtask `IG-88` (control public/private route indexing) is next. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
 Jira backlog created and verified:
 
@@ -29,25 +29,25 @@ Continue the platform foundation in delivery order:
 ```text
 Epic:    IG-2  — Public Website and Acquisition
 Story:   IG-20 — Find public pages through search engines
-Subtask: IG-87 — Add public-page SEO metadata
+Subtask: IG-88 — Control public and private route indexing
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-2>
 - <https://appitometechnologies.atlassian.net/browse/IG-20>
-- <https://appitometechnologies.atlassian.net/browse/IG-87>
+- <https://appitometechnologies.atlassian.net/browse/IG-88>
 
 ## Next Task
 
-`IG-19` (S07, both Subtasks IG-85/IG-86) is Done. Next is Story `IG-20 — Find public pages through search engines` (S08), starting with its first Subtask `IG-87 — Add public-page SEO metadata`. `IG-20` also has a second Subtask, `IG-88 — Control public and private route indexing`.
+`IG-87` is Done. Next is `IG-88 — Control public and private route indexing`, the second and last Subtask under `IG-20`/S08 — completing it closes `IG-20`.
 
 Before implementation:
 
-1. Check `IG-87`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-87`, its parent `IG-20` and Epic `IG-2` in Jira for live criteria.
-3. `IG-20`'s Jira acceptance criteria: indexable pages provide appropriate titles/metadata; public routes support crawlable content where appropriate; private application routes are not presented as public acquisition pages. `IG-87` is likely Next.js `metadata`/`generateMetadata` export work on `frontend/app/page.tsx` (title, description, Open Graph, canonical) — the app currently only has the one landing route, so this is probably scoped to it plus the App Router's shared `layout.tsx` defaults.
-4. `IG-88`'s "private route" indexing-control concern doesn't yet have anything to control — no authenticated/private routes exist in the app yet (Authentication and Invoice Generator are still later Epics). Don't invent private routes to gate; that Subtask likely wants a `robots.txt`/`sitemap` mechanism established correctly for when private routes do exist, not private routes built now.
+1. Check `IG-88`'s live status/assignee/comments first — Codex may have picked it up.
+2. Read `IG-88`, its parent `IG-20` and Epic `IG-2` in Jira for live criteria.
+3. No authenticated/private routes exist in the app yet (Authentication and Invoice Generator are still later Epics) — don't invent private routes to gate. This Subtask is likely a `robots.txt` (and possibly `sitemap.xml`) mechanism via Next.js's App Router file conventions (`app/robots.ts`, `app/sitemap.ts`), established correctly now (allow `/`, disallow nothing yet since nothing private exists) so it's ready to extend when private routes are built later.
+4. `IG-87` already set `metadataBase` (env-driven, `NEXT_PUBLIC_SITE_URL` with a localhost fallback) in `frontend/app/layout.tsx` — reuse it rather than hardcoding a host in `robots.ts`/`sitemap.ts`.
 
 ## Last Execution
 
@@ -55,31 +55,31 @@ Before implementation:
 
 Completed:
 
-- Implemented `IG-86 — Verify responsive navigation states` (T014, S07/`IG-19`) — the second and final Subtask under `IG-19`, which is now Done. Parent Story `IG-19` closed.
-- Fixed a real focus-management gap found during this work: pressing Escape closed `SiteHeader`'s mobile disclosure but never returned focus anywhere, stranding keyboard users. Focus now returns to the toggle button (`toggleRef.current?.focus()`), the standard WAI-ARIA disclosure-button pattern.
-- Added interaction-test coverage that didn't exist: `SiteFooter.test.tsx` (new — footer nav was completely untested), plus a focus-return assertion in `SiteHeader.test.tsx`.
-- Scoped "active routes" (T014's completion-criteria wording, which appears nowhere else in `docs/`) as "nav interactions genuinely activate their destination route" rather than inventing an undocumented "current page" visual indicator — flagged this reading in the Jira claim comment before starting.
-- Real Playwright verification of route activation for every nav control (desktop, footer, mobile disclosure) at 1440px and 375px — genuinely clicked each link and confirmed the browser navigated (hash update for `#templates`/`#pricing`, path change for `/login`/`/signup`/`/invoice/create`), not just DOM assertions. Two apparent failures during this check were verification-script bugs (missing waits, an unscoped locator matching both header and footer "Login" links), not product bugs — diagnosed with an isolated debug script before concluding that, fixed, and re-verified clean.
+- Implemented `IG-87 — Add public-page SEO metadata` (T015, S08/`IG-20`) — the first of two Subtasks under `IG-20`.
+- `frontend/app/page.tsx`: page-specific `title`/`description` (reused verbatim from `Hero.tsx`'s existing copy, not invented), `alternates: { canonical: "/" }`, matching Open Graph tags.
+- `frontend/app/layout.tsx`: `metadataBase` read from `NEXT_PUBLIC_SITE_URL` with a `localhost:3000` fallback (no production domain decided yet, so nothing hardcoded — consistent with the project's "don't invent provider/production environments" rule), a title template for future pages, explicit `robots: { index: true, follow: true }`.
+- Investigated and documented a real Next.js 16.1.6 behavior: the root layout's title template (`"%s | Invoice App"`) does not get applied to the page's own title — confirmed with a full Turbopack cache clear + dev server restart to rule out a stale-cache false positive before accepting it as genuine framework behavior rather than a bug in this code. Not blocking, since IG-87's actual completion criteria (title, description, canonical) all resolve correctly without it.
 
 Files changed or created:
 
-- `frontend/app/components/landing/SiteHeader.tsx` (focus-return fix)
-- `frontend/app/components/landing/SiteHeader.test.tsx` (extended)
-- `frontend/app/components/landing/SiteFooter.test.tsx` (new)
+- `frontend/app/page.tsx`, `frontend/app/layout.tsx` (metadata added)
+- `frontend/app/page-metadata.test.ts`, `frontend/app/layout.test.ts` (new)
 - `backlog.md`
 
 Verification performed:
 
-- 5 test files / 11 tests pass across the full Vitest suite.
-- `npm run lint` / `npm run build` clean.
-- Real headless-browser check confirming actual route activation and keyboard focus behavior (detailed above), zero console errors beyond the expected 404s for not-yet-built routes.
-- Pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32550442707>.
+- Unit tests directly on the exported `metadata` objects (cheap — they're plain data, no rendering needed).
+- Real headless-browser check of the actual rendered `<head>` (not just the exported object): title, meta description, canonical `<link>`, Open Graph tags, robots meta all present and correct.
+- 7 test files / 17 tests pass across the full suite; `npm run lint` / `npm run build` clean.
+- Pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32551384970>.
 
-**Incident during this session, self-corrected:** while trying to free a stale dev-server lock file, misread a Next.js log line and ran `taskkill` against the wrong PID — it turned out to be the unrelated pre-existing process occupying port 3000 on this machine (documented gotcha, not this project's process), not a leftover dev server. Killed it by mistake; flagged immediately to the user. Recovered by confirming the correct PID via `Get-CimInstance Win32_Process` (checked the full command line, not just the process name) before stopping the actual dev server cleanly. Lesson for future sessions: always confirm a process's command line before terminating it, even when freeing a port that seems safe to touch.
+While investigating the title-template issue, the dev server needed restarting twice more (to rule out a stale cache) — each time confirmed the listening PID's actual command line via `Get-CimInstance Win32_Process -Filter 'ProcessId = <pid>'` before stopping it, per the lesson recorded below from the earlier port-3000 mistake. No further misidentification occurred.
 
 ## Blockers and Open Decisions
 
-No blocker is currently recorded for starting `IG-87`.
+No blocker is currently recorded for starting `IG-88`.
+
+**Next.js 16.1.6's root-layout title template doesn't apply to a page's own `title` string.** Confirmed with a clean Turbopack cache during `IG-87`, so it's genuine framework behavior in this version, not a project bug or stale cache. If a future page relies on the `%s | Invoice App` suffix appearing automatically, set its title explicitly instead (e.g. `` `${pageTitle} | Invoice App` ``) rather than assuming the layout's `template` will apply it.
 
 **Frontend component tests need explicit RTL cleanup.** `vitest.config.ts` does not set `test.globals: true`, so React Testing Library's automatic `afterEach(cleanup)` never self-registers; `vitest.setup.ts` now calls `cleanup()` in its own `afterEach` to compensate. Any future change to `vitest.config.ts`/`vitest.setup.ts` must preserve this or multi-`it()` test files will silently leak DOM state between tests.
 
@@ -117,7 +117,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-22 Australia/Sydney
 
-`IG-86` is Done with a claim comment (start, including the scope note on "active routes") and a verification comment (completion, including CI-run evidence and the focus-return fix). Parent Story `IG-19` is Done (both Subtasks complete). Next Story `IG-20` (Find public pages through search engines) is To Do with two Subtasks, `IG-87` and `IG-88`, both To Do/unclaimed as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+`IG-87` is Done with a claim comment (start) and a verification comment (completion, including CI-run evidence and the title-template note). Parent Story `IG-20` is still In Progress — its second Subtask `IG-88 — Control public and private route indexing` is To Do/unclaimed as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
 
 ## Handoff Update Template
 
