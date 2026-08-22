@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` (Platform Foundation and Delivery) is complete. Within Epic `IG-2` (Public Website and Acquisition), Stories `IG-18`, `IG-19` and `IG-20` are all complete. Next is Story `IG-21` (Measure acquisition activity), starting with Subtask `IG-89` (Instrument acquisition funnel events) — this will likely need an analytics-provider decision from the user before implementation (no analytics provider has been chosen yet; do not invent one). Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
+**Phase:** Epic `IG-1` (Platform Foundation and Delivery) and Epic `IG-2` (Public Website and Acquisition — all four Stories, `IG-18` through `IG-21`) are both complete. Next is Epic `IG-3` (Identity, Authentication and Account Security), starting with Story `IG-22` (Register with email and password). This Epic is a significant step up in scope/sensitivity from the frontend-content work so far — it includes Google OAuth sign-in (`IG-23`, needs a real Google client ID/secret), password recovery (`IG-25`, needs an email-delivery provider — none chosen yet, same class of decision as the analytics provider question), and session/token security (`IG-26`). Flagged this Epic boundary to the user before starting, per established practice. Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
 Jira backlog created and verified:
 
@@ -24,58 +24,65 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Continue the platform foundation in delivery order:
+Move into the next Epic:
 
 ```text
-Epic:    IG-2  — Public Website and Acquisition
-Story:   IG-21 — Measure acquisition activity
-Subtask: IG-89 — Instrument acquisition funnel events
+Epic:    IG-3  — Identity, Authentication and Account Security
+Story:   IG-22 — Register with email and password
+Subtask: (check IG-22's live Subtasks — not yet identified in this handoff)
 ```
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-2>
-- <https://appitometechnologies.atlassian.net/browse/IG-21>
-- <https://appitometechnologies.atlassian.net/browse/IG-89>
+- <https://appitometechnologies.atlassian.net/browse/IG-3>
+- <https://appitometechnologies.atlassian.net/browse/IG-22>
 
 ## Next Task
 
-`IG-20` (S08, both Subtasks IG-87/IG-88) is Done. Next is Story `IG-21 — Measure acquisition activity` (S09), starting with its first Subtask `IG-89 — Instrument acquisition funnel events`. `IG-21` also has a second Subtask, `IG-90 — Verify privacy-safe analytics behavior`.
+Epic `IG-2` is Done (all four Stories: `IG-18`–`IG-21`). Next is Epic `IG-3 — Identity, Authentication and Account Security`, starting with Story `IG-22 — Register with email and password`. `IG-3` has 6 Stories total: `IG-22` (email/password registration), `IG-23` (Google sign-in), `IG-24` (sign in/out), `IG-25` (password recovery), `IG-26` (secure session), `IG-27` (delete account).
 
 Before implementation:
 
-1. Check `IG-89`'s live status/assignee/comments first — Codex may have picked it up.
-2. Read `IG-89`, its parent `IG-21` and Epic `IG-2` in Jira for live criteria. `IG-21`'s Jira acceptance criteria: landing-page visits, acquisition source and invoice-editor starts can be measured; events exclude invoice contents/unnecessary personal data; event failures don't block the user journey.
-3. **Likely blocker: no analytics provider has been chosen yet.** `docs/PRD.md` mentions "SEO landing page source" and acquisition tracking as a goal but does not name a specific analytics vendor (GA4, PostHog, Plausible, a custom backend endpoint, etc.). Per the project's standing rule ("do not invent credentials, production environments or provider contracts"), this needs an explicit decision from the user before real event delivery can be implemented — ask via `AskUserQuestion` rather than picking one, unless a lightweight, provider-agnostic approach (e.g. an internal `/api/v1/...` event-logging endpoint already covered by the backend's existing Audit module) turns out to satisfy the criteria without needing a third-party contract. Check docs/SAD.md's Audit module design before assuming a new provider is required.
+1. Check `IG-22`'s Subtasks and their live status/assignee/comments first — Codex may have picked something up. This Epic boundary was flagged to the user before starting (per established practice for Epic-level pivots); confirm the user wants to proceed before claiming anything.
+2. Read `IG-22`'s Subtasks, `IG-22` itself and Epic `IG-3` in Jira for live criteria.
+3. **Expect more provider-decision blockers in this Epic, same class as the analytics-provider question resolved in `IG-89`/`IG-90`:**
+   - `IG-23` (Google sign-in) needs a real Google OAuth client ID/secret — cannot be invented; needs the user to create a real Google Cloud OAuth client and supply credentials, or defer this Story until they do.
+   - `IG-25` (password recovery) needs an email-delivery provider — none is chosen anywhere in `docs/`. Same pattern as the analytics decision: ask via `AskUserQuestion` before implementing real email delivery, don't invent a provider.
+   - `IG-26` (secure session) will need decisions about JWT/session secret storage — check `docs/SAD.md` for whether ASP.NET Core Identity's existing conventions (already scaffolded in `IG-77`/`IG-78`) cover this, since `ApplicationUser : IdentityUser<Guid>` already exists in `InvoiceApp.Infrastructure/Identity/`.
+4. `IG-22` (email/password registration) itself likely has no such blocker — ASP.NET Core Identity already provides password hashing/registration primitives, and the Identity module's backend scaffolding exists from `IG-77`. This is probably the safe starting point even if the later Stories in this Epic need user input first.
 
 ## Last Execution
 
-**Date:** 2026-08-22 Australia/Sydney
+**Date:** 2026-08-22/23 Australia/Sydney
 
 Completed:
 
-- Implemented `IG-88 — Control public and private route indexing` (T016, S08/`IG-20`) — the second and final Subtask under `IG-20`, which is now Done. Parent Story `IG-20` closed.
-- Added `frontend/app/robots.ts` and `frontend/app/sitemap.ts` via Next.js's App Router file conventions. `robots.txt` allows `/` for all user agents and disallows the authenticated application routes already documented in `docs/FSD.md` (`/dashboard`, `/documents`, `/customers`, `/items`, `/settings`, `/templates` — sections 42, 45, 55, 56, 59, 62, 73) — none of these routes are built yet, but disallowing them now means indexing stays excluded from the moment each ships. Reused only paths already specified in the FSD rather than inventing a route structure.
-- Explicitly verified (via a negative test) that public acquisition routes stay crawlable: `/`, `/invoice/create` (the anonymous-usable acquisition funnel per `docs/PRD.md` §25), `/login`, `/signup` — none of these are in the disallow list.
-- Documented in code that robots.txt is advisory only, not access control — per-route `noindex` metadata should still be added to each authenticated page once it's actually built, as defense-in-depth (not implemented now since no such page exists).
+- Implemented `IG-89 — Instrument acquisition funnel events` and `IG-90 — Verify privacy-safe analytics behavior` (T017/T018, S09/`IG-21`) **together in a single commit**, per explicit user request. Both Subtasks Done; parent Story `IG-21` closed; this completed Epic `IG-2` (all four Stories done) — Epic closed too.
+- **Provider decision surfaced and resolved before implementing**: no analytics vendor is named anywhere in `docs/`, and the backend's Audit module (SAD §24) is scoped to authenticated business-entity actions, not anonymous frontend tracking — doesn't fit. Asked the user via `AskUserQuestion`; agreed to build a provider-agnostic instrumentation layer now (pluggable sink, console default) rather than block on picking a real vendor.
+- New `frontend/lib/analytics/` module: closed event union (`landing_page_view`, `invoice_editor_start`), `resolveAcquisitionSource()` (reduces referrer/query string to an approved category — sanitized utm token, direct, known search engine, or hostname-only referral — never the full URL/path/query), `track()` (swallows sink failures so analytics can never block navigation).
+- Wired `PageViewTracker` (fires once per landing-page load) into `page.tsx`, and `AnalyticsCtaLink` (fires on click, preserves existing navigation) into the Hero and Pricing free-plan "Create Free Invoice" CTAs only — the two acquisition-funnel entry points from `IG-84`'s precedent.
 
 Files changed or created:
 
-- `frontend/app/robots.ts`, `frontend/app/sitemap.ts` (new)
-- `frontend/app/robots.test.ts`, `frontend/app/sitemap.test.ts` (new)
+- `frontend/lib/analytics/{types,resolveAcquisitionSource,track,index}.ts` (new)
+- `frontend/lib/analytics/{resolveAcquisitionSource,track}.test.ts` (new)
+- `frontend/app/components/analytics/{PageViewTracker,AnalyticsCtaLink}.tsx` (new)
+- `frontend/app/components/analytics/{PageViewTracker,AnalyticsCtaLink}.test.tsx` (new)
+- `frontend/app/page.tsx`, `frontend/app/components/landing/{Hero,PricingTeaserSection}.tsx` (wired in)
 - `backlog.md`
 
 Verification performed:
 
-- Unit tests calling the exported `robots()`/`sitemap()` functions directly (plain data, no rendering needed) — 9 test files / 23 tests pass across the full suite.
-- Real dev-server check of the actual served `/robots.txt` and `/sitemap.xml` output.
-- Confirmed both appear as prerendered static routes in a real production build.
-- `npm run lint` clean.
-- Pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32552316604>.
+- Unit tests: source categorization/sanitization (including an explicit assertion that an email address and URL path in a referrer's query string do NOT survive into the resolved event), `track()`'s failure-swallowing, both components' emission and entry points, and a throwing-sink case proving `AnalyticsCtaLink`'s click handler still completes.
+- Real headless-browser check of the actual console output on a running dev server: `landing_page_view` fires exactly once per load, `invoice_editor_start` fires with the correct `entryPoint` for each CTA, and — checked via `waitForURL`, not just DOM state, after an initial 300ms-wait false negative was diagnosed as a script timing issue, not a product bug — navigation to `/invoice/create` genuinely completes afterward.
+- 13 test files / 37 tests pass across the full suite; `npm run lint` / `npm run build` clean.
+- Pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32582741149>.
 
 ## Blockers and Open Decisions
 
-**Likely blocker for `IG-89`: no analytics provider has been chosen.** See Next Task above — needs an explicit user decision (via `AskUserQuestion`) before real event delivery can be implemented, unless routing acquisition events through the backend's existing Audit module (if its design fits) avoids needing a third-party contract at all. Check docs/SAD.md before assuming a new provider is required.
+**Resolved during `IG-89`/`IG-90`, pattern to reuse:** no analytics provider was named in `docs/`; asked the user directly rather than inventing one, and built the instrumentation behind a pluggable sink so a real provider can be wired later without touching call sites. `frontend/lib/analytics/track.ts`'s `setAnalyticsSink()` is the swap point when one is chosen.
+
+**Expect the same class of decision repeatedly in Epic `IG-3`** (Identity, Authentication and Account Security): a Google OAuth client ID/secret for `IG-23`, and an email-delivery provider for `IG-25` (password recovery) — neither is named anywhere in `docs/`. Ask before implementing real delivery/OAuth; don't invent credentials or a provider.
 
 **Next.js 16.1.6's root-layout title template doesn't apply to a page's own `title` string.** Confirmed with a clean Turbopack cache during `IG-87`, so it's genuine framework behavior in this version, not a project bug or stale cache. If a future page relies on the `%s | Invoice App` suffix appearing automatically, set its title explicitly instead (e.g. `` `${pageTitle} | Invoice App` ``) rather than assuming the layout's `template` will apply it.
 
@@ -113,9 +120,9 @@ Provider and deployment choices that are not needed for the current structural t
 
 ## Jira Synchronization
 
-**Last synchronized:** 2026-08-22 Australia/Sydney
+**Last synchronized:** 2026-08-23 Australia/Sydney
 
-`IG-88` is Done with a claim comment (start) and a verification comment (completion, including CI-run evidence). Parent Story `IG-20` is Done (both Subtasks complete). Next Story `IG-21` (Measure acquisition activity) is To Do with two Subtasks, `IG-89` and `IG-90`, both To Do/unclaimed as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask by number alone.
+`IG-89` and `IG-90` are both Done, each with a claim comment (start, including the analytics-provider scope note) and a verification comment (completion). Parent Story `IG-21` is Done (both Subtasks complete), and Epic `IG-2` is Done (all four Stories complete) — both closed with summary comments. Epic `IG-3` (Identity, Authentication and Account Security) is To Do with 6 Stories (`IG-22`–`IG-27`), none started. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
 
 ## Handoff Update Template
 
