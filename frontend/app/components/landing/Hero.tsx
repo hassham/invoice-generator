@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnalyticsCtaLink } from "../analytics/AnalyticsCtaLink";
 
 export function Hero() {
   return (
@@ -14,12 +15,13 @@ export function Hero() {
         accounting knowledge needed, and it works just as well on your phone as your laptop.
       </p>
       <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-        <Link
+        <AnalyticsCtaLink
           href="/invoice/create"
+          entryPoint="hero"
           className="w-full rounded-full bg-blue-600 px-8 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:w-auto"
         >
           Create Free Invoice
-        </Link>
+        </AnalyticsCtaLink>
         <Link
           href="#templates"
           className="w-full rounded-full border border-slate-300 px-8 py-3 text-base font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-950 sm:w-auto"

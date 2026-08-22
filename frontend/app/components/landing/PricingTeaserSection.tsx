@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnalyticsCtaLink } from "../analytics/AnalyticsCtaLink";
 
 const freeIncludes = [
   "Unlimited draft invoices",
@@ -41,12 +42,13 @@ export function PricingTeaserSection() {
                 </li>
               ))}
             </ul>
-            <Link
+            <AnalyticsCtaLink
               href="/invoice/create"
+              entryPoint="pricing_free_plan"
               className="mt-8 block w-full rounded-full bg-slate-950 px-6 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
             >
               Create Free Invoice
-            </Link>
+            </AnalyticsCtaLink>
           </div>
 
           <div className="rounded-2xl border border-blue-600 bg-white p-8 ring-1 ring-blue-600">

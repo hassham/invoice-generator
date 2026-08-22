@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageViewTracker } from "./components/analytics/PageViewTracker";
 import { BenefitsSection } from "./components/landing/BenefitsSection";
 import { FaqSection } from "./components/landing/FaqSection";
 import { FeatureOverviewSection } from "./components/landing/FeatureOverviewSection";
@@ -30,6 +31,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <>
+      <PageViewTracker />
       <SiteHeader />
       <main>
         <Hero />
