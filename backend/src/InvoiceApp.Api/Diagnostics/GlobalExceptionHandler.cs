@@ -49,6 +49,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         ValidationException => (StatusCodes.Status400BadRequest, "Validation failed.", exception.Message),
         NotFoundException => (StatusCodes.Status404NotFound, "Resource not found.", exception.Message),
         ConflictException => (StatusCodes.Status409Conflict, "Conflict.", exception.Message),
+        UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized.", exception.Message),
         _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.", null),
     };
 }

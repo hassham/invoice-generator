@@ -16,4 +16,15 @@ public sealed class AuthSessionService(
 
         await signInManager.SignInAsync(user, isPersistent: false);
     }
+
+    public async Task SignOutAsync(CancellationToken cancellationToken)
+    {
+        await signInManager.SignOutAsync();
+    }
+
+    public async Task<LoggedInAccount?> GetCurrentAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return user is null ? null : new LoggedInAccount(user.Id, user.Email!, user.Name);
+    }
 }

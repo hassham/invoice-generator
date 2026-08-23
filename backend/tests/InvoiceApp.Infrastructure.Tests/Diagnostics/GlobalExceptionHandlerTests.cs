@@ -39,6 +39,15 @@ public class GlobalExceptionHandlerTests
     }
 
     [Fact]
+    public void Maps_unauthorized_exception_to_401_with_its_message()
+    {
+        var (statusCode, _, detail) = GlobalExceptionHandler.Map(new UnauthorizedException("Incorrect email or password."));
+
+        Assert.Equal(401, statusCode);
+        Assert.Equal("Incorrect email or password.", detail);
+    }
+
+    [Fact]
     public void Maps_an_unexpected_exception_to_500_without_disclosing_its_message()
     {
         var (statusCode, title, detail) = GlobalExceptionHandler.Map(

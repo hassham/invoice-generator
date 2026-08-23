@@ -42,6 +42,7 @@ public static class InfrastructureAuthenticationExtensions
 
         services.AddScoped<IAccountRegistrationService, AccountRegistrationService>();
         services.AddScoped<IAuthSessionService, AuthSessionService>();
+        services.AddScoped<ICredentialLoginService, CredentialLoginService>();
 
         return services;
     }

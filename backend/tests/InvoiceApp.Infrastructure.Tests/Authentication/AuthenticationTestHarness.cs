@@ -59,11 +59,22 @@ public sealed class AuthenticationTestHarness : IDisposable
 
     public IAuthSessionService BuildAuthSessionService(Microsoft.AspNetCore.Http.HttpContext httpContext)
     {
+        AttachHttpContext(httpContext);
+        return Scope.ServiceProvider.GetRequiredService<IAuthSessionService>();
+    }
+
+    public ICredentialLoginService BuildCredentialLoginService(Microsoft.AspNetCore.Http.HttpContext httpContext)
+    {
+        AttachHttpContext(httpContext);
+        return Scope.ServiceProvider.GetRequiredService<ICredentialLoginService>();
+    }
+
+    private void AttachHttpContext(Microsoft.AspNetCore.Http.HttpContext httpContext)
+    {
         // SignInManager resolves IAuthenticationService etc. from HttpContext.RequestServices,
         // not from its own constructor-injected provider - a bare DefaultHttpContext has none.
         httpContext.RequestServices = Scope.ServiceProvider;
         Scope.ServiceProvider.GetRequiredService<SignInManager<ApplicationUser>>().Context = httpContext;
-        return Scope.ServiceProvider.GetRequiredService<IAuthSessionService>();
     }
 
     public void Dispose()
