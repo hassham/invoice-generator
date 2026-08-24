@@ -58,6 +58,37 @@ public class CredentialLoginServiceTests
     }
 
     [Fact]
+    public async Task Deleted_account_is_rejected_with_the_same_generic_message_as_a_wrong_password()
+    {
+        // The "not left signed in" half of this behavior (PasswordSignInAsync issues a cookie
+        // before the Status check runs, so CredentialLoginService must undo it) is proven for
+        // real in AccountDeletionTests.Deleted_account_cannot_log_in_again, which exercises the
+        // actual Api pipeline end to end. It isn't re-asserted at the cookie-header level here:
+        // this harness reuses one DI scope across every Build* call, and IAuthenticationHandlerProvider
+        // is scoped, not per-HttpContext - deletion below is the *first* real cookie operation in
+        // this test's scope, so it captures the handler against its own throwaway HttpContext;
+        // the later PasswordSignInAsync call then silently writes to that same stale handler
+        // instead of this test's own httpContext, making a cookie-header assertion here
+        // unreliable (production's real per-request DI scope has no such artifact).
+        using var harness = new AuthenticationTestHarness();
+        var registered = await harness.AccountRegistrationService.RegisterAsync(
+            new RegisterAccountRequest("deleted.login@example.com", "Password1", "Password1", null),
+            CancellationToken.None);
+        await harness.BuildAccountDeletionService(new DefaultHttpContext())
+            .DeleteAsync(registered.UserId, "Password1", CancellationToken.None);
+
+        var loginService = harness.BuildCredentialLoginService(new DefaultHttpContext());
+
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(() => loginService.SignInWithPasswordAsync(
+            new LoginRequest("deleted.login@example.com", "Password1", RememberMe: false),
+            CancellationToken.None));
+
+        // Same message as a wrong password/unknown email - a deleted account's state must not be
+        // exposed via a distinct error (FSD 8's anti-enumeration requirement extended to deletion).
+        Assert.Equal("Incorrect email or password.", exception.Message);
+    }
+
+    [Fact]
     public async Task Remember_me_issues_a_persistent_cookie_while_its_absence_issues_a_session_cookie()
     {
         using var harness = new AuthenticationTestHarness();

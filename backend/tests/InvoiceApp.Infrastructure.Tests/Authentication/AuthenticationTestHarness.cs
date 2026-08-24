@@ -69,12 +69,23 @@ public sealed class AuthenticationTestHarness : IDisposable
         return Scope.ServiceProvider.GetRequiredService<ICredentialLoginService>();
     }
 
+    public IAccountDeletionService BuildAccountDeletionService(Microsoft.AspNetCore.Http.HttpContext httpContext)
+    {
+        AttachHttpContext(httpContext);
+        return Scope.ServiceProvider.GetRequiredService<IAccountDeletionService>();
+    }
+
     private void AttachHttpContext(Microsoft.AspNetCore.Http.HttpContext httpContext)
     {
         // SignInManager resolves IAuthenticationService etc. from HttpContext.RequestServices,
         // not from its own constructor-injected provider - a bare DefaultHttpContext has none.
         httpContext.RequestServices = Scope.ServiceProvider;
         Scope.ServiceProvider.GetRequiredService<SignInManager<ApplicationUser>>().Context = httpContext;
+
+        // AccountDeletionService reads the request IP for its audit record via
+        // IHttpContextAccessor, not a constructor-injected HttpContext - nothing else in this
+        // harness sets it, so without this line it would always see IpAddress = null.
+        Scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>().HttpContext = httpContext;
     }
 
     public void Dispose()

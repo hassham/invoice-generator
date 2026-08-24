@@ -31,6 +31,16 @@ public sealed class CredentialLoginService(
         var user = await userManager.FindByEmailAsync(request.Email)
             ?? throw new UnauthorizedException(GenericFailureMessage);
 
+        if (user.Status != "Active")
+        {
+            // PasswordSignInAsync above already issued a cookie before this check ran - it has no
+            // knowledge of this app's own Status field - so a deleted account with the correct
+            // password would otherwise end up signed in. Undo it immediately, and reuse the same
+            // generic message so a deleted account's existence/state still isn't exposed (FSD 8).
+            await signInManager.SignOutAsync();
+            throw new UnauthorizedException(GenericFailureMessage);
+        }
+
         return new LoggedInAccount(user.Id, request.Email, user.Name);
     }
 }

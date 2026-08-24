@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Infrastructure.Configuration;
+using InvoiceApp.Modules.Identity.AccountDeletion;
 using InvoiceApp.Modules.Identity.Login;
 using InvoiceApp.Modules.Identity.Registration;
+using Microsoft.AspNetCore.Mvc;
 
 namespace InvoiceApp.Api.Endpoints;
 
@@ -14,6 +16,7 @@ public static class AuthEndpoints
         app.MapPost("/api/v1/auth/login", LoginAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         app.MapPost("/api/v1/auth/logout", LogoutAsync).RequireAuthorization();
         app.MapGet("/api/v1/auth/me", Me).RequireAuthorization();
+        app.MapDelete("/api/v1/auth/account", DeleteAccountAsync).RequireAuthorization();
         return app;
     }
 
@@ -61,6 +64,20 @@ public static class AuthEndpoints
         var account = await authSessionService.GetCurrentAsync(userId, cancellationToken);
 
         return account is null ? Results.Unauthorized() : Results.Ok(account);
+    }
+
+    private static async Task<IResult> DeleteAccountAsync(
+        [FromBody] DeleteAccountRequest request,
+        ClaimsPrincipal user,
+        IAccountDeletionService accountDeletionService,
+        CancellationToken cancellationToken)
+    {
+        DeleteAccountRequestValidator.Validate(request);
+
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await accountDeletionService.DeleteAsync(userId, request.CurrentPassword, cancellationToken);
+
+        return Results.Ok();
     }
 }
 
