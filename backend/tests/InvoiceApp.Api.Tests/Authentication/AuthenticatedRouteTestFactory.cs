@@ -1,3 +1,4 @@
+using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Hosting;
@@ -11,19 +12,23 @@ namespace InvoiceApp.Api.Tests.Authentication;
 
 /// <summary>
 /// Hosts the real Api pipeline (real cookie authentication middleware, real endpoint
-/// authorization metadata) in-process, swapping only the database for EF Core's InMemory
-/// provider - mirrors AuthenticationTestHarness's InMemory approach, but at the HTTP level, which
-/// is the only way to prove IG-99's actual completion criterion: protected *routes* (not just the
-/// underlying service methods) reject missing/invalid/expired sessions.
+/// authorization metadata, real rate limiter) in-process, swapping only the database for EF
+/// Core's InMemory provider - mirrors AuthenticationTestHarness's InMemory approach, but at the
+/// HTTP level, which is the only way to prove IG-99's actual completion criterion: protected
+/// *routes* (not just the underlying service methods) reject missing/invalid/expired sessions.
 /// </summary>
 public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = Guid.NewGuid().ToString();
     private readonly TimeSpan? _cookieExpireOverride;
+    private readonly int? _rateLimitPermitLimitOverride;
 
-    public AuthenticatedRouteTestFactory(TimeSpan? cookieExpireOverride = null)
+    public AuthenticatedRouteTestFactory(
+        TimeSpan? cookieExpireOverride = null,
+        int? rateLimitPermitLimitOverride = null)
     {
         _cookieExpireOverride = cookieExpireOverride;
+        _rateLimitPermitLimitOverride = rateLimitPermitLimitOverride;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -43,6 +48,18 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
                 {
                     options.ExpireTimeSpan = expireOverride;
                     options.SlidingExpiration = false;
+                });
+            }
+
+            if (_rateLimitPermitLimitOverride is { } permitLimitOverride)
+            {
+                // PostConfigure so this reliably wins regardless of DI registration order, same
+                // reasoning as the cookie-expiry override above. Lets rate-limit tests use a
+                // small, deterministic threshold instead of the real configured default, so they
+                // don't need to fire dozens of requests to trip it.
+                services.PostConfigure<RateLimitingOptions>(options =>
+                {
+                    options.PermitLimit = permitLimitOverride;
                 });
             }
         });

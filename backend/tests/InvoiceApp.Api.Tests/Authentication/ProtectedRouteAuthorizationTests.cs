@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using InvoiceApp.Application.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace InvoiceApp.Api.Tests.Authentication;
@@ -73,6 +74,20 @@ public class ProtectedRouteAuthorizationTests
         var response = await attackClient.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Missing_session_response_includes_the_defined_session_expiry_message()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync(MeEndpoint);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        // docs/FSD.md section 80's Authentication Error example - the only message that section
+        // defines, reused for every authentication-failure cause per IG-100's claim comment.
+        Assert.Equal("Your session has expired. Please sign in again.", problem?.Detail);
     }
 
     [Fact]

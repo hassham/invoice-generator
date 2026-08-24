@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using InvoiceApp.Application.Identity;
+using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Modules.Identity.Login;
 using InvoiceApp.Modules.Identity.Registration;
 
@@ -9,8 +10,8 @@ public static class AuthEndpoints
 {
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/auth/register", RegisterAsync);
-        app.MapPost("/api/v1/auth/login", LoginAsync);
+        app.MapPost("/api/v1/auth/register", RegisterAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        app.MapPost("/api/v1/auth/login", LoginAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         app.MapPost("/api/v1/auth/logout", LogoutAsync).RequireAuthorization();
         app.MapGet("/api/v1/auth/me", Me).RequireAuthorization();
         return app;

@@ -5,6 +5,7 @@ using InvoiceApp.Infrastructure.Authentication;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.HealthChecks;
 using InvoiceApp.Infrastructure.Persistence;
+using InvoiceApp.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,7 @@ builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true);
 builder.Services.AddInfrastructureConfiguration(builder.Configuration);
 builder.Services.AddInfrastructurePersistence();
 builder.Services.AddInfrastructureAuthentication();
+builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructureHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -33,6 +35,7 @@ app.UseExceptionHandler();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapAuthEndpoints();
 
