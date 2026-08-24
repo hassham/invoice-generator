@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceApp.ArchitectureTest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceApp.Infrastructure.Tests", "tests\InvoiceApp.Infrastructure.Tests\InvoiceApp.Infrastructure.Tests.csproj", "{6D989641-3E68-411A-88FC-A08E53CF4CC8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceApp.Api.Tests", "tests\InvoiceApp.Api.Tests\InvoiceApp.Api.Tests.csproj", "{9398847D-3C07-4D24-8F1C-B53AD6994EFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -100,6 +102,10 @@ Global
 		{6D989641-3E68-411A-88FC-A08E53CF4CC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D989641-3E68-411A-88FC-A08E53CF4CC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D989641-3E68-411A-88FC-A08E53CF4CC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9398847D-3C07-4D24-8F1C-B53AD6994EFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9398847D-3C07-4D24-8F1C-B53AD6994EFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9398847D-3C07-4D24-8F1C-B53AD6994EFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9398847D-3C07-4D24-8F1C-B53AD6994EFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BF543D38-E2DF-478A-BB7B-17DC105B31AB} = {ED79B53F-3E3D-4B3D-800D-A9EC8352B740}
@@ -116,5 +122,6 @@ Global
 		{03319CE0-BAA5-4447-BD14-E8895EAAE676} = {ED79B53F-3E3D-4B3D-800D-A9EC8352B740}
 		{FF3D151D-9FFA-4392-9F7A-46491293F54A} = {DB45028F-90F0-4CD3-88F0-44E57FCB282D}
 		{6D989641-3E68-411A-88FC-A08E53CF4CC8} = {DB45028F-90F0-4CD3-88F0-44E57FCB282D}
+		{9398847D-3C07-4D24-8F1C-B53AD6994EFF} = {DB45028F-90F0-4CD3-88F0-44E57FCB282D}
 	EndGlobalSection
 EndGlobal

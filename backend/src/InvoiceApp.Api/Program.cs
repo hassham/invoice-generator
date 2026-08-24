@@ -52,3 +52,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 app.Run();
+
+// Exposes the top-level-statement-generated Program class so WebApplicationFactory<Program> in
+// InvoiceApp.Api.Tests can host this app in-process for real HTTP-pipeline authorization tests.
+public partial class Program;
