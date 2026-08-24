@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register) and `IG-24` (login/logout) are both complete — `POST /api/v1/auth/{register,login,logout}` and `GET /api/v1/auth/me` are all live, tested, and verified against a real Postgres instance. `IG-3` has 4 Stories remaining: `IG-23` (Google sign-in — likely blocked, needs real OAuth credentials), `IG-25` (password recovery — likely blocked, needs an email-delivery provider), `IG-26` (secure session — likely unblocked, though its "configured rate limits" acceptance criterion needs reasonable thresholds chosen since none are specified in docs), `IG-27` (delete account — likely unblocked).
+**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register) and `IG-24` (login/logout) are both complete. Story `IG-26` (secure session) is in progress: Subtask `IG-99` (enforce authenticated route/API access) is Done — protected routes now reject missing, tampered and expired sessions, proven at the real HTTP pipeline level via `WebApplicationFactory`. Sibling Subtask `IG-100` (session-expiry messaging + rate limits) is still To Do. `IG-3` otherwise has 3 Stories remaining: `IG-23` (Google sign-in — likely blocked, needs real OAuth credentials), `IG-25` (password recovery — likely blocked, needs an email-delivery provider), `IG-27` (delete account — likely unblocked).
 
 **Open follow-up carried over from `IG-21`, not yet resolved:** the acquisition events built in `IG-89`/`IG-90` only reach a console sink so far — nothing durably captures them yet. See "Blockers and Open Decisions" below for the full note; revisit once an analytics provider is chosen so this doesn't get silently forgotten.
 
@@ -32,33 +32,56 @@ Continue Epic `IG-3`:
 
 ```text
 Epic:    IG-3  — Identity, Authentication and Account Security
-Story:   IG-26 — Maintain a secure authenticated session (tentative - confirm live status/order first)
-Subtask: (check IG-26's live Subtasks before starting)
+Story:   IG-26 — Maintain a secure authenticated session
+Subtask: IG-100 — Implement session expiry and rate-limit handling
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-3>
 - <https://appitometechnologies.atlassian.net/browse/IG-26>
+- <https://appitometechnologies.atlassian.net/browse/IG-100>
 
 ## Next Task
 
-`IG-24` (S12, both Subtasks IG-95/IG-96) is Done. `IG-3` has 4 remaining Stories: `IG-23`, `IG-25`, `IG-26`, `IG-27`.
+`IG-99` (S14, Subtask) is Done. `IG-26`'s only remaining Subtask is `IG-100` (session expiry messaging + rate limits) — still To Do, unassigned. `IG-3` otherwise has 3 remaining Stories: `IG-23`, `IG-25`, `IG-27`.
 
 Before implementation:
 
-1. Check each remaining Story's Subtasks and their live status/assignee/comments first — Codex may have picked something up.
-2. **`IG-23` (Google sign-in) is likely blocked** — needs a real Google Cloud OAuth client ID/secret, which can't be invented. Don't start it without asking the user first (`AskUserQuestion`), same pattern as the analytics-provider decision in `IG-89`/`IG-90`.
-3. **`IG-25` (password recovery) is likely blocked** — needs an email-delivery provider, none chosen anywhere in `docs/`. Same pattern: ask before implementing real delivery.
-4. **`IG-26` (secure session) is likely the safe next pick** — acceptance criteria: protected routes/APIs reject missing/invalid/expired sessions (`GET /api/v1/auth/me` from `IG-95` already proves the "protected route" mechanism works; this Story is likely about session *expiry* behavior specifically), a defined session-expiry message (check FSD for the exact wording, same discipline as FSD §8's login message), and configured rate limits on auth endpoints (SAD §112 — ASP.NET Core's built-in rate-limiting middleware, `Microsoft.AspNetCore.RateLimiting`, no third-party provider needed; thresholds aren't specified in docs, so choose conservative, clearly-documented defaults and flag them rather than silently picking numbers).
+1. Check `IG-100`'s live status/assignee/comments first — Codex may have picked it up since this handoff was written.
+2. **`IG-100` acceptance criteria** (from `IG-26`'s Story-level criteria): a defined session-expiry message displayed on expiry, with a sign-in offer (check FSD for the exact wording, same discipline as FSD §8's login message), and configured rate limits on authentication endpoints (SAD §112 — ASP.NET Core's built-in rate-limiting middleware, `Microsoft.AspNetCore.RateLimiting`, no third-party provider needed; thresholds aren't specified in docs, so choose conservative, clearly-documented defaults and flag them rather than silently picking numbers). The route-level enforcement mechanism itself (missing/invalid/expired sessions rejected) is already done via `IG-99`.
+3. **`IG-23` (Google sign-in) is likely blocked** — needs a real Google Cloud OAuth client ID/secret, which can't be invented. Don't start it without asking the user first (`AskUserQuestion`), same pattern as the analytics-provider decision in `IG-89`/`IG-90`.
+4. **`IG-25` (password recovery) is likely blocked** — needs an email-delivery provider, none chosen anywhere in `docs/`. Same pattern: ask before implementing real delivery.
 5. `IG-27` (delete account) hasn't been read in detail beyond its Jira description — check live Subtasks/criteria before assuming scope. Acceptance criteria: requires authentication + explicit confirmation, follows retention/legal rules (check docs/SAD.md for any data-retention policy already documented), signs the user out and blocks further use of the deleted account.
-6. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`: Application-layer interface + Infrastructure implementation + Modules.Identity validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check. `IG-95`/`IG-96` also showed the value of real E2E verification catching a bug (the `/me` display-name issue) that unit tests alone missed — keep doing both.
+6. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`: Application-layer interface + Infrastructure implementation + Modules.Identity validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check. `IG-95`/`IG-96` also showed the value of real E2E verification catching a bug (the `/me` display-name issue) that unit tests alone missed — keep doing both. `IG-99` additionally showed the value of testing authorization at the real HTTP pipeline level (`WebApplicationFactory`), not just the underlying service — consider the same for `IG-100`'s rate-limiting if it's plausible to exercise via real HTTP requests.
 
 ## Last Execution
 
-**Date:** 2026-08-23 Australia/Sydney
+**Date:** 2026-08-24 Australia/Sydney
 
 Completed:
+
+- Implemented `IG-99 — Enforce authenticated route and API access` (T027, S14/`IG-26`). Subtask Done; parent Story `IG-26` remains open (sibling Subtask `IG-100` still To Do).
+- Added `InvoiceApp.Api.Tests`, a new xUnit project hosting the real Api pipeline in-process via `WebApplicationFactory<Program>` — real cookie authentication middleware and real endpoint authorization metadata, with only the database swapped for EF Core InMemory. This is the first Subtask to verify authorization at the actual HTTP/route level rather than only the underlying service layer.
+- `Program.cs` now ends with `public partial class Program;` to expose the top-level-statement-generated `Program` class so `WebApplicationFactory<Program>` can reference it from the test project.
+- 5 new tests in `ProtectedRouteAuthorizationTests`: missing session rejected on `/api/v1/auth/me` and `/api/v1/auth/logout` (401); valid session allowed on `/me` (200); tampered/invalid session cookie rejected (401) — the real `Set-Cookie` value is captured raw, corrupted, and replayed by hand, proving the data-protected ticket itself is validated, not just cookie presence; expired session rejected (401) — cookie expiry overridden to 200ms via `PostConfigure<CookieAuthenticationOptions>` on the `IdentityConstants.ApplicationScheme`.
+- Work was picked up mid-implementation after a system restart (uncommitted `.sln`/`Program.cs`/new test project already present) — verified it built and passed cleanly before committing rather than assuming prior-session intent.
+
+Files changed or created (`IG-99`):
+
+- `backend/InvoiceApp.sln` (registered new test project)
+- `backend/src/InvoiceApp.Api/Program.cs` (added `public partial class Program;`)
+- `backend/tests/InvoiceApp.Api.Tests/InvoiceApp.Api.Tests.csproj` (new)
+- `backend/tests/InvoiceApp.Api.Tests/Authentication/{AuthenticatedRouteTestFactory,ProtectedRouteAuthorizationTests}.cs` (new)
+- `backlog.md`
+
+Verification performed (`IG-99`):
+
+- 5 new tests exercising the real HTTP pipeline via `WebApplicationFactory<Program>` (see Completed above for scenarios covered).
+- Full solution build and test suite (60 tests: 14 architecture + 41 infrastructure + 5 API) pass locally.
+- Pushed and watched a real GitHub Actions run to completion, both jobs green: <https://github.com/hassham/invoice-generator/actions/runs/32716449249>.
+
+Prior execution, still relevant context:
 
 - Implemented `IG-95 — Implement credential login and session logout` and `IG-96 — Test safe authentication errors` (T023/T024, S12/`IG-24`) **together in a single commit**, per explicit user request. Both Subtasks Done; parent Story `IG-24` closed.
 - Added `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, and `GET /api/v1/auth/me` (a minimal authenticated "who am I" endpoint — not in FSD §91's documented list, but needed to make "protects authenticated routes" concretely testable against something real). Reused the Application-interface/Infrastructure-implementation/Modules pattern from `IG-91`/`IG-92`.
@@ -66,7 +89,7 @@ Completed:
 - Remember Me maps to `SignInManager`'s `isPersistent` flag; logout clears the session cookie via a new `IAuthSessionService.SignOutAsync`.
 - **Real bug caught during manual end-to-end verification, not by any automated test**: `/me` initially read `ClaimTypes.Name` directly from the cookie's claims, which ASP.NET Core Identity populates from `UserName` (this app sets `UserName` to the email) — so a user who registered with a real display name saw their email echoed back as `"name"`. Fixed by having `/me` load the account's own record (`IAuthSessionService.GetCurrentAsync`) instead of trusting that claim; added a regression test afterward.
 
-Files changed or created:
+Files changed or created (`IG-95`/`IG-96`):
 
 - `backend/src/InvoiceApp.Application/Exceptions/UnauthorizedException.cs`, `backend/src/InvoiceApp.Application/Identity/{ICredentialLoginService,LoginRequest,LoggedInAccount}.cs` (new)
 - `backend/src/InvoiceApp.Application/Identity/IAuthSessionService.cs` (extended: `SignOutAsync`, `GetCurrentAsync`)
@@ -76,9 +99,8 @@ Files changed or created:
 - `backend/src/InvoiceApp.Api/Diagnostics/GlobalExceptionHandler.cs` (added the `UnauthorizedException` → 401 mapping)
 - `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/{CredentialLoginServiceTests,AuthenticationTestHarness}.cs` (new/extended); `AuthSessionServiceTests.cs`, `GlobalExceptionHandlerTests.cs` (extended)
 - `backend/tests/InvoiceApp.Infrastructure.Tests/Modules/Identity/Login/LoginRequestValidatorTests.cs` (new)
-- `backlog.md`
 
-Verification performed:
+Verification performed (`IG-95`/`IG-96`):
 
 - 12 new automated tests: unknown-email and wrong-password login produce byte-identical `UnauthorizedException`s; Remember Me produces a persistent cookie (real `expires=`) vs a session cookie (none) — checked via the actual `Set-Cookie` header, not assumed; logout's cookie carries an expired date; `GetCurrentAsync` returns the real display name, not the username (the regression test for the bug above).
 - **Real end-to-end verification against a live Postgres instance**: register → `/me` (401 before, 200 after) → wrong password (401) → unknown email (401, byte-identical body) → correct login with `rememberMe=true` (persistent cookie) → `/me` → logout → `/me` (401 again) — then confirmed via direct SQL that none of the failed attempts created a stray row.
@@ -136,9 +158,9 @@ Provider and deployment choices that are not needed for the current structural t
 
 ## Jira Synchronization
 
-**Last synchronized:** 2026-08-23 Australia/Sydney
+**Last synchronized:** 2026-08-24 Australia/Sydney
 
-`IG-95` and `IG-96` are both Done, each with a claim comment (start, including the scope note on anti-enumeration vs `IG-91`'s registration behavior) and a verification comment (completion, including both the automated-test and real-Postgres evidence). Parent Story `IG-24` is Done (both Subtasks complete) — closed with a summary comment. Epic `IG-3` has 4 remaining Stories (`IG-23`, `IG-25`, `IG-26`, `IG-27`), none started; `IG-23` and `IG-25` are expected to need a user decision (OAuth credentials, email provider) before they can be claimed. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
+`IG-99` is Done, with a claim comment (start, noting `IG-100` explicitly left out of scope) and a verification comment (completion, including the automated-test and CI evidence). Parent Story `IG-26` remains In Progress-equivalent (not yet Done — sibling Subtask `IG-100` is still To Do, unassigned). `IG-95`/`IG-96` remain Done from the prior session, parent Story `IG-24` Done. Epic `IG-3` otherwise has 3 Stories not yet started (`IG-23`, `IG-25`, `IG-27`); `IG-23` and `IG-25` are expected to need a user decision (OAuth credentials, email provider) before they can be claimed. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
 
 ## Handoff Update Template
 
