@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register) and `IG-24` (login/logout) are both complete. Story `IG-26` (secure session) has both its Subtasks Done (`IG-99`: route/API enforcement; `IG-100`: session-expiry message + rate limits) but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` otherwise has 3 Stories remaining: `IG-23` (Google sign-in — likely blocked, needs real OAuth credentials), `IG-25` (password recovery — likely blocked, needs an email-delivery provider), `IG-27` (delete account — likely unblocked).
+**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout) and `IG-27` (delete account) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` now has only 2 Stories remaining, and **both are likely blocked on a user decision**: `IG-23` (Google sign-in — needs real OAuth credentials) and `IG-25` (password recovery — needs an email-delivery provider). If both are confirmed blocked in a future session, check Jira for the next Epic after `IG-3` rather than stalling on this one.
 
 **Open follow-up carried over from `IG-26`, not yet resolved:** "offers sign-in" (part of `IG-26`'s session-expiry acceptance criterion) needs a frontend sign-in page/auth UI that doesn't exist yet. None of Epic IG-3's auth flows (register, login, session) have any frontend UI — only backend endpoints. Revisit once frontend auth pages are built, likely alongside `IG-23`/`IG-25`.
 
@@ -30,11 +30,11 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Continue Epic `IG-3`. `IG-26` has no remaining Subtasks (both Done), but stays In Progress pending the frontend sign-in gap noted above — do not restart backend work on it without a new Subtask or explicit direction:
+Epic `IG-3`'s remaining Stories (`IG-23`, `IG-25`) are both likely blocked on a user decision. `IG-26` has no remaining Subtasks (both Done), but stays In Progress pending the frontend sign-in gap noted above — do not restart backend work on it without a new Subtask or explicit direction:
 
 ```text
 Epic:    IG-3  — Identity, Authentication and Account Security
-Story:   IG-23, IG-25 or IG-27 (tentative - confirm live status/order first)
+Story:   IG-23 or IG-25 (tentative - confirm live status first; both likely need a user decision before they can start)
 Subtask: (check the chosen Story's live Subtasks before starting)
 ```
 
@@ -43,26 +43,53 @@ Direct links:
 - <https://appitometechnologies.atlassian.net/browse/IG-3>
 - <https://appitometechnologies.atlassian.net/browse/IG-23>
 - <https://appitometechnologies.atlassian.net/browse/IG-25>
-- <https://appitometechnologies.atlassian.net/browse/IG-27>
 
 ## Next Task
 
-`IG-99` and `IG-100` (S14, both Subtasks of `IG-26`) are Done. `IG-3` has 3 remaining Stories: `IG-23`, `IG-25`, `IG-27`.
+`IG-101` and `IG-102` (S15, both Subtasks of `IG-27`) are Done; `IG-27` itself is Done. `IG-3` has 2 remaining Stories, both likely blocked: `IG-23`, `IG-25`.
 
 Before implementation:
 
 1. Check each remaining Story's Subtasks and their live status/assignee/comments first — Codex may have picked something up since this handoff was written.
 2. **`IG-23` (Google sign-in) is likely blocked** — needs a real Google Cloud OAuth client ID/secret, which can't be invented. Don't start it without asking the user first (`AskUserQuestion`), same pattern as the analytics-provider decision in `IG-89`/`IG-90`.
 3. **`IG-25` (password recovery) is likely blocked** — needs an email-delivery provider, none chosen anywhere in `docs/`. Same pattern: ask before implementing real delivery.
-4. **`IG-27` (delete account) is likely the safe next pick**, but hasn't been read in detail beyond its Jira description — check live Subtasks/criteria before assuming scope. Acceptance criteria: requires authentication + explicit confirmation, follows retention/legal rules (check docs/SAD.md for any data-retention policy already documented), signs the user out and blocks further use of the deleted account.
-5. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`/`IG-99`/`IG-100`: Application-layer interface + Infrastructure implementation + Modules.Identity validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check (skip the live-Postgres check only when the change is pure ASP.NET Core middleware behavior with no persistence semantics, as reasoned for `IG-100`). Test authorization/middleware behavior at the real HTTP pipeline level via `WebApplicationFactory<Program>` (established in `IG-99`), not just the underlying service.
-6. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" above) — if `IG-27` or any future Epic IG-3 work turns out to need frontend UI, flag it the same way rather than silently building only a backend endpoint again.
+4. **If both are confirmed blocked**, don't stall — check Jira for the next Epic after `IG-3` and ask the user how they'd like to proceed (raise both blockers together rather than one at a time).
+5. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`/`IG-99`/`IG-100`/`IG-101`/`IG-102`: Application-layer interface + Infrastructure implementation + Modules.Identity validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check (skip the live-Postgres check only when the change is pure ASP.NET Core middleware behavior with no persistence semantics, as reasoned for `IG-100`/`IG-101`/`IG-102`). Test authorization/middleware behavior at the real HTTP pipeline level via `WebApplicationFactory<Program>` (established in `IG-99`), not just the underlying service.
+6. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" above) — if `IG-23`/`IG-25` or any future Epic IG-3 work turns out to need frontend UI, flag it the same way rather than silently building only a backend endpoint again.
+7. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day. Don't watch GitHub Actions after a commit; there's nothing to watch until the user pushes. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, until this changes.
 
 ## Last Execution
 
-**Date:** 2026-08-24 Australia/Sydney
+**Date:** 2026-08-25 Australia/Sydney
 
 Completed:
+
+- Implemented `IG-101 — Implement confirmed account-deletion workflow` and `IG-102 — Verify post-deletion access and audit behavior` (T029/T030, S15/`IG-27`), together in one pass (same pattern as `IG-95`/`IG-96`). Both Subtasks Done; parent Story `IG-27` Done (unlike `IG-26`, no frontend gap blocks this one).
+- New `DELETE /api/v1/auth/account` (authenticated), requiring the current password as explicit confirmation (FSD §76). New `IAccountDeletionService`/`AccountDeletionService`, reusing the Application-interface/Infrastructure-implementation pattern.
+- Soft-delete via `ApplicationUser.Status = "Deleted"` — the field already existed with an `"Active"` default (`docs/DATABASE_SCHEMA.md` §3), so no migration was needed. Business/invoice data is untouched.
+- Audit log entry (`EntityType="Account"`, `Action="AccountDeleted"`) written atomically with the status flip via `UserManager.UpdateAsync`'s own SaveChanges flush — first real use of the previously-unused `AuditLog` entity/table.
+- Deleted account rejected in two places going forward: at the next login attempt (`CredentialLoginService` now checks `Status`, same generic anti-enumeration message as a wrong password — undoes the cookie `PasswordSignInAsync` issues before the check runs), and on every subsequent authenticated request for *any* session via a new cookie `OnValidatePrincipal` handler (`InfrastructureAuthenticationExtensions`) — not just the session that performed the deletion. This is the same class of problem ASP.NET Core Identity's own `SecurityStampValidator` solves for password changes, not wired up here since this project uses `AddIdentityCore` rather than the all-in-one `AddIdentity`.
+- **Deliberately not built**: the permanent-purge-after-retention-period half of FSD §76's soft-delete recommendation — no retention duration is documented anywhere, and it's a background/ops job, not something the Story's "follows retention rules" criterion strictly requires (soft-delete alone already satisfies it by not destroying data prematurely).
+- **Test-harness bug found and fixed, not a production bug**: `AuthenticationTestHarness` reuses one DI scope across every `Build*` call; `IAuthenticationHandlerProvider` is scoped (not per-`HttpContext`), so it caches the cookie handler against the *first* fake `HttpContext` that ever triggers a real sign-in/sign-out in a test, and silently misdirects cookie writes to that stale context on later calls with a different `HttpContext` object in the same test. Fixed by keeping the affected test to one shared `HttpContext` throughout and documenting why, rather than asserting on cookie headers across two different fake contexts (production has no equivalent issue - real requests get a fresh DI scope each time).
+- No live-Postgres manual verification and no CI run this round — this session switched to a local-commit-only workflow (see the memory note below); the user is running their own manual smoke test today instead.
+
+Files changed or created (`IG-101`/`IG-102`):
+
+- `backend/src/InvoiceApp.Application/Identity/{DeleteAccountRequest,IAccountDeletionService}.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Authentication/AccountDeletionService.cs` (new); `CredentialLoginService.cs`, `InfrastructureAuthenticationExtensions.cs` (extended)
+- `backend/src/InvoiceApp.Modules.Identity/AccountDeletion/DeleteAccountRequestValidator.cs` (new)
+- `backend/src/InvoiceApp.Api/Endpoints/AuthEndpoints.cs` (extended: `DELETE /api/v1/auth/account`)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/AccountDeletionServiceTests.cs` (new); `AuthenticationTestHarness.cs`, `CredentialLoginServiceTests.cs` (extended)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Modules/Identity/AccountDeletion/DeleteAccountRequestValidatorTests.cs` (new)
+- `backend/tests/InvoiceApp.Api.Tests/Authentication/AccountDeletionTests.cs` (new)
+- `backlog.md`
+
+Verification performed (`IG-101`/`IG-102`):
+
+- 12 new/changed tests: 4 unit tests on `AccountDeletionService` (correct password deletes + signs out + audits; wrong password rejected and nothing changes; unknown user rejected); 1 on `CredentialLoginService` (deleted account rejected); 2 on the validator; 6 against the real HTTP pipeline via `WebApplicationFactory<Program>` in `AccountDeletionTests` (missing session, wrong/missing confirmation, successful deletion invalidates the deleting session, deleted account can't log back in, **a still-valid cookie that was never itself signed out is rejected after deletion** - simulating a second browser tab).
+- Full solution build and test suite (76 tests: 14 architecture + 48 infrastructure + 14 API) pass locally. Committed locally only (`35846ea`) - not pushed; no CI run this round.
+
+Prior execution, still relevant context:
 
 - Implemented `IG-100 — Implement session expiry and rate-limit handling` (T028, S14/`IG-26`). Subtask Done. Both of `IG-26`'s Subtasks are now Done, but the Story was deliberately left In Progress rather than Done — see "Open follow-up carried over from `IG-26`" above.
 - **Session-expiry message**: `InfrastructureAuthenticationExtensions`'s `OnRedirectToLogin` now writes a `ProblemDetails` JSON body carrying FSD §80's Authentication Error text, `"Your session has expired. Please sign in again."`, alongside the 401 it already returned. Applies to missing, invalid and expired sessions alike (same anti-enumeration reasoning as login errors) — the FSD only defines one Authentication Error example.
@@ -186,9 +213,9 @@ Provider and deployment choices that are not needed for the current structural t
 
 ## Jira Synchronization
 
-**Last synchronized:** 2026-08-24 Australia/Sydney
+**Last synchronized:** 2026-08-25 Australia/Sydney
 
-`IG-99` and `IG-100` are both Done, each with a claim comment (start) and a verification comment (completion, including automated-test and CI evidence). Parent Story `IG-26` is explicitly **not** Done — moved to In Progress with a comment explaining the open "offers sign-in" frontend gap, same treatment as `IG-21`. `IG-95`/`IG-96` remain Done from an earlier session, parent Story `IG-24` Done. Epic `IG-3` otherwise has 3 Stories not yet started (`IG-23`, `IG-25`, `IG-27`); `IG-23` and `IG-25` are expected to need a user decision (OAuth credentials, email provider) before they can be claimed. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
+`IG-101` and `IG-102` are both Done, each with a claim comment (start) and a verification comment (completion, including automated-test evidence - no CI run cited this round, see the local-commit-only note above). Parent Story `IG-27` is Done. `IG-99`/`IG-100` remain Done from the prior session; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap). `IG-95`/`IG-96` remain Done from an earlier session, parent Story `IG-24` Done. Epic `IG-3` now has only 2 Stories not yet started (`IG-23`, `IG-25`), both expected to need a user decision (OAuth credentials, email provider) before they can be claimed. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
 
 ## Handoff Update Template
 
