@@ -8,7 +8,9 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout), `IG-27` (delete account), `IG-23` (Google sign-in) and `IG-25` (password recovery) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` now has **no remaining unclaimed Stories** — the only open item left in the Epic is `IG-26`'s frontend-UI gap, which needs frontend work, not another backend Subtask. Next session should check Jira for the next Epic after `IG-3` rather than looking for more Epic-`IG-3` backend work.
+**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout), `IG-27` (delete account), `IG-23` (Google sign-in) and `IG-25` (password recovery) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` has **no remaining unclaimed Stories** — the only open item left in the Epic is `IG-26`'s frontend-UI gap.
+
+**Epic `IG-5` (Invoice Editor and Calculation Engine) is now the active Epic**, picked over `IG-4` because `IG-4`'s own Jira description lists `IG-5`/`IG-6`/`IG-7` as dependencies and none of those exist yet, while `IG-5` only depends on the already-Done `IG-1`. `IG-5` has 6 Stories (`IG-33`-`IG-38`, S21-S26). `IG-33` (S21, responsive editor/preview layout) is Done — the layout shell the rest of the Epic's real invoice fields get built into. `IG-34` (S22, invoice header/party fields) is next.
 
 **Open follow-up carried over from `IG-26`, not yet resolved:** "offers sign-in" (part of `IG-26`'s session-expiry acceptance criterion) needs a frontend sign-in page/auth UI that doesn't exist yet. None of Epic IG-3's auth flows (register, login, session) have any frontend UI — only backend endpoints. Revisit once frontend auth pages are built, likely alongside `IG-23`/`IG-25`.
 
@@ -30,36 +32,61 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Epic `IG-3` has no remaining unclaimed Stories. `IG-26` stays In Progress pending the frontend sign-in gap noted above — do not restart backend work on it without a new Subtask or explicit direction. Next step is to check Jira for the next Epic after `IG-3` (with the user) rather than looking for more work inside this Epic:
+Epic `IG-5`'s next unclaimed Story is `IG-34` (S22, invoice header/party fields) — check its live Subtasks before claiming, Codex may have picked something up:
 
 ```text
-Epic:    IG-3  — Identity, Authentication and Account Security (backend work exhausted)
-Story:   (none unclaimed)
-Subtask: (check Jira for the next Epic after IG-3)
+Epic:    IG-5  — Invoice Editor and Calculation Engine
+Story:   IG-34 — Enter invoice header and party details
+Subtask: (check IG-34's live Subtasks before starting)
 ```
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-3>
+- <https://appitometechnologies.atlassian.net/browse/IG-5>
+- <https://appitometechnologies.atlassian.net/browse/IG-34>
 
 ## Next Task
 
-`IG-97`/`IG-98` (T025/T026, both Subtasks of `IG-25`) are Done; `IG-25` itself is Done. `IG-3` now has no remaining Stories to claim.
+`IG-113`/`IG-114` (T041/T042, both Subtasks of `IG-33`) are Done; `IG-33` itself is Done — the first Story in Epic `IG-5`.
 
 Before implementation:
 
-1. Check Jira for the next Epic after `IG-3` and confirm with the user before starting new-Epic work (per the multi-agent coordination convention — Codex may already be on something).
-2. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`/`IG-99`/`IG-100`/`IG-101`/`IG-102`/`IG-93`/`IG-94`/`IG-97`/`IG-98`: Application-layer interface + Infrastructure implementation + Modules.Identity (or the relevant Modules project) validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check (skip the live-Postgres check only when the change is pure ASP.NET Core middleware behavior with no persistence semantics, or when the flow inherently needs live third-party infrastructure that can't be automated, as reasoned for `IG-93`/`IG-94`'s Google OAuth handshake). Test authorization/middleware behavior at the real HTTP pipeline level via `WebApplicationFactory<Program>` (established in `IG-99`), not just the underlying service.
-3. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" above) — if a future Epic IG-3 revisit or any other Epic's work turns out to need frontend UI, flag it the same way rather than silently building only a backend endpoint again.
-4. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day. Don't watch GitHub Actions after a commit; there's nothing to watch until the user pushes. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, until this changes.
-5. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section). A fresh machine/environment needs these re-set before Google sign-in works locally; CI/other environments don't have them and don't need them (the feature degrades to "endpoint returns a clear error if hit," nothing else breaks - verified by the full suite passing with blank Google credentials).
-6. **Password-reset email delivery is a dev-only log stub as of 2026-08-25** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`, writes the token to the app log instead of sending an email) — the user explicitly chose this over SMTP/a transactional API for now, to unblock `IG-25` without any external account. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item — should only require a new `IPasswordResetEmailSender` implementation, no changes to `PasswordResetService` or the endpoints.
+1. Check `IG-34`'s Subtasks and their live status/assignee/comments first.
+2. This is genuinely frontend work now, not backend — reuse the pattern established in `IG-33`: build inside `frontend/app/invoice/create/`, colocate `*.test.tsx` next to the component being tested (matches the landing-page convention), verify with `npm test`/`npm run lint`/`npm run build`, and do a **real-browser pass** (Playwright/Chromium via `npx`, browsers already installed at `~/AppData/Local/ms-playwright` from earlier sessions) for anything jsdom can't actually verify (viewport/CSS media-query behavior, real focus/keyboard behavior) — jsdom alone missed real bugs before (see "Blockers and Open Decisions" below).
+3. **`InvoiceEditorLayout` (from `IG-33`) is the layout `IG-34`'s new header/party fields should be rendered inside** — pass real form content as the `editor` prop instead of the current placeholder panel; do not build a separate/parallel layout.
+4. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" below) — if `IG-31` (preserve invoice context through authentication, later in Epic `IG-4`) or any other Epic IG-3 revisit needs frontend sign-in UI, flag it the same way rather than silently building only a backend endpoint.
+5. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day. Don't watch GitHub Actions after a commit; there's nothing to watch until the user pushes. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, until this changes.
+6. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
+7. **Password-reset email delivery is a dev-only log stub as of 2026-08-25** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
 
 ## Last Execution
 
 **Date:** 2026-08-25 Australia/Sydney
 
 Completed:
+
+- Implemented `IG-113 — Build desktop and mobile editor layouts` and `IG-114 — Verify responsive editor accessibility` (T041/T042, S21/`IG-33`), together in one pass. Both Subtasks Done; parent Story `IG-33` Done — the first Story in Epic `IG-5` (Invoice Editor and Calculation Engine), now the active Epic since `IG-3` has no remaining unclaimed Stories.
+- New route `/invoice/create` (FSD §10.1) with a reusable `InvoiceEditorLayout` component (`frontend/app/invoice/create/components/InvoiceEditorLayout.tsx`): desktop two-column grid (55% editor / 45% preview per FSD §11), mobile single-column behind ARIA-pattern Edit/Preview tabs (roving `tabindex`, ArrowLeft/ArrowRight navigation, wrapping).
+- **Key architecture decision**: both panels stay mounted in the DOM at all times regardless of which is active on mobile - only CSS `hidden`/`block` toggles between them, never a conditional unmount. This makes "entered values remain intact when layout or mode changes" true by construction for whatever real invoice fields land in later Stories, rather than a property each field has to separately guarantee.
+- The actual invoice form/preview content doesn't exist yet (that's `IG-34` onward) - the page currently renders labelled placeholder panels ("Invoice details" / "Live preview") so the layout mechanism itself could be built and verified now without inventing fields ahead of their own Story. `IG-34` should replace the editor placeholder with real fields, reusing this same `InvoiceEditorLayout`, not building a parallel layout.
+- **Real-browser verification, not just jsdom**: jsdom doesn't evaluate CSS media queries, so responsive/viewport behavior can't actually be proven by component tests alone. Used an ad-hoc Playwright script (Chromium, already installed locally from an earlier session's IG-83/86 work) against the real `npm run dev` server at 1280px and 390px viewports - confirmed the desktop side-by-side split with no tab controls, the mobile tab-gated single panel, and that both click and keyboard (arrow key) tab switching work. Screenshots taken at both sizes and visually reviewed.
+- No backend work this round - this Story and its Subtasks are entirely `frontend/`.
+
+Files changed or created (`IG-113`/`IG-114`):
+
+- `frontend/app/invoice/create/page.tsx` (new)
+- `frontend/app/invoice/create/page.test.tsx` (new)
+- `frontend/app/invoice/create/components/InvoiceEditorLayout.tsx` (new)
+- `frontend/app/invoice/create/components/InvoiceEditorLayout.test.tsx` (new)
+- `backlog.md`
+
+Verification performed (`IG-113`/`IG-114`):
+
+- 15 new tests: 12 component tests on `InvoiceEditorLayout` (both panels always mounted, correct ARIA roles/attributes, input value survives a tab switch, roving `tabindex`, arrow-key navigation with wraparound, custom tab labels) + 3 page tests (both panels render, tabs render, metadata). Full frontend suite (49 tests) passes; `npm run lint` and `npm run build` both clean.
+- **Real-browser verification** via an ad-hoc Playwright script against the live `npm run dev` server (see Completed above for what was checked) - 12/12 checks passed at both a 1280px desktop viewport and a 390px mobile viewport, with screenshots taken and visually reviewed.
+- Committed locally only - not pushed; no CI run this round (local-commit-only workflow, unchanged from prior sessions).
+
+Prior execution, still relevant context:
 
 - Implemented `IG-97 — Implement password-reset request and completion` and `IG-98 — Test password-reset security boundaries` (T025/T026, S13/`IG-25`), together in one pass. Both Subtasks Done; parent Story `IG-25` Done — the last remaining Story in Epic `IG-3`.
 - User chose a **log-only dev stub** for email delivery (not SMTP, not a transactional API) via `AskUserQuestion` — the reset token is written straight to the app's own log output, with real-provider integration explicitly deferred as a follow-up rather than silently invented or left unimplemented.
@@ -240,7 +267,7 @@ Verification performed (`IG-95`/`IG-96`):
 
 **Port 3000 on this machine may be occupied by an unrelated project's dev server.** Next.js handles this gracefully on its own (auto-selects the next free port, e.g. 3002) — but always check the dev server's own startup log for the actual port before scripting/testing against `localhost:3000`, per the mixup caught during `IG-83`.
 
-**No project skill exists yet for running the frontend in a browser**, and `chromium-cli` isn't available on this machine. `IG-83` used an ad-hoc Playwright script in a scratch directory; consider `/run-skill-generator` if browser verification becomes routine for future frontend Subtasks (`frontend/README.md` has the detail).
+**No project skill exists yet for running the frontend in a browser**, and `chromium-cli` isn't available on this machine. `IG-83`/`IG-86`/`IG-113`/`IG-114` all used an ad-hoc Playwright script in a scratch directory instead - confirmed as of `IG-113`/`IG-114` that Chromium is already downloaded locally (`~/AppData/Local/ms-playwright`, from an earlier session), so `npx playwright install chromium` is a no-op check rather than a fresh multi-hundred-MB download; `npm install --no-save playwright@<version>` in a scratch dir plus a plain `.mjs` script (launch, `page.goto`, `getByRole`, `.screenshot()`) is enough, no project dependency needed. Consider `/run-skill-generator` if browser verification becomes routine for future frontend Subtasks (`frontend/README.md` has the detail).
 
 **Structured logging note for future work:** `builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true)` is what makes correlation IDs (and any future `logger.BeginScope`) actually visible in log output — the default console configuration does not include scopes. If a future Subtask introduces a different/additional log provider (Seq, Application Insights, etc. per `docs/SAD.md` section 76), confirm it's still configured to surface scopes, or the correlation ID will silently stop appearing in logs even though the code is unchanged.
 
@@ -268,7 +295,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-25 Australia/Sydney
 
-`IG-97` and `IG-98` are both Done, each with a claim comment (start, including the chosen email-delivery approach) and a verification comment (completion, including automated-test and real-Postgres evidence). Parent Story `IG-25` is Done — the last remaining Story in Epic `IG-3`. `IG-93`/`IG-94` remain Done from the prior session, parent Story `IG-23` Done. `IG-101`/`IG-102` remain Done, parent Story `IG-27` Done. `IG-99`/`IG-100` remain Done; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap — the only open item left anywhere in Epic `IG-3`). `IG-95`/`IG-96` remain Done, parent Story `IG-24` Done. Epic `IG-3` has no remaining unclaimed Stories. Jira remains authoritative; refresh live issue state before starting work in a later session — check for the next Epic after `IG-3` rather than assuming the next Subtask/Story by number alone.
+`IG-113` and `IG-114` are both Done, each with a claim comment (start) and a verification comment (completion, including automated-test and real-browser/Playwright evidence). Parent Story `IG-33` is Done — the first Story in Epic `IG-5` (Invoice Editor and Calculation Engine), now the active Epic. `IG-97`/`IG-98` remain Done, parent Story `IG-25` Done — the last remaining Story in Epic `IG-3`. `IG-93`/`IG-94` remain Done, parent Story `IG-23` Done. `IG-101`/`IG-102` remain Done, parent Story `IG-27` Done. `IG-99`/`IG-100` remain Done; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap — the only open item left anywhere in Epic `IG-3`). `IG-95`/`IG-96` remain Done, parent Story `IG-24` Done. Epic `IG-3` has no remaining unclaimed Stories. Epic `IG-5` has 5 remaining unclaimed Stories (`IG-34` through `IG-38`). Jira remains authoritative; refresh live issue state before starting work in a later session.
 
 ## Handoff Update Template
 
