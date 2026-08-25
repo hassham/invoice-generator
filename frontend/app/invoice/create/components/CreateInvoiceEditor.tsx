@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../lib/fields";
 import {
   createEmptyDraft,
@@ -9,7 +9,9 @@ import {
   validateHeaderFields,
   type FieldErrors,
   type FieldValues,
+  type InvoiceDraft,
 } from "../lib/invoiceDraft";
+import { getInvalidSectionLabels, hasAdvancedOnlyError, validateInvoice } from "../lib/invoiceValidation";
 import { calculateInvoiceTotals, validateInvoiceDiscountValue, type InvoiceDiscountType } from "../lib/invoiceTotals";
 import {
   cloneLineItem,
@@ -27,6 +29,7 @@ import {
   validateSupportingContent,
   type SupportingContentErrors,
 } from "../lib/supportingContent";
+import { hasUnsavedChanges } from "../lib/unsavedChanges";
 import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
 import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
@@ -52,6 +55,18 @@ export function CreateInvoiceEditor() {
   const [supportingContentErrors, setSupportingContentErrors] = useState<SupportingContentErrors>({
     paymentInstructions: {},
   });
+  const [reviewed, setReviewed] = useState(false);
+
+  // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
+  // supportingContent have no post-mount default-filling, so their very first render's value is
+  // already pristine - a plain useRef(initialValue) captures it (useRef's argument is only used on
+  // the first call). draft is different: its issue/due dates are filled in by the effect below
+  // *after* mount, so its pristine snapshot is captured inside that same effect instead (see there).
+  const pristineDraftRef = useRef<InvoiceDraft | null>(null);
+  const pristineLineItemsRef = useRef(lineItems);
+  const pristineDiscountTypeRef = useRef(invoiceDiscountType);
+  const pristineDiscountValueRef = useRef(invoiceDiscountValue);
+  const pristineSupportingContentRef = useRef(supportingContent);
 
   useEffect(() => {
     // Computed on mount only, client-side - this page is statically prerendered, so setting
@@ -63,16 +78,48 @@ export function CreateInvoiceEditor() {
     // computed client-side (it depends on the visitor's local clock, not build/request time), so
     // there's no way to have it ready before the first client render without risking a
     // server/client hydration mismatch.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDraft((current) =>
-      current.header.issueDate
+    setDraft((current) => {
+      const next = current.header.issueDate
         ? current
         : {
             ...current,
             header: { ...current.header, issueDate: today, dueDate: today },
-          },
-    );
+          };
+      // Captured here, not in a separate effect - a separate effect declared after this one would
+      // still close over the pre-fill (empty-dates) draft in this same initial commit, since React
+      // runs same-commit passive effects before processing either one's state update, and would
+      // wrongly count the auto-filled dates as an unsaved change before the user has typed anything.
+      pristineDraftRef.current = next;
+      return next;
+    });
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!pristineDraftRef.current) {
+        return;
+      }
+      const dirty = hasUnsavedChanges(
+        { draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent },
+        {
+          draft: pristineDraftRef.current,
+          lineItems: pristineLineItemsRef.current,
+          invoiceDiscountType: pristineDiscountTypeRef.current,
+          invoiceDiscountValue: pristineDiscountValueRef.current,
+          supportingContent: pristineSupportingContentRef.current,
+        },
+      );
+      if (dirty) {
+        // Browsers always show their own generic confirmation text regardless of returnValue's
+        // content - both preventDefault() and setting returnValue are needed for cross-browser
+        // support (older Firefox/Safari versions rely on returnValue, current Chrome on preventDefault).
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent]);
 
   // Once a section has shown at least one error, keep re-validating it on every keystroke so a
   // correction clears its error immediately rather than leaving a stale message until the next
@@ -234,6 +281,52 @@ export function CreateInvoiceEditor() {
     setSupportingContentErrors(validateSupportingContent(supportingContent));
   };
 
+  // FSD section 41: runs every section's existing validator at once - equivalent to blurring
+  // every field simultaneously, so it reuses each section's existing error rendering rather than
+  // introducing new per-field UI. Auto-reveals Advanced if that's where the only errors are, so
+  // Review never leaves an error hidden behind the Basic/Advanced toggle (IG-193).
+  const handleReviewInvoice = () => {
+    const result = validateInvoice({
+      header: draft.header,
+      seller: draft.seller,
+      customer: draft.customer,
+      shipTo: draft.shipTo,
+      lineItems,
+      invoiceDiscountType,
+      invoiceDiscountValue,
+      supportingContent,
+    });
+    setHeaderErrors(result.headerErrors);
+    setSellerError(result.sellerError);
+    setCustomerError(result.customerError);
+    setShipToError(result.shipToError);
+    setLineItemErrors(result.lineItemErrors);
+    setInvoiceDiscountError(result.invoiceDiscountError);
+    setSupportingContentErrors(result.supportingContentErrors);
+    setReviewed(true);
+    if (hasAdvancedOnlyError(result)) {
+      setAdvancedVisible(true);
+    }
+  };
+
+  // Derived from the *current* error states, not a frozen snapshot of the Review click - each
+  // section already re-validates live once it has shown an error (the keystroke-revalidation
+  // pattern used throughout this component), so this list - and the banner below - shrinks on its
+  // own as errors are fixed, without needing another Review click.
+  const invalidSectionLabels = useMemo(
+    () =>
+      getInvalidSectionLabels({
+        headerErrors,
+        sellerError,
+        customerError,
+        shipToError,
+        lineItemErrors,
+        invoiceDiscountError,
+        supportingContentErrors,
+      }),
+    [headerErrors, sellerError, customerError, shipToError, lineItemErrors, invoiceDiscountError, supportingContentErrors],
+  );
+
   // Tax-inclusive/exclusive (FSD section 29) is a business setting with no settings page to
   // source a real value from yet (Epic IG-8) - always calculated exclusive here, matching the
   // domain default (docs/DATABASE_SCHEMA.md's businesses.tax_calculation_method).
@@ -259,7 +352,27 @@ export function CreateInvoiceEditor() {
     <InvoiceEditorLayout
       editor={
         <div className="rounded-lg border border-slate-200 p-6">
-          <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
+            <button
+              type="button"
+              onClick={handleReviewInvoice}
+              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              Review invoice
+            </button>
+          </div>
+          {reviewed ? (
+            invalidSectionLabels.length > 0 ? (
+              <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                This invoice isn&apos;t ready yet. Fix the highlighted fields in: {invalidSectionLabels.join(", ")}.
+              </p>
+            ) : (
+              <p role="status" className="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                This invoice looks ready.
+              </p>
+            )
+          ) : null}
           <InvoiceHeaderSection
             values={draft.header}
             currency={draft.currency}

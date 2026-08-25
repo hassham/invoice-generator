@@ -12,7 +12,7 @@ interface EditorModeTabsProps {
  */
 export function EditorModeTabs({ advancedVisible, onChange }: EditorModeTabsProps) {
   return (
-    <div role="group" aria-label="Invoice form detail level" className="mb-4 flex gap-2">
+    <div role="group" aria-label="Invoice form detail level" className="flex gap-2">
       <button
         type="button"
         aria-pressed={!advancedVisible}

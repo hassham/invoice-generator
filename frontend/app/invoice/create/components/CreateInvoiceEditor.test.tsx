@@ -203,4 +203,87 @@ describe("CreateInvoiceEditor", () => {
     expect(within(preview).queryByText(/^IBAN:/)).not.toBeInTheDocument();
     expect(within(preview).queryByText(/^SWIFT:/)).not.toBeInTheDocument();
   });
+
+  it("Review invoice shows a red summary banner naming the invalid sections on a blank form", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+
+    // Not screen.getByRole("alert") - individual field errors (e.g. "Invoice Number is required.")
+    // also use role="alert", so that would match several elements. The summary banner is the only
+    // text starting this way.
+    const banner = screen.getByText(/This invoice isn't ready yet/);
+    expect(banner).toHaveTextContent("Invoice details");
+    expect(banner).toHaveTextContent("From");
+    expect(banner).toHaveTextContent("Bill To");
+    expect(banner).toHaveTextContent("Items");
+  });
+
+  it("Review invoice shows a green 'looks ready' message once every section is valid", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.type(screen.getByLabelText(/Unit Price/), "50");
+
+    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("This invoice looks ready.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("Review invoice's summary drops a section as soon as its error is fixed", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+    expect(screen.getByText(/This invoice isn't ready yet/)).toHaveTextContent("From");
+
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+
+    expect(screen.getByText(/This invoice isn't ready yet/)).not.toHaveTextContent("From");
+  });
+
+  it("Review invoice auto-switches to Advanced when the only error is in an Advanced-only field", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    // Make Due Date invalid while Advanced is open, then hide it again by switching back to Basic.
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    const dueDateInput = screen.getByLabelText(/Due Date/);
+    await user.clear(dueDateInput);
+    await user.type(dueDateInput, "2000-01-01");
+    await user.click(screen.getByRole("button", { name: "Basic" }));
+    expect(screen.getByLabelText(/Due Date/)).not.toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+
+    expect(screen.getByRole("button", { name: "Advanced" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText(/Due Date/)).toBeVisible();
+  });
+
+  it("does not warn via beforeunload on an untouched form", () => {
+    render(<CreateInvoiceEditor />);
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("warns via beforeunload once something has been typed", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
 });
