@@ -6,15 +6,12 @@ import { hasAnyPaymentInstructionContent, PAYMENT_INSTRUCTION_FIELDS, type Suppo
 interface InvoicePreviewProps {
   header: FieldValues;
   currency: string;
-  seller: FieldValues;
-  customer: FieldValues;
+  seller: string;
+  customer: string;
+  shipTo: string;
   lineItems: LineItem[];
   totals: InvoiceTotalsResult;
   supportingContent: SupportingContentValues;
-}
-
-function PreviewLine({ value }: { value: string }) {
-  return value.trim() ? <p className="text-sm text-slate-700">{value}</p> : null;
 }
 
 function formatCurrency(amount: number): string {
@@ -26,11 +23,16 @@ function formatCurrency(amount: number): string {
  * lifted state the editor fields write to, not a separate copy, including the `totals` figures
  * (FSD section 28 explicitly allows a frontend calculation for immediate preview - see
  * `lib/invoiceTotals.ts`'s doc comment for how it's kept consistent with the backend's
- * authoritative calculation). Notes/Terms/Payment Instructions sections (FSD sections 30-32) only
- * render when they have content - IG-122: "optional empty sections do not create misleading
- * output." The chosen template and PDF/print output come from the last Story in this Epic (S26).
+ * authoritative calculation). Ship To/Notes/Terms/Payment Instructions sections only render when
+ * they have content - IG-122: "optional empty sections do not create misleading output." The
+ * chosen template and PDF/print output come from the last Story in this Epic (S26).
+ *
+ * IG-193: seller/customer/shipTo are free text, not structured FieldValues - this preview is
+ * never mode-aware (it always shows what's typed regardless of whether the editor's Basic/Advanced
+ * toggle currently hides that field), so Ship To/Due Date/Reference/Notes content set in Advanced
+ * still shows here even while the editor sits in Basic mode.
  */
-export function InvoicePreview({ header, currency, seller, customer, lineItems, totals, supportingContent }: InvoicePreviewProps) {
+export function InvoicePreview({ header, currency, seller, customer, shipTo, lineItems, totals, supportingContent }: InvoicePreviewProps) {
   const itemsWithContent = lineItems.filter(
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
   );
@@ -38,12 +40,8 @@ export function InvoicePreview({ header, currency, seller, customer, lineItems, 
     <div className="rounded-lg border border-slate-200 p-6">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-lg font-semibold text-slate-950">
-            {seller.businessName.trim() || "Your business name"}
-          </p>
-          <PreviewLine value={seller.addressLine1} />
-          <PreviewLine value={seller.addressLine2} />
-          <PreviewLine value={[seller.city, seller.state, seller.postalCode].filter(Boolean).join(", ")} />
+          <p className="text-sm font-semibold text-slate-700">From</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{seller.trim() || "Your business details"}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold text-slate-950">
@@ -68,11 +66,15 @@ export function InvoicePreview({ header, currency, seller, customer, lineItems, 
 
       <div className="mt-6 border-t border-slate-200 pt-4">
         <p className="text-sm font-semibold text-slate-700">Bill to</p>
-        <p className="mt-1 text-sm text-slate-950">{customer.customerName.trim() || "Customer name"}</p>
-        <PreviewLine value={customer.addressLine1} />
-        <PreviewLine value={customer.addressLine2} />
-        <PreviewLine value={[customer.city, customer.state, customer.postalCode].filter(Boolean).join(", ")} />
+        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{customer.trim() || "Customer details"}</p>
       </div>
+
+      {shipTo.trim() ? (
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <p className="text-sm font-semibold text-slate-700">Ship to</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{shipTo}</p>
+        </div>
+      ) : null}
 
       <div className="mt-6 border-t border-slate-200 pt-4">
         {itemsWithContent.length === 0 ? (

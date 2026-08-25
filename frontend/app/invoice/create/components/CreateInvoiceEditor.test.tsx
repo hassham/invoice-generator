@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { CreateInvoiceEditor } from "./CreateInvoiceEditor";
 
 describe("CreateInvoiceEditor", () => {
-  it("reflects the seller business name and customer name in the live preview as they're typed", async () => {
+  it("reflects the From and Bill To text in the live preview as it's typed", async () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
-    await user.type(screen.getByLabelText("Business Name", { exact: false }), "Acme Pty Ltd");
-    await user.type(screen.getByLabelText("Business / Customer Name", { exact: false }), "Jane's Cafe");
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
 
     const preview = screen.getByRole("tabpanel", { name: "Preview" });
     expect(within(preview).getByText("Acme Pty Ltd")).toBeInTheDocument();
@@ -20,14 +20,14 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
-    await user.type(screen.getByLabelText("Business Name", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
     // Invoice Number is required and left empty - blur it directly.
     await user.click(screen.getByLabelText(/Invoice Number/));
     await user.tab();
 
     expect(screen.getByText("Invoice Number is required.")).toBeInTheDocument();
-    // The valid, already-entered Business Name must still be there.
-    expect(screen.getByLabelText("Business Name", { exact: false })).toHaveValue("Acme Pty Ltd");
+    // The valid, already-entered From text must still be there.
+    expect(screen.getByLabelText("From", { exact: false })).toHaveValue("Acme Pty Ltd");
   });
 
   it("clears a field's error as soon as it's corrected, without waiting for another blur", async () => {
@@ -44,10 +44,11 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.queryByText("Invoice Number is required.")).not.toBeInTheDocument();
   });
 
-  it("rejects a due date earlier than the issue date", async () => {
+  it("rejects a due date earlier than the issue date, once Advanced is switched on", async () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
     const dueDateInput = screen.getByLabelText(/Due Date/);
     await user.clear(dueDateInput);
     await user.type(dueDateInput, "2000-01-01");
@@ -56,19 +57,61 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.getByText("Due date cannot be earlier than the issue date.")).toBeInTheDocument();
   });
 
-  it("uses the Australian labels for the seller's registration and tax fields - FSD section 13", () => {
+  it("defaults currency to AUD", () => {
     render(<CreateInvoiceEditor />);
 
-    expect(screen.getByLabelText("ABN")).toBeInTheDocument();
-    expect(screen.getByLabelText("GST Registration / ABN")).toBeInTheDocument();
+    expect(screen.getByLabelText("Currency")).toHaveValue("AUD");
   });
 
-  it("defaults the seller country to AU and currency to AUD", () => {
+  it("starts in Basic mode, hiding Due Date, Reference, Ship To, Notes and Payment Instructions", () => {
     render(<CreateInvoiceEditor />);
 
-    const sellerSection = screen.getByRole("group", { name: "Seller information" });
-    expect(within(sellerSection).getByLabelText("Country", { exact: false })).toHaveValue("AU");
-    expect(screen.getByLabelText("Currency")).toHaveValue("AUD");
+    expect(screen.getByLabelText(/Due Date/)).not.toBeVisible();
+    expect(screen.getByLabelText(/^Reference/)).not.toBeVisible();
+    expect(screen.getByLabelText("Ship To")).not.toBeVisible();
+    expect(screen.getByLabelText("Notes")).not.toBeVisible();
+    expect(screen.getByLabelText("Bank Name")).not.toBeVisible();
+    // Basic-tier fields, including Terms, stay visible.
+    expect(screen.getByLabelText("From", { exact: false })).toBeVisible();
+    expect(screen.getByLabelText("Bill To", { exact: false })).toBeVisible();
+    expect(screen.getByLabelText("Terms and Conditions")).toBeVisible();
+  });
+
+  it("switching to Advanced reveals Due Date, Reference, Ship To, Notes and Payment Instructions", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+
+    expect(screen.getByLabelText(/Due Date/)).toBeVisible();
+    expect(screen.getByLabelText(/^Reference/)).toBeVisible();
+    expect(screen.getByLabelText("Ship To")).toBeVisible();
+    expect(screen.getByLabelText("Notes")).toBeVisible();
+    expect(screen.getByLabelText("Bank Name")).toBeVisible();
+  });
+
+  it("keeps typed Advanced-only content after toggling back to Basic and forward again", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.type(screen.getByLabelText("Ship To"), "Warehouse 3");
+    await user.click(screen.getByRole("button", { name: "Basic" }));
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+
+    expect(screen.getByLabelText("Ship To")).toHaveValue("Warehouse 3");
+  });
+
+  it("shows Advanced-only content in the preview even while the editor stays in Basic mode", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.type(screen.getByLabelText("Ship To"), "Warehouse 3");
+    await user.click(screen.getByRole("button", { name: "Basic" }));
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).getByText("Warehouse 3")).toBeInTheDocument();
   });
 
   it("reflects a line item's description and computed line total in the live preview", async () => {
@@ -130,10 +173,11 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
-    await user.click(screen.getByLabelText("Notes"));
-    await user.paste("Thank you.");
     await user.click(screen.getByLabelText("Terms and Conditions"));
     await user.paste("Due in 14 days.");
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.click(screen.getByLabelText("Notes"));
+    await user.paste("Thank you.");
     await user.click(screen.getByLabelText("Bank Name"));
     await user.paste("Big Bank");
 
@@ -150,6 +194,7 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.click(screen.getByLabelText("Bank Name"));
     await user.paste("Big Bank");
 

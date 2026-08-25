@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CUSTOMER_FIELDS, SELLER_FIELDS } from "../lib/fields";
+import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../lib/fields";
 import {
   createEmptyDraft,
   hasAnyError,
   todayIsoDate,
-  validateFieldValues,
   validateHeaderFields,
   type FieldErrors,
   type FieldValues,
@@ -24,22 +23,26 @@ import {
 import {
   createEmptySupportingContent,
   hasAnySupportingContentError,
+  TERMS_FIELD,
   validateSupportingContent,
   type SupportingContentErrors,
 } from "../lib/supportingContent";
+import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
 import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
 import { InvoicePreview } from "./InvoicePreview";
 import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
-import { PartyDetailsSection } from "./PartyDetailsSection";
 import { SupportingContentSection } from "./SupportingContentSection";
+import { TextAreaField } from "./TextAreaField";
 
 export function CreateInvoiceEditor() {
   const [draft, setDraft] = useState(createEmptyDraft);
   const [headerErrors, setHeaderErrors] = useState<FieldErrors>({});
-  const [sellerErrors, setSellerErrors] = useState<FieldErrors>({});
-  const [customerErrors, setCustomerErrors] = useState<FieldErrors>({});
+  const [advancedVisible, setAdvancedVisible] = useState(false);
+  const [sellerError, setSellerError] = useState<string | undefined>();
+  const [customerError, setCustomerError] = useState<string | undefined>();
+  const [shipToError, setShipToError] = useState<string | undefined>();
   const [lineItems, setLineItems] = useState<LineItem[]>(() => [createEmptyLineItem()]);
   const [lineItemErrors, setLineItemErrors] = useState<Record<string, LineItemErrors>>({});
   const [invoiceDiscountType, setInvoiceDiscountType] = useState<InvoiceDiscountType>("None");
@@ -91,28 +94,37 @@ export function CreateInvoiceEditor() {
     setDraft((current) => ({ ...current, currency: value }));
   };
 
-  const handleSellerChange = (name: string, value: string) => {
-    const nextSeller: FieldValues = { ...draft.seller, [name]: value };
-    setDraft((current) => ({ ...current, seller: nextSeller }));
-    if (hasAnyError(sellerErrors)) {
-      setSellerErrors(validateFieldValues(nextSeller, SELLER_FIELDS));
+  const handleSellerChange = (_name: string, value: string) => {
+    setDraft((current) => ({ ...current, seller: value }));
+    if (sellerError) {
+      setSellerError(validateField(value, FROM_FIELD));
     }
   };
 
   const handleSellerBlur = () => {
-    setSellerErrors(validateFieldValues(draft.seller, SELLER_FIELDS));
+    setSellerError(validateField(draft.seller, FROM_FIELD));
   };
 
-  const handleCustomerChange = (name: string, value: string) => {
-    const nextCustomer: FieldValues = { ...draft.customer, [name]: value };
-    setDraft((current) => ({ ...current, customer: nextCustomer }));
-    if (hasAnyError(customerErrors)) {
-      setCustomerErrors(validateFieldValues(nextCustomer, CUSTOMER_FIELDS));
+  const handleCustomerChange = (_name: string, value: string) => {
+    setDraft((current) => ({ ...current, customer: value }));
+    if (customerError) {
+      setCustomerError(validateField(value, BILL_TO_FIELD));
     }
   };
 
   const handleCustomerBlur = () => {
-    setCustomerErrors(validateFieldValues(draft.customer, CUSTOMER_FIELDS));
+    setCustomerError(validateField(draft.customer, BILL_TO_FIELD));
+  };
+
+  const handleShipToChange = (_name: string, value: string) => {
+    setDraft((current) => ({ ...current, shipTo: value }));
+    if (shipToError) {
+      setShipToError(validateField(value, SHIP_TO_FIELD));
+    }
+  };
+
+  const handleShipToBlur = () => {
+    setShipToError(validateField(draft.shipTo, SHIP_TO_FIELD));
   };
 
   const handleLineItemFieldChange = (id: string, field: keyof LineItem, value: string) => {
@@ -247,30 +259,23 @@ export function CreateInvoiceEditor() {
     <InvoiceEditorLayout
       editor={
         <div className="rounded-lg border border-slate-200 p-6">
+          <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
           <InvoiceHeaderSection
             values={draft.header}
             currency={draft.currency}
             errors={headerErrors}
+            advancedVisible={advancedVisible}
             onFieldChange={handleHeaderChange}
             onFieldBlur={handleHeaderBlur}
             onCurrencyChange={handleCurrencyChange}
           />
-          <PartyDetailsSection
-            title="Seller information"
-            fields={SELLER_FIELDS}
-            values={draft.seller}
-            errors={sellerErrors}
-            onFieldChange={handleSellerChange}
-            onFieldBlur={handleSellerBlur}
-          />
-          <PartyDetailsSection
-            title="Customer information"
-            fields={CUSTOMER_FIELDS}
-            values={draft.customer}
-            errors={customerErrors}
-            onFieldChange={handleCustomerChange}
-            onFieldBlur={handleCustomerBlur}
-          />
+          <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-6">
+            <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={4} onChange={handleSellerChange} onBlur={handleSellerBlur} />
+            <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={4} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
+            <div hidden={!advancedVisible}>
+              <TextAreaField field={SHIP_TO_FIELD} value={draft.shipTo} error={shipToError} rows={4} onChange={handleShipToChange} onBlur={handleShipToBlur} />
+            </div>
+          </div>
           <LineItemsSection
             items={lineItems}
             errors={lineItemErrors}
@@ -292,14 +297,29 @@ export function CreateInvoiceEditor() {
             onDiscountBlur={handleInvoiceDiscountBlur}
             totals={totals}
           />
-          <SupportingContentSection
-            values={supportingContent}
-            errors={supportingContentErrors}
-            onFieldChange={handleSupportingContentChange}
-            onFieldBlur={handleSupportingContentBlur}
-            onPaymentInstructionChange={handlePaymentInstructionChange}
-            onPaymentInstructionBlur={handlePaymentInstructionBlur}
-          />
+          <fieldset className="mt-6 border-t border-slate-200 pt-6">
+            <legend className="text-base font-semibold text-slate-950">Terms and Conditions</legend>
+            <div className="mt-4">
+              <TextAreaField
+                field={TERMS_FIELD}
+                value={supportingContent.terms}
+                error={supportingContentErrors.terms}
+                rows={6}
+                onChange={handleSupportingContentChange}
+                onBlur={handleSupportingContentBlur}
+              />
+            </div>
+          </fieldset>
+          <div hidden={!advancedVisible}>
+            <SupportingContentSection
+              values={supportingContent}
+              errors={supportingContentErrors}
+              onFieldChange={handleSupportingContentChange}
+              onFieldBlur={handleSupportingContentBlur}
+              onPaymentInstructionChange={handlePaymentInstructionChange}
+              onPaymentInstructionBlur={handlePaymentInstructionBlur}
+            />
+          </div>
         </div>
       }
       preview={
@@ -308,6 +328,7 @@ export function CreateInvoiceEditor() {
           currency={draft.currency}
           seller={draft.seller}
           customer={draft.customer}
+          shipTo={draft.shipTo}
           lineItems={lineItems}
           totals={totals}
           supportingContent={supportingContent}

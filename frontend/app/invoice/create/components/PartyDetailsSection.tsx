@@ -12,10 +12,10 @@ interface PartyDetailsSectionProps {
 }
 
 /**
- * Shared rendering for Seller (FSD section 13) and Customer (FSD section 15) details - the two
- * field sets differ (Seller has Website/Registration Number, Customer doesn't) but the layout and
- * behaviour are identical, so this is data-driven from whichever FieldConfig[] is passed in
- * rather than duplicated per party.
+ * Generic data-driven fieldset - one FormField per FieldConfig in `fields`. Originally shared
+ * between Seller and Customer details before IG-193 replaced those with free-text blocks; now used
+ * for Payment Instructions (FSD section 32), kept generic in case another structured field group
+ * needs it later.
  */
 export function PartyDetailsSection({
   title,

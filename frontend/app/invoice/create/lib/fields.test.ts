@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { CUSTOMER_FIELDS, HEADER_FIELDS, SELLER_FIELDS, validateField, type FieldConfig } from "./fields";
+import {
+  ADVANCED_HEADER_FIELD_NAMES,
+  BILL_TO_FIELD,
+  FROM_FIELD,
+  HEADER_FIELDS,
+  SHIP_TO_FIELD,
+  validateField,
+  type FieldConfig,
+} from "./fields";
 
 const textField: FieldConfig = { name: "sample", label: "Sample", maxLength: 5 };
 const requiredField: FieldConfig = { name: "sample", label: "Sample", required: true, maxLength: 5 };
@@ -56,19 +64,17 @@ describe("field configs", () => {
     ]);
   });
 
-  it("only Business Name and Country are required in SELLER_FIELDS", () => {
-    const required = SELLER_FIELDS.filter((field) => field.required).map((field) => field.name);
-    expect(required).toEqual(["businessName", "country"]);
+  it("ADVANCED_HEADER_FIELD_NAMES only hides Due Date and Reference behind the Advanced toggle", () => {
+    expect(ADVANCED_HEADER_FIELD_NAMES).toEqual(["dueDate", "reference"]);
   });
 
-  it("only Business/Customer Name is required in CUSTOMER_FIELDS - FSD section 15", () => {
-    const required = CUSTOMER_FIELDS.filter((field) => field.required).map((field) => field.name);
-    expect(required).toEqual(["customerName"]);
+  it("FROM_FIELD and BILL_TO_FIELD are required free-text blocks", () => {
+    expect(FROM_FIELD).toMatchObject({ name: "seller", label: "From", required: true, maxLength: 1000 });
+    expect(BILL_TO_FIELD).toMatchObject({ name: "customer", label: "Bill To", required: true, maxLength: 1000 });
   });
 
-  it("CUSTOMER_FIELDS has no website or registration number - FSD section 15 omits them", () => {
-    const names = CUSTOMER_FIELDS.map((field) => field.name);
-    expect(names).not.toContain("website");
-    expect(names).not.toContain("registrationNumber");
+  it("SHIP_TO_FIELD is an optional free-text block", () => {
+    expect(SHIP_TO_FIELD).toMatchObject({ name: "shipTo", label: "Ship To", maxLength: 1000 });
+    expect(SHIP_TO_FIELD.required).toBeFalsy();
   });
 });

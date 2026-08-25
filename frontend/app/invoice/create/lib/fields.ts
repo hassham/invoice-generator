@@ -19,42 +19,23 @@ export const HEADER_FIELDS: FieldConfig[] = [
 ];
 
 /**
- * FSD section 13: Seller Information. Registration/Tax labels use the Australian configuration
- * ("ABN" / "GST Registration / ABN") since that's the only market this app currently targets
- * (docs/DATABASE_SCHEMA.md's businesses.country default, also used in AccountRegistrationService) -
- * FSD notes fields "should support configurable labels" once other markets are added, which needs
- * a real business-settings/localisation mechanism that doesn't exist yet (Epic IG-8).
+ * IG-193: replaces the structured Seller/Customer field sets (FSD sections 13/15) with free-text
+ * blocks - name, address, contact info and tax numbers all typed together like a real invoice,
+ * rather than ~13/~11 separate inputs each. Deliberate, user-confirmed tradeoff: no feature today
+ * (auto-fill, structured search, email sending) depends on the structured fields this replaces.
+ *
+ * `name` deliberately stays "seller"/"customer" (not "from"/"billTo") so it lines up with
+ * `InvoiceDraft.seller`/`.customer` - `TextAreaField`'s onChange passes `field.name` straight
+ * through as the state key, and the label is what's user-facing, not the field name.
  */
-export const SELLER_FIELDS: FieldConfig[] = [
-  { name: "businessName", label: "Business Name", required: true, maxLength: 200 },
-  { name: "contactName", label: "Contact Name", maxLength: 200 },
-  { name: "email", label: "Email", maxLength: 320, type: "email" },
-  { name: "phone", label: "Phone", maxLength: 50 },
-  { name: "website", label: "Website", maxLength: 300, type: "url" },
-  { name: "addressLine1", label: "Address Line 1", maxLength: 200 },
-  { name: "addressLine2", label: "Address Line 2", maxLength: 200 },
-  { name: "city", label: "City", maxLength: 100 },
-  { name: "state", label: "State / Province", maxLength: 100 },
-  { name: "postalCode", label: "Postal Code", maxLength: 20 },
-  { name: "country", label: "Country", required: true, maxLength: 100 },
-  { name: "registrationNumber", label: "ABN", maxLength: 100 },
-  { name: "taxNumber", label: "GST Registration / ABN", maxLength: 100 },
-];
+export const FROM_FIELD: FieldConfig = { name: "seller", label: "From", required: true, maxLength: 1000 };
+export const BILL_TO_FIELD: FieldConfig = { name: "customer", label: "Bill To", required: true, maxLength: 1000 };
 
-/** FSD section 15: Customer Information. */
-export const CUSTOMER_FIELDS: FieldConfig[] = [
-  { name: "customerName", label: "Business / Customer Name", required: true, maxLength: 200 },
-  { name: "contactName", label: "Contact Name", maxLength: 200 },
-  { name: "email", label: "Email", maxLength: 320, type: "email" },
-  { name: "phone", label: "Phone", maxLength: 50 },
-  { name: "addressLine1", label: "Address Line 1", maxLength: 200 },
-  { name: "addressLine2", label: "Address Line 2", maxLength: 200 },
-  { name: "city", label: "City", maxLength: 100 },
-  { name: "state", label: "State / Province", maxLength: 100 },
-  { name: "postalCode", label: "Postal Code", maxLength: 20 },
-  { name: "country", label: "Country", maxLength: 100 },
-  { name: "taxNumber", label: "Tax Number", maxLength: 100 },
-];
+/** FSD section 15 has no "Ship To" concept - new, optional, only shown in Advanced mode. */
+export const SHIP_TO_FIELD: FieldConfig = { name: "shipTo", label: "Ship To", maxLength: 1000 };
+
+/** IG-193: header fields only shown once the Basic/Advanced toggle is switched to Advanced. */
+export const ADVANCED_HEADER_FIELD_NAMES: string[] = ["dueDate", "reference"];
 
 /** FSD section 12: initial currency choices; system architecture must support more ISO currencies later. */
 export const CURRENCY_OPTIONS = ["AUD", "USD", "EUR", "GBP", "CAD", "NZD", "SGD", "AED"] as const;

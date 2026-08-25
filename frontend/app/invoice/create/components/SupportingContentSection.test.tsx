@@ -41,11 +41,10 @@ function StatefulSupportingContentSection() {
 }
 
 describe("SupportingContentSection", () => {
-  it("renders Notes, Terms and Conditions, and the payment instruction fields", () => {
+  it("renders Notes and the payment instruction fields", () => {
     render(<StatefulSupportingContentSection />);
 
     expect(screen.getByLabelText("Notes")).toBeInTheDocument();
-    expect(screen.getByLabelText("Terms and Conditions")).toBeInTheDocument();
     expect(screen.getByLabelText("Bank Name")).toBeInTheDocument();
     expect(screen.getByLabelText("IBAN")).toBeInTheDocument();
     expect(screen.getByLabelText("SWIFT")).toBeInTheDocument();

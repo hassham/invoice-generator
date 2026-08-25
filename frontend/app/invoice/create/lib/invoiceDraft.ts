@@ -1,12 +1,13 @@
-import { CUSTOMER_FIELDS, HEADER_FIELDS, SELLER_FIELDS, validateField, type FieldConfig } from "./fields";
+import { HEADER_FIELDS, validateField, type FieldConfig } from "./fields";
 
 export type FieldValues = Record<string, string>;
 
 export interface InvoiceDraft {
   header: FieldValues;
   currency: string;
-  seller: FieldValues;
-  customer: FieldValues;
+  seller: string;
+  customer: string;
+  shipTo: string;
 }
 
 function emptyValues(fields: FieldConfig[]): FieldValues {
@@ -18,15 +19,17 @@ function emptyValues(fields: FieldConfig[]): FieldValues {
  * the 14-day figure FSD section 12 uses as an illustrative example of the Issue Date + terms
  * formula) - with no saved business profile to read real terms from yet (Epic IG-8 isn't built),
  * Due Date defaults to Issue Date (0-day terms) as the schema-aligned choice, editable afterward.
- * AU/AUD mirrors the same default already used for a new account's business in
- * AccountRegistrationService.
+ * AUD mirrors the same default already used for a new account's business in
+ * AccountRegistrationService. IG-193: seller/customer/shipTo are free text (see lib/fields.ts),
+ * so - unlike the structured fields they replaced - they have no defaultable sub-values.
  */
 export function createEmptyDraft(): InvoiceDraft {
   return {
     header: emptyValues(HEADER_FIELDS),
     currency: "AUD",
-    seller: { ...emptyValues(SELLER_FIELDS), country: "AU" },
-    customer: emptyValues(CUSTOMER_FIELDS),
+    seller: "",
+    customer: "",
+    shipTo: "",
   };
 }
 

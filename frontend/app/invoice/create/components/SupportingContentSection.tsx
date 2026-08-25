@@ -2,7 +2,6 @@ import {
   CUSTOM_INSTRUCTIONS_FIELD,
   NOTES_FIELD,
   PAYMENT_INSTRUCTION_FIELDS,
-  TERMS_FIELD,
   type SupportingContentErrors,
   type SupportingContentValues,
 } from "../lib/supportingContent";
@@ -18,7 +17,12 @@ interface SupportingContentSectionProps {
   onPaymentInstructionBlur: (name: string) => void;
 }
 
-/** FSD sections 30-32: Notes, Terms and Conditions, and Payment Instructions. */
+/**
+ * FSD sections 30, 32: Notes and Payment Instructions. Terms and Conditions (FSD section 31) is
+ * rendered separately, inline in CreateInvoiceEditor's Basic view - IG-193 moved this section
+ * (Notes/Payment Instructions/Custom Instructions) behind the Advanced toggle as supplementary
+ * content, but Terms stays visible by default since it's commonly filled.
+ */
 export function SupportingContentSection({
   values,
   errors,
@@ -29,11 +33,10 @@ export function SupportingContentSection({
 }: SupportingContentSectionProps) {
   return (
     <fieldset className="mt-6 border-t border-slate-200 pt-6">
-      <legend className="text-base font-semibold text-slate-950">Notes, terms &amp; payment instructions</legend>
+      <legend className="text-base font-semibold text-slate-950">Notes, payment instructions &amp; custom instructions</legend>
 
       <div className="mt-4 flex flex-col gap-4">
         <TextAreaField field={NOTES_FIELD} value={values.notes} error={errors.notes} onChange={onFieldChange} onBlur={onFieldBlur} />
-        <TextAreaField field={TERMS_FIELD} value={values.terms} error={errors.terms} rows={6} onChange={onFieldChange} onBlur={onFieldBlur} />
       </div>
 
       <PartyDetailsSection

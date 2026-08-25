@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createEmptyDraft, hasAnyError, todayIsoDate, validateHeaderFields } from "./invoiceDraft";
 
 describe("createEmptyDraft", () => {
-  it("defaults currency to AUD and seller country to AU", () => {
+  it("defaults currency to AUD", () => {
     const draft = createEmptyDraft();
 
     expect(draft.currency).toBe("AUD");
-    expect(draft.seller.country).toBe("AU");
   });
 
   it("starts every other field empty", () => {
@@ -14,8 +13,9 @@ describe("createEmptyDraft", () => {
 
     expect(draft.header.invoiceNumber).toBe("");
     expect(draft.header.issueDate).toBe("");
-    expect(draft.seller.businessName).toBe("");
-    expect(draft.customer.customerName).toBe("");
+    expect(draft.seller).toBe("");
+    expect(draft.customer).toBe("");
+    expect(draft.shipTo).toBe("");
   });
 });
 
