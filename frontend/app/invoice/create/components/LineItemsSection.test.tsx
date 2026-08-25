@@ -18,7 +18,6 @@ function StatefulLineItemsSection() {
   return (
     <LineItemsSection
       items={items}
-      currency="AUD"
       errors={errors}
       onFieldChange={(id, field, value) => {
         setItems((current) => current.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
@@ -162,14 +161,5 @@ describe("LineItemsSection", () => {
 
     // Default tax rate is 10% (AU GST): 2 x 50 = 100, + 10% tax = 110.
     expect(screen.getByText("Line Total: 110.00")).toBeInTheDocument();
-  });
-
-  it("shows the items subtotal with the invoice's currency code", async () => {
-    const user = userEvent.setup();
-    render(<StatefulLineItemsSection />);
-
-    await user.type(screen.getByLabelText(/Unit Price/), "100");
-
-    expect(screen.getByText(/AUD 110\.00/)).toBeInTheDocument();
   });
 });

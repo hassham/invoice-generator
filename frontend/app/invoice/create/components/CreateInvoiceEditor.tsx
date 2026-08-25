@@ -11,10 +11,12 @@ import {
   type FieldErrors,
   type FieldValues,
 } from "../lib/invoiceDraft";
+import { calculateInvoiceTotals, validateInvoiceDiscountValue, type InvoiceDiscountType } from "../lib/invoiceTotals";
 import {
   cloneLineItem,
   createEmptyLineItem,
   hasAnyLineItemError,
+  toCalculationInput,
   validateLineItems,
   type LineItem,
   type LineItemErrors,
@@ -22,6 +24,7 @@ import {
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
 import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
 import { InvoicePreview } from "./InvoicePreview";
+import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
 import { PartyDetailsSection } from "./PartyDetailsSection";
 
@@ -32,6 +35,9 @@ export function CreateInvoiceEditor() {
   const [customerErrors, setCustomerErrors] = useState<FieldErrors>({});
   const [lineItems, setLineItems] = useState<LineItem[]>(() => [createEmptyLineItem()]);
   const [lineItemErrors, setLineItemErrors] = useState<Record<string, LineItemErrors>>({});
+  const [invoiceDiscountType, setInvoiceDiscountType] = useState<InvoiceDiscountType>("None");
+  const [invoiceDiscountValue, setInvoiceDiscountValue] = useState("");
+  const [invoiceDiscountError, setInvoiceDiscountError] = useState<string | undefined>();
 
   useEffect(() => {
     // Computed on mount only, client-side - this page is statically prerendered, so setting
@@ -160,6 +166,38 @@ export function CreateInvoiceEditor() {
     });
   };
 
+  const handleInvoiceDiscountTypeChange = (value: InvoiceDiscountType) => {
+    setInvoiceDiscountType(value);
+    if (value === "None") {
+      setInvoiceDiscountValue("");
+      setInvoiceDiscountError(undefined);
+    } else if (invoiceDiscountError) {
+      setInvoiceDiscountError(validateInvoiceDiscountValue(value, invoiceDiscountValue));
+    }
+  };
+
+  const handleInvoiceDiscountValueChange = (value: string) => {
+    setInvoiceDiscountValue(value);
+    if (invoiceDiscountError) {
+      setInvoiceDiscountError(validateInvoiceDiscountValue(invoiceDiscountType, value));
+    }
+  };
+
+  const handleInvoiceDiscountBlur = () => {
+    setInvoiceDiscountError(validateInvoiceDiscountValue(invoiceDiscountType, invoiceDiscountValue));
+  };
+
+  // Tax-inclusive/exclusive (FSD section 29) is a business setting with no settings page to
+  // source a real value from yet (Epic IG-8) - always calculated exclusive here, matching the
+  // domain default (docs/DATABASE_SCHEMA.md's businesses.tax_calculation_method).
+  const parsedDiscountValue = invoiceDiscountValue.trim().length > 0 ? Number.parseFloat(invoiceDiscountValue) : null;
+  const totals = calculateInvoiceTotals(
+    lineItems.map(toCalculationInput),
+    invoiceDiscountType,
+    Number.isFinite(parsedDiscountValue) ? parsedDiscountValue : null,
+    "Exclusive",
+  );
+
   return (
     <InvoiceEditorLayout
       editor={
@@ -190,7 +228,6 @@ export function CreateInvoiceEditor() {
           />
           <LineItemsSection
             items={lineItems}
-            currency={draft.currency}
             errors={lineItemErrors}
             onFieldChange={handleLineItemFieldChange}
             onFieldBlur={handleLineItemFieldBlur}
@@ -199,6 +236,16 @@ export function CreateInvoiceEditor() {
             onMoveDown={handleMoveLineItemDown}
             onDuplicate={handleDuplicateLineItem}
             onRemove={handleRemoveLineItem}
+          />
+          <InvoiceTotalsSection
+            currency={draft.currency}
+            discountType={invoiceDiscountType}
+            discountValue={invoiceDiscountValue}
+            discountError={invoiceDiscountError}
+            onDiscountTypeChange={handleInvoiceDiscountTypeChange}
+            onDiscountValueChange={handleInvoiceDiscountValueChange}
+            onDiscountBlur={handleInvoiceDiscountBlur}
+            totals={totals}
           />
         </div>
       }
@@ -209,6 +256,7 @@ export function CreateInvoiceEditor() {
           seller={draft.seller}
           customer={draft.customer}
           lineItems={lineItems}
+          totals={totals}
         />
       }
     />

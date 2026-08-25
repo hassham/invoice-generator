@@ -96,6 +96,23 @@ export function sumLineTotals(items: LineItem[]): number {
   return items.reduce((sum, item) => sum + computeLineTotals(item).lineTotal, 0);
 }
 
+/** Numeric shape `invoiceTotals.ts` needs - reuses this module's own string parsing so the two stay consistent. */
+export interface LineItemCalculationInput {
+  quantity: number;
+  unitPrice: number;
+  taxRate: number;
+  discount: number;
+}
+
+export function toCalculationInput(item: LineItem): LineItemCalculationInput {
+  return {
+    quantity: parseNonNegativeNumber(item.quantity),
+    unitPrice: parseNonNegativeNumber(item.unitPrice),
+    taxRate: effectiveTaxRate(item),
+    discount: parseNonNegativeNumber(item.discount),
+  };
+}
+
 const DESCRIPTION_MAX_LENGTH = 500;
 
 /** FSD section 18-23: field-level rules for a single line item. */

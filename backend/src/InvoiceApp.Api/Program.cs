@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using InvoiceApp.Api;
 using InvoiceApp.Api.Diagnostics;
 using InvoiceApp.Api.Endpoints;
@@ -23,6 +24,12 @@ builder.Services.AddInfrastructureHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// Serializes enums (e.g. DiscountType, TaxCalculationMethod on the invoice calculation endpoint)
+// as their string name rather than the default numeric ordinal - readable JSON, and a reordered
+// enum can't silently change what a client sends/receives.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 var app = builder.Build();
 
 // CorrelationIdMiddleware first (outermost): UseExceptionHandler still catches everything
@@ -38,6 +45,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapAuthEndpoints();
+app.MapInvoiceEndpoints();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the
 // app look like it needs to be restarted.

@@ -82,9 +82,9 @@ describe("CreateInvoiceEditor", () => {
 
     const preview = screen.getByRole("tabpanel", { name: "Preview" });
     expect(within(preview).getByText("Consulting")).toBeInTheDocument();
-    // 2 x 50 = 100, + 10% default GST = 110.00, shown as this item's line total and (with only
-    // one item) also as the items subtotal.
-    expect(within(preview).getByText(/AUD 110\.00/)).toBeInTheDocument();
+    // 2 x 50 = 100, + 10% default GST = 110.00, shown as this item's own line total and (with
+    // only one item, no invoice discount) also as the invoice Total/Amount Due.
+    expect(within(preview).getAllByText(/AUD 110\.00/).length).toBeGreaterThan(0);
   });
 
   it("adding a second line item is reflected in the editor and the preview", async () => {
@@ -94,5 +94,22 @@ describe("CreateInvoiceEditor", () => {
     await user.click(screen.getByRole("button", { name: "Add Item" }));
 
     expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(2);
+  });
+
+  it("applying an invoice discount updates the Totals in both the editor and the preview", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.type(screen.getByLabelText(/Unit Price/), "100");
+    // Default tax rate is 10%: subtotal 100, tax 10, total 110 before any invoice discount.
+
+    await user.selectOptions(screen.getByLabelText("Invoice Discount"), "Percentage");
+    await user.type(screen.getByLabelText(/Discount \(%\)/), "10");
+
+    // Subtotal 100, 10% invoice discount = 10, adjusted 90, tax on 90 @ 10% = 9, total = 99.
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).getByText("-AUD 10.00")).toBeInTheDocument();
+    expect(within(preview).getAllByText("AUD 99.00").length).toBeGreaterThan(0);
   });
 });

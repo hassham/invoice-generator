@@ -1,5 +1,6 @@
 import type { FieldValues } from "../lib/invoiceDraft";
-import { computeLineTotals, sumLineTotals, type LineItem } from "../lib/lineItems";
+import type { InvoiceTotalsResult } from "../lib/invoiceTotals";
+import { computeLineTotals, type LineItem } from "../lib/lineItems";
 
 interface InvoicePreviewProps {
   header: FieldValues;
@@ -7,24 +8,26 @@ interface InvoicePreviewProps {
   seller: FieldValues;
   customer: FieldValues;
   lineItems: LineItem[];
+  totals: InvoiceTotalsResult;
 }
 
 function PreviewLine({ value }: { value: string }) {
   return value.trim() ? <p className="text-sm text-slate-700">{value}</p> : null;
 }
 
-/**
- * Read-only reflection of what's currently entered - live because it's rendered from the same
- * lifted state the editor fields write to, not a separate copy. The line-items subtotal shown
- * here is a frontend-only preview figure (FSD section 28 explicitly allows this); the actual
- * invoice-level Subtotal/Discount/Tax/Total roll-up and chosen template come from later Stories
- * (S24-S26).
- */
 function formatCurrency(amount: number): string {
   return amount.toFixed(2);
 }
 
-export function InvoicePreview({ header, currency, seller, customer, lineItems }: InvoicePreviewProps) {
+/**
+ * Read-only reflection of what's currently entered - live because it's rendered from the same
+ * lifted state the editor fields write to, not a separate copy, including the `totals` figures
+ * (FSD section 28 explicitly allows a frontend calculation for immediate preview - see
+ * `lib/invoiceTotals.ts`'s doc comment for how it's kept consistent with the backend's
+ * authoritative calculation). The chosen template and PDF/print output come from later Stories
+ * (S25-S26).
+ */
+export function InvoicePreview({ header, currency, seller, customer, lineItems, totals }: InvoicePreviewProps) {
   const itemsWithContent = lineItems.filter(
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
   );
@@ -93,15 +96,28 @@ export function InvoicePreview({ header, currency, seller, customer, lineItems }
             </tbody>
           </table>
         )}
-        <p className="mt-4 text-right text-sm text-slate-600">
-          Items subtotal:{" "}
-          <span className="font-semibold text-slate-950">
-            {currency} {formatCurrency(sumLineTotals(lineItems))}
-          </span>
-        </p>
-        <p className="mt-1 text-right text-xs text-slate-400">
-          Invoice discount, tax rules and the final total are calculated in a later step.
-        </p>
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+          <dt className="text-slate-500">Subtotal</dt>
+          <dd className="text-right text-slate-950">
+            {currency} {formatCurrency(totals.subtotal)}
+          </dd>
+          {totals.discountAmount > 0 ? (
+            <>
+              <dt className="text-slate-500">Discount</dt>
+              <dd className="text-right text-slate-950">
+                -{currency} {formatCurrency(totals.discountAmount)}
+              </dd>
+            </>
+          ) : null}
+          <dt className="text-slate-500">Tax</dt>
+          <dd className="text-right text-slate-950">
+            {currency} {formatCurrency(totals.taxAmount)}
+          </dd>
+          <dt className="font-semibold text-slate-950">Total</dt>
+          <dd className="text-right font-semibold text-slate-950">
+            {currency} {formatCurrency(totals.totalAmount)}
+          </dd>
+        </dl>
       </div>
     </div>
   );

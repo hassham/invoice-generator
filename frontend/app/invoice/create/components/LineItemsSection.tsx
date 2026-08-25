@@ -1,9 +1,8 @@
-import { sumLineTotals, type LineItem, type LineItemErrors } from "../lib/lineItems";
+import type { LineItem, LineItemErrors } from "../lib/lineItems";
 import { LineItemRow } from "./LineItemRow";
 
 interface LineItemsSectionProps {
   items: LineItem[];
-  currency: string;
   errors: Record<string, LineItemErrors>;
   onFieldChange: (id: string, field: keyof LineItem, value: string) => void;
   onFieldBlur: (id: string) => void;
@@ -17,7 +16,6 @@ interface LineItemsSectionProps {
 /** FSD sections 17/24: at least one item row always exists; Add/Remove/Duplicate/reorder actions. */
 export function LineItemsSection({
   items,
-  currency,
   errors,
   onFieldChange,
   onFieldBlur,
@@ -55,13 +53,6 @@ export function LineItemsSection({
       >
         Add Item
       </button>
-
-      <p className="mt-4 text-right text-sm text-slate-600">
-        Items subtotal:{" "}
-        <span className="font-semibold text-slate-950">
-          {currency} {sumLineTotals(items).toFixed(2)}
-        </span>
-      </p>
     </fieldset>
   );
 }
