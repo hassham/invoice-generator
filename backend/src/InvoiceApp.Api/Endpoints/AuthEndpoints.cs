@@ -5,6 +5,7 @@ using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Identity;
 using InvoiceApp.Modules.Identity.AccountDeletion;
 using InvoiceApp.Modules.Identity.Login;
+using InvoiceApp.Modules.Identity.PasswordReset;
 using InvoiceApp.Modules.Identity.Registration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -19,6 +20,8 @@ public static class AuthEndpoints
     {
         app.MapPost("/api/v1/auth/register", RegisterAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         app.MapPost("/api/v1/auth/login", LoginAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        app.MapPost("/api/v1/auth/forgot-password", ForgotPasswordAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        app.MapPost("/api/v1/auth/reset-password", ResetPasswordAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         app.MapPost("/api/v1/auth/logout", LogoutAsync).RequireAuthorization();
         app.MapGet("/api/v1/auth/me", Me).RequireAuthorization();
         app.MapDelete("/api/v1/auth/account", DeleteAccountAsync).RequireAuthorization();
@@ -51,6 +54,32 @@ public static class AuthEndpoints
         var loggedIn = await loginService.SignInWithPasswordAsync(request, cancellationToken);
 
         return Results.Ok(loggedIn);
+    }
+
+    private static async Task<IResult> ForgotPasswordAsync(
+        ForgotPasswordRequest request,
+        IPasswordResetService passwordResetService,
+        CancellationToken cancellationToken)
+    {
+        ForgotPasswordRequestValidator.Validate(request);
+
+        await passwordResetService.RequestResetAsync(request.Email, cancellationToken);
+
+        // Always 200, whether or not the email matched an account (FSD 9) - PasswordResetService
+        // itself is what silently no-ops for an unknown/inactive account.
+        return Results.Ok();
+    }
+
+    private static async Task<IResult> ResetPasswordAsync(
+        ResetPasswordRequest request,
+        IPasswordResetService passwordResetService,
+        CancellationToken cancellationToken)
+    {
+        ResetPasswordRequestValidator.Validate(request);
+
+        await passwordResetService.ResetPasswordAsync(request, cancellationToken);
+
+        return Results.Ok();
     }
 
     private static async Task<IResult> LogoutAsync(IAuthSessionService authSessionService, CancellationToken cancellationToken)

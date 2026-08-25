@@ -8,7 +8,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout), `IG-27` (delete account) and `IG-23` (Google sign-in) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` now has only 1 Story remaining, `IG-25` (password recovery), **likely blocked on a user decision** — needs an email-delivery provider, none chosen anywhere in `docs/`. If confirmed blocked in a future session, check Jira for the next Epic after `IG-3` rather than stalling on this one.
+**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout), `IG-27` (delete account), `IG-23` (Google sign-in) and `IG-25` (password recovery) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` now has **no remaining unclaimed Stories** — the only open item left in the Epic is `IG-26`'s frontend-UI gap, which needs frontend work, not another backend Subtask. Next session should check Jira for the next Epic after `IG-3` rather than looking for more Epic-`IG-3` backend work.
 
 **Open follow-up carried over from `IG-26`, not yet resolved:** "offers sign-in" (part of `IG-26`'s session-expiry acceptance criterion) needs a frontend sign-in page/auth UI that doesn't exist yet. None of Epic IG-3's auth flows (register, login, session) have any frontend UI — only backend endpoints. Revisit once frontend auth pages are built, likely alongside `IG-23`/`IG-25`.
 
@@ -30,38 +30,64 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Epic `IG-3`'s one remaining Story, `IG-25` (password recovery), is likely blocked on a user decision (email-delivery provider). `IG-26` has no remaining Subtasks (both Done), but stays In Progress pending the frontend sign-in gap noted above — do not restart backend work on it without a new Subtask or explicit direction:
+Epic `IG-3` has no remaining unclaimed Stories. `IG-26` stays In Progress pending the frontend sign-in gap noted above — do not restart backend work on it without a new Subtask or explicit direction. Next step is to check Jira for the next Epic after `IG-3` (with the user) rather than looking for more work inside this Epic:
 
 ```text
-Epic:    IG-3  — Identity, Authentication and Account Security
-Story:   IG-25 — Recover a forgotten password (likely needs a user decision before it can start)
-Subtask: (check IG-25's live Subtasks - IG-97, IG-98 - before starting)
+Epic:    IG-3  — Identity, Authentication and Account Security (backend work exhausted)
+Story:   (none unclaimed)
+Subtask: (check Jira for the next Epic after IG-3)
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-3>
-- <https://appitometechnologies.atlassian.net/browse/IG-25>
 
 ## Next Task
 
-`IG-93`/`IG-94` (S11, both Subtasks of `IG-23`) are Done; `IG-23` itself is Done. `IG-3` has 1 remaining Story, likely blocked: `IG-25`.
+`IG-97`/`IG-98` (T025/T026, both Subtasks of `IG-25`) are Done; `IG-25` itself is Done. `IG-3` now has no remaining Stories to claim.
 
 Before implementation:
 
-1. Check `IG-25`'s Subtasks (`IG-97`, `IG-98`) and their live status/assignee/comments first — Codex may have picked something up since this handoff was written.
-2. **`IG-25` (password recovery) is likely blocked** — needs an email-delivery provider, none chosen anywhere in `docs/`. Ask the user first (`AskUserQuestion`), same pattern as the analytics-provider decision in `IG-89`/`IG-90` and the Google OAuth credentials decision in `IG-23`.
-3. **If blocked**, don't stall — check Jira for the next Epic after `IG-3` and ask the user how they'd like to proceed.
-4. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`/`IG-99`/`IG-100`/`IG-101`/`IG-102`/`IG-93`/`IG-94`: Application-layer interface + Infrastructure implementation + Modules.Identity validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check (skip the live-Postgres check only when the change is pure ASP.NET Core middleware behavior with no persistence semantics, as reasoned for `IG-100`/`IG-101`/`IG-102`; or when the flow inherently needs live third-party infrastructure that can't be automated, as reasoned for `IG-93`/`IG-94`'s Google OAuth handshake and now likely for `IG-25`'s real email delivery too). Test authorization/middleware behavior at the real HTTP pipeline level via `WebApplicationFactory<Program>` (established in `IG-99`), not just the underlying service.
-5. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" above) — if `IG-25` or any future Epic IG-3 work turns out to need frontend UI, flag it the same way rather than silently building only a backend endpoint again.
-6. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day. Don't watch GitHub Actions after a commit; there's nothing to watch until the user pushes. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, until this changes.
-7. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section). A fresh machine/environment needs these re-set before Google sign-in works locally; CI/other environments don't have them and don't need them (the feature degrades to "endpoint returns a clear error if hit," nothing else breaks - verified by the full suite passing with blank Google credentials).
+1. Check Jira for the next Epic after `IG-3` and confirm with the user before starting new-Epic work (per the multi-agent coordination convention — Codex may already be on something).
+2. Reuse the architecture pattern established in `IG-91`/`IG-92`/`IG-95`/`IG-96`/`IG-99`/`IG-100`/`IG-101`/`IG-102`/`IG-93`/`IG-94`/`IG-97`/`IG-98`: Application-layer interface + Infrastructure implementation + Modules.Identity (or the relevant Modules project) validation/orchestration + Api Minimal API endpoint, tested against EF Core InMemory plus a real Postgres end-to-end check (skip the live-Postgres check only when the change is pure ASP.NET Core middleware behavior with no persistence semantics, or when the flow inherently needs live third-party infrastructure that can't be automated, as reasoned for `IG-93`/`IG-94`'s Google OAuth handshake). Test authorization/middleware behavior at the real HTTP pipeline level via `WebApplicationFactory<Program>` (established in `IG-99`), not just the underlying service.
+3. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" above) — if a future Epic IG-3 revisit or any other Epic's work turns out to need frontend UI, flag it the same way rather than silently building only a backend endpoint again.
+4. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day. Don't watch GitHub Actions after a commit; there's nothing to watch until the user pushes. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, until this changes.
+5. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section). A fresh machine/environment needs these re-set before Google sign-in works locally; CI/other environments don't have them and don't need them (the feature degrades to "endpoint returns a clear error if hit," nothing else breaks - verified by the full suite passing with blank Google credentials).
+6. **Password-reset email delivery is a dev-only log stub as of 2026-08-25** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`, writes the token to the app log instead of sending an email) — the user explicitly chose this over SMTP/a transactional API for now, to unblock `IG-25` without any external account. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item — should only require a new `IPasswordResetEmailSender` implementation, no changes to `PasswordResetService` or the endpoints.
 
 ## Last Execution
 
 **Date:** 2026-08-25 Australia/Sydney
 
 Completed:
+
+- Implemented `IG-97 — Implement password-reset request and completion` and `IG-98 — Test password-reset security boundaries` (T025/T026, S13/`IG-25`), together in one pass. Both Subtasks Done; parent Story `IG-25` Done — the last remaining Story in Epic `IG-3`.
+- User chose a **log-only dev stub** for email delivery (not SMTP, not a transactional API) via `AskUserQuestion` — the reset token is written straight to the app's own log output, with real-provider integration explicitly deferred as a follow-up rather than silently invented or left unimplemented.
+- New `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` (FSD §92), both rate-limited under the existing `"auth"` policy. `IPasswordResetService`/`PasswordResetService` reuses `UserManager.GeneratePasswordResetTokenAsync`/`ResetPasswordAsync` rather than a hand-rolled token scheme — tokens are self-contained (data-protected, no new DB table needed), expire (`DataProtectionTokenProviderOptions.TokenLifespan` explicitly set to 1 hour in `PersistenceServiceCollectionExtensions`, down from Identity's 1-day default), and are single-use as a side effect of `ResetPasswordAsync` rotating the account's security stamp on success (any other outstanding token for that user, reused or freshly requested, is bound to the old stamp and fails verification afterward).
+- Anti-enumeration (FSD §9) applied at both ends: `/forgot-password` always returns 200 regardless of whether the email matches an account (`PasswordResetService.RequestResetAsync` silently no-ops for unknown/inactive accounts); `/reset-password` collapses unknown email, inactive/deleted account, invalid token and expired token into the same generic message, `"This reset link is invalid or has expired. Please request a new one."` — distinct from the specific message a weak *new* password gets (that case can only be reached with an already-valid token, so it carries no enumeration risk).
+- New `IPasswordResetEmailSender` interface with `LoggingPasswordResetEmailSender` as its only implementation — deliberately narrow boundary so a real provider is a drop-in swap later, not a `PasswordResetService` rewrite.
+- **Verified for real against a live Postgres instance**, not just automated tests: registered an account, requested a reset for both a known and an unknown email (identical 200s), read the actual token off the running backend's console log, completed the reset, confirmed the old password now fails and the new one works, confirmed reusing the same token fails, and confirmed a malformed token is rejected — all against the real database, not EF Core InMemory.
+
+Files changed or created (`IG-97`/`IG-98`):
+
+- `backend/src/InvoiceApp.Application/Identity/{ForgotPasswordRequest,ResetPasswordRequest,IPasswordResetService,IPasswordResetEmailSender}.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Authentication/{PasswordResetService,LoggingPasswordResetEmailSender}.cs` (new); `InfrastructureAuthenticationExtensions.cs` (extended: DI registration)
+- `backend/src/InvoiceApp.Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs` (extended: 1-hour `DataProtectionTokenProviderOptions.TokenLifespan`)
+- `backend/src/InvoiceApp.Modules.Identity/PasswordReset/{ForgotPasswordRequestValidator,ResetPasswordRequestValidator}.cs` (new)
+- `backend/src/InvoiceApp.Api/Endpoints/AuthEndpoints.cs` (extended: `POST /forgot-password`, `POST /reset-password`)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/{PasswordResetServiceTests,FakePasswordResetEmailSender}.cs` (new); `AuthenticationTestHarness.cs` (extended: fake email sender, optional token-lifespan override)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Modules/Identity/PasswordReset/{ForgotPasswordRequestValidatorTests,ResetPasswordRequestValidatorTests}.cs` (new)
+- `backend/tests/InvoiceApp.Api.Tests/Authentication/{PasswordResetTests,FakePasswordResetEmailSender}.cs` (new); `AuthenticatedRouteTestFactory.cs` (extended: fake email sender, optional token-lifespan override)
+- `backlog.md`, `howtorun.md`
+
+Verification performed (`IG-97`/`IG-98`):
+
+- 21 new tests: 10 unit tests on `PasswordResetService` (known/unknown/deleted-account request handling, valid reset + login with new password + old password rejected, reused token rejected, malformed token rejected, expired token rejected, unknown-email reset rejected, token-generated-before-deletion rejected, weak new password rejected with a distinct message); 7 validator tests; 7 against the real HTTP pipeline via `WebApplicationFactory<Program>` (known/unknown email identical 200s, full reset-then-login round trip, reused/invalid/expired token rejection, rate limiting).
+- Full solution build and test suite (111 tests: 14 architecture + 73 infrastructure + 24 API) pass locally.
+- **Real end-to-end verification against a live Postgres instance**, not just automated tests (see Completed above) — including reading the actual token off the running backend's own log output, exactly as a future manual tester would.
+- Committed locally only — not pushed; no CI run this round (local-commit-only workflow, unchanged from prior sessions).
+
+Prior execution, still relevant context:
 
 - Implemented `IG-93 — Integrate Google authentication flow` and `IG-94 — Handle Google authentication edge cases` (T021/T022, S11/`IG-23`), together in one pass. Both Subtasks Done; parent Story `IG-23` Done (unlike `IG-26`, no frontend gap blocks this one, even though there's still no frontend "Sign in with Google" button anywhere - the backend endpoint alone satisfies this Story's criteria).
 - User provided a real Google Cloud OAuth Client ID/Secret this session, set via `dotnet user-secrets` in `InvoiceApp.Api` (`Authentication:Google:ClientId`/`ClientSecret`) - genuinely unblocked, not invented.
@@ -202,7 +228,7 @@ Verification performed (`IG-95`/`IG-96`):
 
 **`IG-21` is not truly end-to-end complete yet — open follow-up, do not lose track of this.** The events `IG-89`/`IG-90` built (`landing_page_view`, `invoice_editor_start`) currently only reach the default `ConsoleAnalyticsSink` — they are emitted correctly and safely, but nothing durably captures/stores them yet, so "acquisition activity can be measured" (`IG-21`'s Story-level acceptance criteria) isn't actually satisfiable in practice until a real sink is wired in. This needs its own follow-up once an analytics provider (or a self-hosted capture endpoint) is chosen — call `setAnalyticsSink()` with the real implementation, wire it near app startup, and add verification that events actually land in the chosen destination (not just that `track()` was called). Raise this explicitly with the user when Epic `IG-3`'s provider decisions come up, since it's the same class of "provider not yet chosen" gap — don't let it quietly stay as console-only.
 
-**Expect the same class of decision repeatedly in Epic `IG-3`** (Identity, Authentication and Account Security): a Google OAuth client ID/secret for `IG-23`, and an email-delivery provider for `IG-25` (password recovery) — neither is named anywhere in `docs/`. Ask before implementing real delivery/OAuth; don't invent credentials or a provider.
+**Resolved during `IG-25`:** the email-delivery-provider decision was resolved by asking the user directly (`AskUserQuestion`) rather than inventing one — they chose a log-only dev stub over SMTP/a transactional API for now. `IPasswordResetEmailSender` is the swap point for a real provider later (see `IG-97`/`IG-98`'s Completed notes above); this pattern (Google OAuth for `IG-23`, analytics sink for `IG-89`/`IG-90`, email provider for `IG-25`) has now recurred three times in this project — always ask before implementing real delivery/OAuth/third-party integration, don't invent credentials or a provider.
 
 **Next.js 16.1.6's root-layout title template doesn't apply to a page's own `title` string.** Confirmed with a clean Turbopack cache during `IG-87`, so it's genuine framework behavior in this version, not a project bug or stale cache. If a future page relies on the `%s | Invoice App` suffix appearing automatically, set its title explicitly instead (e.g. `` `${pageTitle} | Invoice App` ``) rather than assuming the layout's `template` will apply it.
 
@@ -242,7 +268,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-25 Australia/Sydney
 
-`IG-93` and `IG-94` are both Done, each with a claim comment (start, including the full account-linking policy) and a verification comment (completion, including automated-test and real-credential evidence). Parent Story `IG-23` is Done. `IG-101`/`IG-102` remain Done from the prior session, parent Story `IG-27` Done. `IG-99`/`IG-100` remain Done from an earlier session; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap). `IG-95`/`IG-96` remain Done from an earlier session, parent Story `IG-24` Done. Epic `IG-3` now has only 1 Story not yet started, `IG-25`, expected to need a user decision (email provider) before it can be claimed. Jira remains authoritative; refresh live issue state before starting work in a later session — do not assume the next Subtask/Story by number alone.
+`IG-97` and `IG-98` are both Done, each with a claim comment (start, including the chosen email-delivery approach) and a verification comment (completion, including automated-test and real-Postgres evidence). Parent Story `IG-25` is Done — the last remaining Story in Epic `IG-3`. `IG-93`/`IG-94` remain Done from the prior session, parent Story `IG-23` Done. `IG-101`/`IG-102` remain Done, parent Story `IG-27` Done. `IG-99`/`IG-100` remain Done; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap — the only open item left anywhere in Epic `IG-3`). `IG-95`/`IG-96` remain Done, parent Story `IG-24` Done. Epic `IG-3` has no remaining unclaimed Stories. Jira remains authoritative; refresh live issue state before starting work in a later session — check for the next Epic after `IG-3` rather than assuming the next Subtask/Story by number alone.
 
 ## Handoff Update Template
 

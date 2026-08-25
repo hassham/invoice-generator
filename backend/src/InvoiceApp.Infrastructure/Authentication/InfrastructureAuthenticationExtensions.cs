@@ -125,6 +125,8 @@ public static class InfrastructureAuthenticationExtensions
         services.AddScoped<ICredentialLoginService, CredentialLoginService>();
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
         services.AddScoped<IExternalLoginService, ExternalLoginService>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
+        services.AddScoped<IPasswordResetEmailSender, LoggingPasswordResetEmailSender>();
 
         return services;
     }

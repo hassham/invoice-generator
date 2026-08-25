@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Identity;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -23,14 +24,22 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
     private readonly string _databaseName = Guid.NewGuid().ToString();
     private readonly TimeSpan? _cookieExpireOverride;
     private readonly int? _rateLimitPermitLimitOverride;
+    private readonly TimeSpan? _passwordResetTokenLifespanOverride;
 
     public AuthenticatedRouteTestFactory(
         TimeSpan? cookieExpireOverride = null,
-        int? rateLimitPermitLimitOverride = null)
+        int? rateLimitPermitLimitOverride = null,
+        TimeSpan? passwordResetTokenLifespanOverride = null)
     {
         _cookieExpireOverride = cookieExpireOverride;
         _rateLimitPermitLimitOverride = rateLimitPermitLimitOverride;
+        _passwordResetTokenLifespanOverride = passwordResetTokenLifespanOverride;
     }
+
+    // Swaps out the real LoggingPasswordResetEmailSender for a capturing fake - HTTP-level tests
+    // need the generated token back to POST it to /reset-password, which a log line can't hand
+    // back.
+    public FakePasswordResetEmailSender EmailSender { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -73,6 +82,14 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
                     options.PermitLimit = permitLimitOverride;
                 });
             }
+
+            if (_passwordResetTokenLifespanOverride is { } lifespan)
+            {
+                services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = lifespan);
+            }
+
+            services.RemoveAll<IPasswordResetEmailSender>();
+            services.AddSingleton<IPasswordResetEmailSender>(EmailSender);
         });
     }
 }

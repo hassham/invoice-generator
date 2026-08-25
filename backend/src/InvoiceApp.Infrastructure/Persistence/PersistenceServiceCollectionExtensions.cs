@@ -36,6 +36,15 @@ public static class PersistenceServiceCollectionExtensions
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+        // Password-reset tokens (UserManager.GeneratePasswordResetTokenAsync/ResetPasswordAsync)
+        // use the "Default" DataProtectorTokenProvider registered above - its default 1-day
+        // lifespan is longer than a reset link should stay valid, so it's shortened explicitly
+        // here to satisfy FSD 9's "expire after a defined duration" requirement.
+        services.Configure<DataProtectionTokenProviderOptions>(options =>
+        {
+            options.TokenLifespan = TimeSpan.FromHours(1);
+        });
+
         return services;
     }
 }

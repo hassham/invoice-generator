@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace InvoiceApp.Infrastructure.Tests.Authentication;
 
@@ -19,7 +20,7 @@ namespace InvoiceApp.Infrastructure.Tests.Authentication;
 /// </summary>
 public sealed class AuthenticationTestHarness : IDisposable
 {
-    public AuthenticationTestHarness()
+    public AuthenticationTestHarness(TimeSpan? passwordResetTokenLifespanOverride = null)
     {
         var services = new ServiceCollection();
 
@@ -47,9 +48,25 @@ public sealed class AuthenticationTestHarness : IDisposable
         // ExternalLoginServiceTests exercises IExternalLoginService directly instead.
         services.AddInfrastructureAuthentication(new ConfigurationBuilder().Build());
 
+        // Swaps out the real LoggingPasswordResetEmailSender registered above for a capturing
+        // fake - tests need to read back the token that RequestResetAsync generated (to feed it
+        // into a subsequent ResetPasswordAsync call), which a log line can't hand back.
+        services.RemoveAll<IPasswordResetEmailSender>();
+        services.AddSingleton<IPasswordResetEmailSender>(EmailSender);
+
+        if (passwordResetTokenLifespanOverride is { } lifespan)
+        {
+            // Lets IG-98's expired-token test use a near-zero lifespan instead of the real 1-hour
+            // default, so it can prove expiry deterministically (generate, delay past the
+            // lifespan, then attempt reset) without waiting an hour.
+            services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = lifespan);
+        }
+
         Provider = services.BuildServiceProvider();
         Scope = Provider.CreateScope();
     }
+
+    public FakePasswordResetEmailSender EmailSender { get; } = new();
 
     private IServiceProvider Provider { get; }
 
@@ -60,6 +77,8 @@ public sealed class AuthenticationTestHarness : IDisposable
     public UserManager<ApplicationUser> UserManager => Scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
     public IAccountRegistrationService AccountRegistrationService => Scope.ServiceProvider.GetRequiredService<IAccountRegistrationService>();
+
+    public IPasswordResetService PasswordResetService => Scope.ServiceProvider.GetRequiredService<IPasswordResetService>();
 
     public IAuthSessionService BuildAuthSessionService(Microsoft.AspNetCore.Http.HttpContext httpContext)
     {
