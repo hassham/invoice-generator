@@ -10,7 +10,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 **Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout), `IG-27` (delete account), `IG-23` (Google sign-in) and `IG-25` (password recovery) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` has **no remaining unclaimed Stories** — the only open item left in the Epic is `IG-26`'s frontend-UI gap.
 
-**Epic `IG-5` (Invoice Editor and Calculation Engine) is now the active Epic**, picked over `IG-4` because `IG-4`'s own Jira description lists `IG-5`/`IG-6`/`IG-7` as dependencies and none of those exist yet, while `IG-5` only depends on the already-Done `IG-1`. `IG-5` has 6 Stories (`IG-33`-`IG-38`, S21-S26). `IG-33` (S21, responsive layout) and `IG-34` (S22, header/seller/customer fields) are both Done. `IG-35` (S23, line items) is next.
+**Epic `IG-5` (Invoice Editor and Calculation Engine) is now the active Epic**, picked over `IG-4` because `IG-4`'s own Jira description lists `IG-5`/`IG-6`/`IG-7` as dependencies and none of those exist yet, while `IG-5` only depends on the already-Done `IG-1`. `IG-5` has 6 Stories (`IG-33`-`IG-38`, S21-S26). `IG-33` (S21, responsive layout), `IG-34` (S22, header/seller/customer fields) and `IG-35` (S23, line items) are all Done. `IG-36` (S24, calculate accurate invoice totals) is next - **its first Subtask is titled "Implement authoritative invoice calculations,"** which per FSD §28 ("Backend calculation result should be authoritative") likely means this Story needs real backend work, not another purely-frontend Story like `IG-33`-`IG-35` - confirm scope from its Subtask descriptions before assuming it's frontend-only.
 
 **Open follow-up carried over from `IG-26`, not yet resolved:** "offers sign-in" (part of `IG-26`'s session-expiry acceptance criterion) needs a frontend sign-in page/auth UI that doesn't exist yet. None of Epic IG-3's auth flows (register, login, session) have any frontend UI — only backend endpoints. Revisit once frontend auth pages are built, likely alongside `IG-23`/`IG-25`.
 
@@ -32,29 +32,29 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Epic `IG-5`'s next unclaimed Story is `IG-35` (S23, manage invoice line items) — check its live Subtasks before claiming, Codex may have picked something up:
+Epic `IG-5`'s next unclaimed Story is `IG-36` (S24, calculate accurate invoice totals) — check its live Subtasks before claiming, Codex may have picked something up:
 
 ```text
 Epic:    IG-5  — Invoice Editor and Calculation Engine
-Story:   IG-35 — Manage invoice line items
-Subtask: IG-117 (implement), IG-118 (validate) — check live status before claiming
+Story:   IG-36 — Calculate accurate invoice totals
+Subtask: IG-119 "Implement authoritative invoice calculations" (likely backend), IG-120 "Test calculation and rounding consistency" — check live status and read their full descriptions before claiming
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-5>
-- <https://appitometechnologies.atlassian.net/browse/IG-35>
+- <https://appitometechnologies.atlassian.net/browse/IG-36>
 
 ## Next Task
 
-`IG-115`/`IG-116` (T043/T044, both Subtasks of `IG-34`) are Done; `IG-34` itself is Done — the second Story in Epic `IG-5`.
+`IG-117`/`IG-118` (T045/T046, both Subtasks of `IG-35`) are Done; `IG-35` itself is Done — the third Story in Epic `IG-5`.
 
 Before implementation:
 
-1. Check `IG-35`'s Subtasks (`IG-117`, `IG-118`) and their live status/assignee/comments first.
-2. Continue the pattern established in `IG-33`/`IG-34`: build inside `frontend/app/invoice/create/`, colocate `*.test.tsx` next to the component being tested, keep validation/domain logic in pure functions under `lib/` (see `lib/fields.ts`, `lib/invoiceDraft.ts`) separate from rendering, verify with `npm test`/`npm run lint`/`npm run build`, and do a **real-browser pass** (Playwright/Chromium via `npx`, already installed at `~/AppData/Local/ms-playwright`) for anything jsdom can't actually verify.
-3. **Line items need to render inside `InvoiceEditorLayout`'s editor pane alongside the header/seller/customer sections `IG-34` built** (`CreateInvoiceEditor.tsx` is the client component that composes them) - extend it, don't build a parallel editor.
-4. **`docs/DATABASE_SCHEMA.md`'s `invoice.invoice_items` table is the reference for field shapes/types**: description (varchar 500, required), quantity (decimal >0), unit (varchar 50, optional), unit_price (decimal >=0, required), tax_rate (decimal, default 0), discount (decimal, default 0) — line_subtotal/tax_amount/line_total are computed, not user-entered (that's `IG-36`/S24's job, not this Story's).
+1. Check `IG-36`'s Subtasks (`IG-119`, `IG-120`) and their live status/assignee/comments first.
+2. **Read `IG-119`'s full description carefully before assuming this is frontend-only like `IG-33`-`IG-35`** — its title ("Implement authoritative invoice calculations") echoes FSD §28's "Backend calculation result should be authoritative," which likely means this Story needs a real backend endpoint (there is no invoice-persistence API yet - Epic `IG-7` isn't built), not just more `frontend/app/invoice/create/` work. If so, this may be the point where Epic `IG-5` needs its first backend piece, or it may need to stay frontend-preview-only with backend authority explicitly deferred to `IG-7` - don't guess, read the Subtask text and FSD §26-29 first.
+3. **Reuse `lib/lineItems.ts`'s `computeLineTotals`/`sumLineTotals`** for the line-level math rather than re-deriving it - `IG-35`'s Jira comment on `IG-35` itself flags this explicitly. The new work here is the invoice-wide roll-up (FSD §26's 8-step sequence: subtotal → invoice discount → tax → additional charges → total → payments → amount due) plus the tax-inclusive/exclusive business-setting toggle (FSD §29) and rounding consistency (FSD §28, 2 decimal places, consistent across UI/backend/DB/PDF).
+4. Continue the pattern established in `IG-33`-`IG-35` for any frontend portion: build inside `frontend/app/invoice/create/`, colocate `*.test.tsx` next to the component being tested, keep validation/domain logic in pure functions under `lib/`, verify with `npm test`/`npm run lint`/`npm run build`, and do a **real-browser pass** (Playwright/Chromium via `npx`, already installed at `~/AppData/Local/ms-playwright`) for anything jsdom can't actually verify.
 5. **A doc mismatch was flagged during `IG-34`/`IG-115`, not yet resolved**: FSD §13 lists "Contact Name" as a Seller field but `docs/DATABASE_SCHEMA.md`'s `business.businesses` table has no `contact_name` column (it has an unrelated `legal_name` column instead). Doesn't block frontend work, but flag it again if a backend Invoice Persistence Story (`IG-7`) picks this up before it's reconciled.
 6. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" below) — if `IG-31` (preserve invoice context through authentication, later in Epic `IG-4`) or any other Epic IG-3 revisit needs frontend sign-in UI, flag it the same way rather than silently building only a backend endpoint.
 7. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day. Don't watch GitHub Actions after a commit; there's nothing to watch until the user pushes. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, until this changes.
@@ -66,6 +66,34 @@ Before implementation:
 **Date:** 2026-08-25 Australia/Sydney
 
 Completed:
+
+- Implemented `IG-117 — Implement invoice line-item interactions` and `IG-118 — Validate line-item edge cases` (T045/T046, S23/`IG-35`), together in one pass. Both Subtasks Done; parent Story `IG-35` Done — the third Story in Epic `IG-5`.
+- All fields from FSD §17-23 implemented (Description, Quantity, Unit, Unit Price, Tax Rate with a "Custom" free-entry option, line-level Discount), plus Add/Remove/Duplicate/Move-Up/Move-Down actions (FSD §24) extending `CreateInvoiceEditor.tsx` alongside `IG-34`'s header/party fields. New `lib/lineItems.ts` holds the field defaults, per-line calculation (`computeLineTotals`, `sumLineTotals`) and validation, following the same data-driven pure-function pattern as `lib/fields.ts`.
+- **FSD §24's exact "clear instead of remove" rule implemented**: with only one line item left, its "Remove" button relabels to "Clear" and empties the row's fields rather than deleting it, so an invoice always has >= 1 item - structurally guarantees the "minimum items" requirement rather than validating it after the fact.
+- **Scope boundary held deliberately**: per-line Line Total (FSD §27's line-level formula) is computed and shown live in both the editor and the preview's new line-items table, explicitly labelled as a frontend-only preview figure - but the invoice-wide Subtotal/Discount/Tax/Total roll-up (FSD §26's full 8-step engine) was NOT built here; that's `IG-36`/S24's job, and the Jira comment on `IG-35` explicitly tells that Story to reuse `computeLineTotals`/`sumLineTotals` rather than re-deriving line math.
+- Reordering (Move Up/Down) uses simple buttons, not drag-and-drop - avoids pulling in a DnD library for something two accessible, keyboard-operable buttons already satisfy.
+- **Real-browser verification caught and fixed a real polish gap**: the editor's own "Items subtotal" line was missing its currency code (showed a bare "0.00" while the preview correctly showed "AUD 0.00") - fixed by threading `currency` down into `LineItemsSection`, re-verified after the fix.
+- One thing intentionally deferred, flagged in the Jira comments rather than silently skipped: Item Catalogue Lookup (FSD §25, typing into description searches saved products) needs saved catalogue records - Epic `IG-9` isn't built yet, same class of gap as `IG-34`'s Registered Customer Lookup deferral.
+
+Files changed or created (`IG-117`/`IG-118`):
+
+- `frontend/app/invoice/create/lib/lineItems.ts` (new) — LineItem type, createEmptyLineItem, cloneLineItem, computeLineTotals, sumLineTotals, validateLineItem(s), UNIT_OPTIONS, TAX_RATE_PRESETS
+- `frontend/app/invoice/create/lib/lineItems.test.ts` (new)
+- `frontend/app/invoice/create/components/LineItemRow.tsx` (new) — one line item's fields + reorder/duplicate/remove controls
+- `frontend/app/invoice/create/components/LineItemsSection.tsx` (new) — the list, Add Item, items subtotal
+- `frontend/app/invoice/create/components/LineItemsSection.test.tsx` (new)
+- `frontend/app/invoice/create/components/CreateInvoiceEditor.tsx` (extended: line-item state + handlers, wires `LineItemsSection` into the editor pane)
+- `frontend/app/invoice/create/components/CreateInvoiceEditor.test.tsx` (extended: 2 new integration tests)
+- `frontend/app/invoice/create/components/InvoicePreview.tsx` (extended: real line-items table + items subtotal, replacing the `IG-34`-era static placeholder text)
+- `backlog.md`
+
+Verification performed (`IG-117`/`IG-118`):
+
+- 37 new tests: pure calculation/validation unit tests (`lineItems.test.ts`), `LineItemsSection` component tests (add/remove/duplicate/reorder/clear-last-row/validation), 2 new `CreateInvoiceEditor` integration tests. Full frontend suite (121 tests) passes; `npm run lint`/`npm run build` clean.
+- **Real-browser verification** via an ad-hoc Playwright script: 17/17 checks passed (add/reorder/duplicate/remove/clear-last-row sequence, preview staying in sync through every structural change, required-description and out-of-range-custom-tax-rate validation) - one real polish gap found and fixed mid-verification (see Completed above), then re-confirmed with a follow-up script pass.
+- Committed locally only - not pushed; no CI run this round (local-commit-only workflow, unchanged from prior sessions).
+
+Prior execution, still relevant context:
 
 - Implemented `IG-115 — Implement invoice, seller and customer fields` and `IG-116 — Validate party and header inputs` (T043/T044, S22/`IG-34`), together in one pass. Both Subtasks Done; parent Story `IG-34` Done — the second Story in Epic `IG-5`.
 - All fields from FSD §12 (invoice header: number, issue/due date, currency, reference), §13 (seller, 13 fields, AU-labelled registration/tax fields) and §15 (customer, 11 fields) implemented, rendered inside `IG-33`'s `InvoiceEditorLayout`. Field configs (name/label/required/maxLength/type) live in a single data-driven source of truth, `lib/fields.ts`, cross-checked against `docs/DATABASE_SCHEMA.md`'s businesses/customers column lengths.
@@ -331,7 +359,7 @@ Provider and deployment choices that are not needed for the current structural t
 
 **Last synchronized:** 2026-08-25 Australia/Sydney
 
-`IG-115` and `IG-116` are both Done, each with a claim comment (start) and a verification comment (completion, including automated-test and real-browser/Playwright evidence). Parent Story `IG-34` is Done — the second Story in Epic `IG-5`. `IG-113`/`IG-114` remain Done, parent Story `IG-33` Done — the first Story in Epic `IG-5` (Invoice Editor and Calculation Engine), the active Epic. `IG-97`/`IG-98` remain Done, parent Story `IG-25` Done — the last remaining Story in Epic `IG-3`. `IG-93`/`IG-94` remain Done, parent Story `IG-23` Done. `IG-101`/`IG-102` remain Done, parent Story `IG-27` Done. `IG-99`/`IG-100` remain Done; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap — the only open item left anywhere in Epic `IG-3`). `IG-95`/`IG-96` remain Done, parent Story `IG-24` Done. Epic `IG-3` has no remaining unclaimed Stories. Epic `IG-5` has 4 remaining unclaimed Stories (`IG-35` through `IG-38`); `IG-117`/`IG-118` (Subtasks of `IG-35`) confirmed To Do/unassigned as of this sync. Jira remains authoritative; refresh live issue state before starting work in a later session.
+`IG-117` and `IG-118` are both Done, each with a claim comment (start) and a verification comment (completion, including automated-test and real-browser/Playwright evidence). Parent Story `IG-35` is Done — the third Story in Epic `IG-5`, with a note left on it for whoever picks up `IG-36` about reusing `lib/lineItems.ts`'s calculation functions. `IG-115`/`IG-116` remain Done, parent Story `IG-34` Done. `IG-113`/`IG-114` remain Done, parent Story `IG-33` Done — Epic `IG-5` (Invoice Editor and Calculation Engine) is the active Epic. `IG-97`/`IG-98` remain Done, parent Story `IG-25` Done — the last remaining Story in Epic `IG-3`. `IG-93`/`IG-94` remain Done, parent Story `IG-23` Done. `IG-101`/`IG-102` remain Done, parent Story `IG-27` Done. `IG-99`/`IG-100` remain Done; parent Story `IG-26` remains explicitly **not** Done (In Progress, frontend gap — the only open item left anywhere in Epic `IG-3`). `IG-95`/`IG-96` remain Done, parent Story `IG-24` Done. Epic `IG-3` has no remaining unclaimed Stories. Epic `IG-5` has 3 remaining unclaimed Stories (`IG-36` through `IG-38`); `IG-119`/`IG-120` (Subtasks of `IG-36`) confirmed To Do/unassigned as of this sync - `IG-119`'s title suggests `IG-36` may need real backend work, unlike `IG-33`-`IG-35`. Jira remains authoritative; refresh live issue state before starting work in a later session.
 
 ## Handoff Update Template
 

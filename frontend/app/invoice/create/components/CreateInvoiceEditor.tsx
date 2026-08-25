@@ -11,9 +11,18 @@ import {
   type FieldErrors,
   type FieldValues,
 } from "../lib/invoiceDraft";
+import {
+  cloneLineItem,
+  createEmptyLineItem,
+  hasAnyLineItemError,
+  validateLineItems,
+  type LineItem,
+  type LineItemErrors,
+} from "../lib/lineItems";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
 import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
 import { InvoicePreview } from "./InvoicePreview";
+import { LineItemsSection } from "./LineItemsSection";
 import { PartyDetailsSection } from "./PartyDetailsSection";
 
 export function CreateInvoiceEditor() {
@@ -21,6 +30,8 @@ export function CreateInvoiceEditor() {
   const [headerErrors, setHeaderErrors] = useState<FieldErrors>({});
   const [sellerErrors, setSellerErrors] = useState<FieldErrors>({});
   const [customerErrors, setCustomerErrors] = useState<FieldErrors>({});
+  const [lineItems, setLineItems] = useState<LineItem[]>(() => [createEmptyLineItem()]);
+  const [lineItemErrors, setLineItemErrors] = useState<Record<string, LineItemErrors>>({});
 
   useEffect(() => {
     // Computed on mount only, client-side - this page is statically prerendered, so setting
@@ -87,6 +98,68 @@ export function CreateInvoiceEditor() {
     setCustomerErrors(validateFieldValues(draft.customer, CUSTOMER_FIELDS));
   };
 
+  const handleLineItemFieldChange = (id: string, field: keyof LineItem, value: string) => {
+    const nextItems = lineItems.map((item) => (item.id === id ? { ...item, [field]: value } : item));
+    setLineItems(nextItems);
+    if (hasAnyLineItemError(lineItemErrors)) {
+      setLineItemErrors(validateLineItems(nextItems));
+    }
+  };
+
+  const handleLineItemFieldBlur = () => {
+    setLineItemErrors(validateLineItems(lineItems));
+  };
+
+  const handleAddLineItem = () => {
+    setLineItems((current) => [...current, createEmptyLineItem()]);
+  };
+
+  const handleRemoveLineItem = (id: string) => {
+    setLineItems((current) => {
+      if (current.length === 1) {
+        // FSD section 24: with only one row left, "Remove" clears its fields rather than
+        // removing the row - an invoice must always have at least one item.
+        return [createEmptyLineItem()];
+      }
+      return current.filter((item) => item.id !== id);
+    });
+  };
+
+  const handleDuplicateLineItem = (id: string) => {
+    setLineItems((current) => {
+      const index = current.findIndex((item) => item.id === id);
+      if (index === -1) {
+        return current;
+      }
+      const duplicate = cloneLineItem(current[index]);
+      return [...current.slice(0, index + 1), duplicate, ...current.slice(index + 1)];
+    });
+  };
+
+  const handleMoveLineItemUp = (id: string) => {
+    setLineItems((current) => {
+      const index = current.findIndex((item) => item.id === id);
+      if (index <= 0) {
+        return current;
+      }
+      const next = [...current];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  };
+
+  const handleMoveLineItemDown = (id: string) => {
+    setLineItems((current) => {
+      const index = current.findIndex((item) => item.id === id);
+      if (index === -1 || index >= current.length - 1) {
+        return current;
+      }
+      const next = [...current];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
+    });
+  };
+
   return (
     <InvoiceEditorLayout
       editor={
@@ -115,6 +188,18 @@ export function CreateInvoiceEditor() {
             onFieldChange={handleCustomerChange}
             onFieldBlur={handleCustomerBlur}
           />
+          <LineItemsSection
+            items={lineItems}
+            currency={draft.currency}
+            errors={lineItemErrors}
+            onFieldChange={handleLineItemFieldChange}
+            onFieldBlur={handleLineItemFieldBlur}
+            onAdd={handleAddLineItem}
+            onMoveUp={handleMoveLineItemUp}
+            onMoveDown={handleMoveLineItemDown}
+            onDuplicate={handleDuplicateLineItem}
+            onRemove={handleRemoveLineItem}
+          />
         </div>
       }
       preview={
@@ -123,6 +208,7 @@ export function CreateInvoiceEditor() {
           currency={draft.currency}
           seller={draft.seller}
           customer={draft.customer}
+          lineItems={lineItems}
         />
       }
     />

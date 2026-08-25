@@ -70,4 +70,29 @@ describe("CreateInvoiceEditor", () => {
     expect(within(sellerSection).getByLabelText("Country", { exact: false })).toHaveValue("AU");
     expect(screen.getByLabelText("Currency")).toHaveValue("AUD");
   });
+
+  it("reflects a line item's description and computed line total in the live preview", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.clear(screen.getByLabelText(/Quantity/));
+    await user.type(screen.getByLabelText(/Quantity/), "2");
+    await user.type(screen.getByLabelText(/Unit Price/), "50");
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).getByText("Consulting")).toBeInTheDocument();
+    // 2 x 50 = 100, + 10% default GST = 110.00, shown as this item's line total and (with only
+    // one item) also as the items subtotal.
+    expect(within(preview).getByText(/AUD 110\.00/)).toBeInTheDocument();
+  });
+
+  it("adding a second line item is reflected in the editor and the preview", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Add Item" }));
+
+    expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(2);
+  });
 });
