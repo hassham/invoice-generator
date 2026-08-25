@@ -112,4 +112,50 @@ describe("CreateInvoiceEditor", () => {
     expect(within(preview).getByText("-AUD 10.00")).toBeInTheDocument();
     expect(within(preview).getAllByText("AUD 99.00").length).toBeGreaterThan(0);
   });
+
+  it("does not show Notes, Terms or Payment Instructions sections in the preview when empty - IG-122", () => {
+    render(<CreateInvoiceEditor />);
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).queryByText("Notes")).not.toBeInTheDocument();
+    expect(within(preview).queryByText("Terms and Conditions")).not.toBeInTheDocument();
+    expect(within(preview).queryByText("Payment Instructions")).not.toBeInTheDocument();
+  });
+
+  it("reflects entered Notes, Terms and Payment Instructions in the preview once populated", async () => {
+    // .paste() sets the whole value in one operation rather than simulating per-character
+    // keystrokes (.type()) - these tests only care about the final rendered value, not per-key
+    // behaviour, and per-character typing across three fields was measurably slow enough under
+    // parallel test-suite load to occasionally bleed into the next test's render.
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByLabelText("Notes"));
+    await user.paste("Thank you.");
+    await user.click(screen.getByLabelText("Terms and Conditions"));
+    await user.paste("Due in 14 days.");
+    await user.click(screen.getByLabelText("Bank Name"));
+    await user.paste("Big Bank");
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).getByText("Notes")).toBeInTheDocument();
+    expect(within(preview).getByText("Thank you.")).toBeInTheDocument();
+    expect(within(preview).getByText("Terms and Conditions")).toBeInTheDocument();
+    expect(within(preview).getByText("Due in 14 days.")).toBeInTheDocument();
+    expect(within(preview).getByText("Payment Instructions")).toBeInTheDocument();
+    expect(within(preview).getByText("Bank Name: Big Bank")).toBeInTheDocument();
+  });
+
+  it("only shows the specific payment instruction fields that were actually filled in", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByLabelText("Bank Name"));
+    await user.paste("Big Bank");
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).getByText("Bank Name: Big Bank")).toBeInTheDocument();
+    expect(within(preview).queryByText(/^IBAN:/)).not.toBeInTheDocument();
+    expect(within(preview).queryByText(/^SWIFT:/)).not.toBeInTheDocument();
+  });
 });

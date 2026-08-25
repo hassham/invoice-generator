@@ -1,6 +1,7 @@
 import type { FieldValues } from "../lib/invoiceDraft";
 import type { InvoiceTotalsResult } from "../lib/invoiceTotals";
 import { computeLineTotals, type LineItem } from "../lib/lineItems";
+import { hasAnyPaymentInstructionContent, PAYMENT_INSTRUCTION_FIELDS, type SupportingContentValues } from "../lib/supportingContent";
 
 interface InvoicePreviewProps {
   header: FieldValues;
@@ -9,6 +10,7 @@ interface InvoicePreviewProps {
   customer: FieldValues;
   lineItems: LineItem[];
   totals: InvoiceTotalsResult;
+  supportingContent: SupportingContentValues;
 }
 
 function PreviewLine({ value }: { value: string }) {
@@ -24,10 +26,11 @@ function formatCurrency(amount: number): string {
  * lifted state the editor fields write to, not a separate copy, including the `totals` figures
  * (FSD section 28 explicitly allows a frontend calculation for immediate preview - see
  * `lib/invoiceTotals.ts`'s doc comment for how it's kept consistent with the backend's
- * authoritative calculation). The chosen template and PDF/print output come from later Stories
- * (S25-S26).
+ * authoritative calculation). Notes/Terms/Payment Instructions sections (FSD sections 30-32) only
+ * render when they have content - IG-122: "optional empty sections do not create misleading
+ * output." The chosen template and PDF/print output come from the last Story in this Epic (S26).
  */
-export function InvoicePreview({ header, currency, seller, customer, lineItems, totals }: InvoicePreviewProps) {
+export function InvoicePreview({ header, currency, seller, customer, lineItems, totals, supportingContent }: InvoicePreviewProps) {
   const itemsWithContent = lineItems.filter(
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
   );
@@ -119,6 +122,39 @@ export function InvoicePreview({ header, currency, seller, customer, lineItems, 
           </dd>
         </dl>
       </div>
+
+      {supportingContent.notes.trim() ? (
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <p className="text-sm font-semibold text-slate-700">Notes</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{supportingContent.notes}</p>
+        </div>
+      ) : null}
+
+      {supportingContent.terms.trim() ? (
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <p className="text-sm font-semibold text-slate-700">Terms and Conditions</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{supportingContent.terms}</p>
+        </div>
+      ) : null}
+
+      {hasAnyPaymentInstructionContent(supportingContent) ? (
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <p className="text-sm font-semibold text-slate-700">Payment Instructions</p>
+          <div className="mt-1 text-sm text-slate-950">
+            {PAYMENT_INSTRUCTION_FIELDS.map((field) => {
+              const value = supportingContent.paymentInstructions[field.name]?.trim();
+              return value ? (
+                <p key={field.name}>
+                  {field.label}: {value}
+                </p>
+              ) : null;
+            })}
+            {supportingContent.customInstructions.trim() ? (
+              <p className="mt-1 whitespace-pre-wrap">{supportingContent.customInstructions}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

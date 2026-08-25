@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CUSTOMER_FIELDS, SELLER_FIELDS } from "../lib/fields";
 import {
   createEmptyDraft,
@@ -21,12 +21,19 @@ import {
   type LineItem,
   type LineItemErrors,
 } from "../lib/lineItems";
+import {
+  createEmptySupportingContent,
+  hasAnySupportingContentError,
+  validateSupportingContent,
+  type SupportingContentErrors,
+} from "../lib/supportingContent";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
 import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
 import { InvoicePreview } from "./InvoicePreview";
 import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
 import { PartyDetailsSection } from "./PartyDetailsSection";
+import { SupportingContentSection } from "./SupportingContentSection";
 
 export function CreateInvoiceEditor() {
   const [draft, setDraft] = useState(createEmptyDraft);
@@ -38,6 +45,10 @@ export function CreateInvoiceEditor() {
   const [invoiceDiscountType, setInvoiceDiscountType] = useState<InvoiceDiscountType>("None");
   const [invoiceDiscountValue, setInvoiceDiscountValue] = useState("");
   const [invoiceDiscountError, setInvoiceDiscountError] = useState<string | undefined>();
+  const [supportingContent, setSupportingContent] = useState(createEmptySupportingContent);
+  const [supportingContentErrors, setSupportingContentErrors] = useState<SupportingContentErrors>({
+    paymentInstructions: {},
+  });
 
   useEffect(() => {
     // Computed on mount only, client-side - this page is statically prerendered, so setting
@@ -187,15 +198,49 @@ export function CreateInvoiceEditor() {
     setInvoiceDiscountError(validateInvoiceDiscountValue(invoiceDiscountType, invoiceDiscountValue));
   };
 
+  const handleSupportingContentChange = (name: string, value: string) => {
+    const next = { ...supportingContent, [name]: value };
+    setSupportingContent(next);
+    if (hasAnySupportingContentError(supportingContentErrors)) {
+      setSupportingContentErrors(validateSupportingContent(next));
+    }
+  };
+
+  const handleSupportingContentBlur = () => {
+    setSupportingContentErrors(validateSupportingContent(supportingContent));
+  };
+
+  const handlePaymentInstructionChange = (name: string, value: string) => {
+    const next = { ...supportingContent, paymentInstructions: { ...supportingContent.paymentInstructions, [name]: value } };
+    setSupportingContent(next);
+    if (hasAnySupportingContentError(supportingContentErrors)) {
+      setSupportingContentErrors(validateSupportingContent(next));
+    }
+  };
+
+  const handlePaymentInstructionBlur = () => {
+    setSupportingContentErrors(validateSupportingContent(supportingContent));
+  };
+
   // Tax-inclusive/exclusive (FSD section 29) is a business setting with no settings page to
   // source a real value from yet (Epic IG-8) - always calculated exclusive here, matching the
   // domain default (docs/DATABASE_SCHEMA.md's businesses.tax_calculation_method).
+  //
+  // Memoized so typing in fields that don't affect totals (Notes, Terms, header/party details)
+  // doesn't re-run this on every keystroke - CreateInvoiceEditor holds all state at the top level,
+  // so any change here re-renders the whole tree regardless, but recomputing the line-item sum on
+  // every unrelated keystroke was measurably slow once Notes/Terms/Payment Instructions added more
+  // fields to type into.
   const parsedDiscountValue = invoiceDiscountValue.trim().length > 0 ? Number.parseFloat(invoiceDiscountValue) : null;
-  const totals = calculateInvoiceTotals(
-    lineItems.map(toCalculationInput),
-    invoiceDiscountType,
-    Number.isFinite(parsedDiscountValue) ? parsedDiscountValue : null,
-    "Exclusive",
+  const totals = useMemo(
+    () =>
+      calculateInvoiceTotals(
+        lineItems.map(toCalculationInput),
+        invoiceDiscountType,
+        Number.isFinite(parsedDiscountValue) ? parsedDiscountValue : null,
+        "Exclusive",
+      ),
+    [lineItems, invoiceDiscountType, parsedDiscountValue],
   );
 
   return (
@@ -247,6 +292,14 @@ export function CreateInvoiceEditor() {
             onDiscountBlur={handleInvoiceDiscountBlur}
             totals={totals}
           />
+          <SupportingContentSection
+            values={supportingContent}
+            errors={supportingContentErrors}
+            onFieldChange={handleSupportingContentChange}
+            onFieldBlur={handleSupportingContentBlur}
+            onPaymentInstructionChange={handlePaymentInstructionChange}
+            onPaymentInstructionBlur={handlePaymentInstructionBlur}
+          />
         </div>
       }
       preview={
@@ -257,6 +310,7 @@ export function CreateInvoiceEditor() {
           customer={draft.customer}
           lineItems={lineItems}
           totals={totals}
+          supportingContent={supportingContent}
         />
       }
     />
