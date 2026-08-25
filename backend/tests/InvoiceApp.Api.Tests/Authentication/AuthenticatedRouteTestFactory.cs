@@ -1,6 +1,7 @@
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -38,6 +39,16 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));
+
+            // No real Authentication:Google:ClientId/Secret exists in the test environment, but
+            // GoogleOptions requires non-empty values before it will build a challenge redirect
+            // at all - dummy values are enough to prove the redirect shape without ever actually
+            // contacting Google.
+            services.PostConfigure<GoogleOptions>(GoogleDefaults.AuthenticationScheme, options =>
+            {
+                options.ClientId = "test-client-id";
+                options.ClientSecret = "test-client-secret";
+            });
 
             if (_cookieExpireOverride is { } expireOverride)
             {

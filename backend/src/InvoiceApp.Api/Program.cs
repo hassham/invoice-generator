@@ -17,7 +17,7 @@ builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true);
 
 builder.Services.AddInfrastructureConfiguration(builder.Configuration);
 builder.Services.AddInfrastructurePersistence();
-builder.Services.AddInfrastructureAuthentication();
+builder.Services.AddInfrastructureAuthentication(builder.Configuration);
 builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructureHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

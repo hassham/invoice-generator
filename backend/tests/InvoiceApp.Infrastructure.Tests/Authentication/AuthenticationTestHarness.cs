@@ -4,6 +4,7 @@ using InvoiceApp.Infrastructure.Identity;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace InvoiceApp.Infrastructure.Tests.Authentication;
@@ -41,7 +42,10 @@ public sealed class AuthenticationTestHarness : IDisposable
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        services.AddInfrastructureAuthentication();
+        // No Authentication:Google section - fine, since nothing in this harness triggers the
+        // Google scheme itself (its options are only validated lazily, on first real use).
+        // ExternalLoginServiceTests exercises IExternalLoginService directly instead.
+        services.AddInfrastructureAuthentication(new ConfigurationBuilder().Build());
 
         Provider = services.BuildServiceProvider();
         Scope = Provider.CreateScope();
@@ -73,6 +77,12 @@ public sealed class AuthenticationTestHarness : IDisposable
     {
         AttachHttpContext(httpContext);
         return Scope.ServiceProvider.GetRequiredService<IAccountDeletionService>();
+    }
+
+    public IExternalLoginService BuildExternalLoginService(Microsoft.AspNetCore.Http.HttpContext httpContext)
+    {
+        AttachHttpContext(httpContext);
+        return Scope.ServiceProvider.GetRequiredService<IExternalLoginService>();
     }
 
     private void AttachHttpContext(Microsoft.AspNetCore.Http.HttpContext httpContext)
