@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import CreateInvoicePage, { metadata } from "./page";
 
 describe("Create invoice page", () => {
-  it("renders the editor and preview panels", () => {
+  it("renders the invoice header, seller and customer sections", () => {
     render(<CreateInvoicePage />);
 
-    expect(screen.getByRole("heading", { name: "Invoice details" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Live preview" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Invoice details" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Seller information" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Customer information" })).toBeInTheDocument();
   });
 
   it("renders the mobile Edit/Preview tabs", () => {
