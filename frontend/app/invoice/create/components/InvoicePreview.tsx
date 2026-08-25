@@ -2,6 +2,7 @@ import type { FieldValues } from "../lib/invoiceDraft";
 import type { InvoiceTotalsResult } from "../lib/invoiceTotals";
 import { computeLineTotals, type LineItem } from "../lib/lineItems";
 import { hasAnyPaymentInstructionContent, PAYMENT_INSTRUCTION_FIELDS, type SupportingContentValues } from "../lib/supportingContent";
+import { getTemplateStyle } from "../lib/templateStyles";
 
 interface InvoicePreviewProps {
   header: FieldValues;
@@ -12,6 +13,7 @@ interface InvoicePreviewProps {
   lineItems: LineItem[];
   totals: InvoiceTotalsResult;
   supportingContent: SupportingContentValues;
+  templateCode: string;
 }
 
 function formatCurrency(amount: number): string {
@@ -31,20 +33,26 @@ function formatCurrency(amount: number): string {
  * never mode-aware (it always shows what's typed regardless of whether the editor's Basic/Advanced
  * toggle currently hides that field), so Ship To/Due Date/Reference/Notes content set in Advanced
  * still shows here even while the editor sits in Basic mode.
+ *
+ * IG-39: `templateCode` drives a light visual identity per launch template (lib/templateStyles.ts)
+ * - just a header accent for now. Full color/font/logo customisation on top is IG-40's job.
  */
-export function InvoicePreview({ header, currency, seller, customer, shipTo, lineItems, totals, supportingContent }: InvoicePreviewProps) {
+export function InvoicePreview({ header, currency, seller, customer, shipTo, lineItems, totals, supportingContent, templateCode }: InvoicePreviewProps) {
   const itemsWithContent = lineItems.filter(
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
   );
+  const style = getTemplateStyle(templateCode);
   return (
-    <div className="rounded-lg border border-slate-200 p-6">
+    <div className="overflow-hidden rounded-lg border border-slate-200">
+      <div className={`h-3 ${style.headerBarClassName}`} />
+      <div className="p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-700">From</p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{seller.trim() || "Your business details"}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-950">
+          <p className={`text-lg font-semibold ${style.accentTextClassName}`}>
             {header.invoiceNumber.trim() || "Invoice"}
           </p>
           <p className="text-sm text-slate-600">{currency}</p>
@@ -157,6 +165,7 @@ export function InvoicePreview({ header, currency, seller, customer, shipTo, lin
           </div>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

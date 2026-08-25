@@ -1,9 +1,25 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Template } from "../lib/templates";
 import { CreateInvoiceEditor } from "./CreateInvoiceEditor";
 
+const STUB_TEMPLATES: Template[] = [
+  { id: "template-classic", name: "Classic", templateCode: "classic", previewImage: null, isPremium: false, sortOrder: 1 },
+  { id: "template-modern", name: "Modern", templateCode: "modern", previewImage: null, isPremium: false, sortOrder: 2 },
+];
+
+// Every test mounts the real editor, which fetches templates on mount (IG-39) - stubbed here so
+// the whole suite stays deterministic and doesn't depend on a running backend.
+vi.mock("../lib/templates", () => ({
+  fetchTemplates: vi.fn(() => Promise.resolve(STUB_TEMPLATES)),
+}));
+
 describe("CreateInvoiceEditor", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("reflects the From and Bill To text in the live preview as it's typed", async () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
@@ -285,5 +301,38 @@ describe("CreateInvoiceEditor", () => {
     window.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("auto-selects the first template once the template fetch resolves", async () => {
+    render(<CreateInvoiceEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true");
+    });
+  });
+
+  it("selecting a different template preserves already-typed invoice content", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+
+    await user.click(screen.getByRole("button", { name: /Modern/ }));
+
+    expect(screen.getByRole("button", { name: /Modern/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("From", { exact: false })).toHaveValue("Acme Pty Ltd");
+    expect(screen.getByLabelText("Description", { exact: false })).toHaveValue("Consulting");
+  });
+
+  it("does not warn via beforeunload just because the template auto-selected itself", async () => {
+    render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
   });
 });

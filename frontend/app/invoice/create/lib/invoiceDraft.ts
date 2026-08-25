@@ -8,6 +8,8 @@ export interface InvoiceDraft {
   seller: string;
   customer: string;
   shipTo: string;
+  /** IG-39: id of the selected launch template, "" until the template fetch resolves and defaults it. */
+  templateId: string;
 }
 
 function emptyValues(fields: FieldConfig[]): FieldValues {
@@ -30,6 +32,7 @@ export function createEmptyDraft(): InvoiceDraft {
     seller: "",
     customer: "",
     shipTo: "",
+    templateId: "",
   };
 }
 

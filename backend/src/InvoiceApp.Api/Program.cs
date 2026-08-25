@@ -21,6 +21,18 @@ builder.Services.AddInfrastructurePersistence();
 builder.Services.AddInfrastructureAuthentication(builder.Configuration);
 builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructureHealthChecks();
+
+// IG-39: the templates endpoint is this app's first browser-based frontend-to-backend call, so no
+// CORS policy existed until now. Matches the frontend's own default dev origin
+// (NEXT_PUBLIC_SITE_URL in frontend/app/layout.tsx). No AllowCredentials() - every endpoint
+// currently reachable cross-origin is anonymous reference data; a future authenticated
+// cross-origin call would need to revisit this alongside the cookie's SameSite/Secure settings.
+const string FrontendCorsPolicy = "Frontend";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod());
+});
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -40,12 +52,15 @@ var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 
+app.UseCors(FrontendCorsPolicy);
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
+app.MapTemplateEndpoints();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the
 // app look like it needs to be restarted.

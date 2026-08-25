@@ -29,6 +29,7 @@ import {
   validateSupportingContent,
   type SupportingContentErrors,
 } from "../lib/supportingContent";
+import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
 import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
@@ -37,6 +38,7 @@ import { InvoicePreview } from "./InvoicePreview";
 import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
 import { SupportingContentSection } from "./SupportingContentSection";
+import { TemplateSelector } from "./TemplateSelector";
 import { TextAreaField } from "./TextAreaField";
 
 export function CreateInvoiceEditor() {
@@ -56,6 +58,9 @@ export function CreateInvoiceEditor() {
     paymentInstructions: {},
   });
   const [reviewed, setReviewed] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
   // supportingContent have no post-mount default-filling, so their very first render's value is
@@ -92,6 +97,48 @@ export function CreateInvoiceEditor() {
       pristineDraftRef.current = next;
       return next;
     });
+  }, []);
+
+  useEffect(() => {
+    // IG-39: fetches the launch templates (first backend call this app makes - see
+    // lib/templates.ts) and, once loaded, defaults to the first one if the user hasn't already
+    // picked one. Patches only `templateId` into the existing pristine snapshot rather than
+    // recomputing it from `current` draft - recomputing from current would be wrong if the user
+    // had already typed something else (e.g. From) while this fetch was still in flight, which
+    // would wipe the unsaved-changes guard's memory of that real edit.
+    let cancelled = false;
+    fetchTemplates()
+      .then((loaded) => {
+        if (cancelled) {
+          return;
+        }
+        setTemplates(loaded);
+        const [firstTemplate] = [...loaded].sort((a, b) => a.sortOrder - b.sortOrder);
+        if (firstTemplate) {
+          setDraft((current) => {
+            if (current.templateId) {
+              return current;
+            }
+            if (pristineDraftRef.current) {
+              pristineDraftRef.current = { ...pristineDraftRef.current, templateId: firstTemplate.id };
+            }
+            return { ...current, templateId: firstTemplate.id };
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTemplatesError("Failed to load templates.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTemplatesLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -139,6 +186,11 @@ export function CreateInvoiceEditor() {
 
   const handleCurrencyChange = (value: string) => {
     setDraft((current) => ({ ...current, currency: value }));
+  };
+
+  // FSD section 33: "Selecting a template retains all invoice data" - this touches nothing else.
+  const handleTemplateSelect = (templateId: string) => {
+    setDraft((current) => ({ ...current, templateId }));
   };
 
   const handleSellerChange = (_name: string, value: string) => {
@@ -348,6 +400,8 @@ export function CreateInvoiceEditor() {
     [lineItems, invoiceDiscountType, parsedDiscountValue],
   );
 
+  const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
+
   return (
     <InvoiceEditorLayout
       editor={
@@ -373,15 +427,24 @@ export function CreateInvoiceEditor() {
               </p>
             )
           ) : null}
-          <InvoiceHeaderSection
-            values={draft.header}
-            currency={draft.currency}
-            errors={headerErrors}
-            advancedVisible={advancedVisible}
-            onFieldChange={handleHeaderChange}
-            onFieldBlur={handleHeaderBlur}
-            onCurrencyChange={handleCurrencyChange}
+          <TemplateSelector
+            templates={templates}
+            selectedTemplateId={draft.templateId}
+            loading={templatesLoading}
+            error={templatesError}
+            onSelect={handleTemplateSelect}
           />
+          <div className="mt-6 border-t border-slate-200 pt-6">
+            <InvoiceHeaderSection
+              values={draft.header}
+              currency={draft.currency}
+              errors={headerErrors}
+              advancedVisible={advancedVisible}
+              onFieldChange={handleHeaderChange}
+              onFieldBlur={handleHeaderBlur}
+              onCurrencyChange={handleCurrencyChange}
+            />
+          </div>
           <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-6">
             <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={4} onChange={handleSellerChange} onBlur={handleSellerBlur} />
             <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={4} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
@@ -445,6 +508,7 @@ export function CreateInvoiceEditor() {
           lineItems={lineItems}
           totals={totals}
           supportingContent={supportingContent}
+          templateCode={selectedTemplateCode}
         />
       }
     />
