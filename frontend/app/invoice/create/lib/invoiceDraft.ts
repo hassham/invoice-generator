@@ -13,6 +13,8 @@ export interface InvoiceDraft {
   templateId: string;
   /** IG-40: colors/font/header style layered on top of the selected template - resets to that template's defaults whenever templateId changes. */
   templateCustomization: TemplateCustomization;
+  /** IG-42: a resized data URL, or null until one is uploaded - client-only for now, see lib/logoUpload.ts. */
+  logo: string | null;
 }
 
 function emptyValues(fields: FieldConfig[]): FieldValues {
@@ -37,6 +39,7 @@ export function createEmptyDraft(): InvoiceDraft {
     shipTo: "",
     templateId: "",
     templateCustomization: getDefaultCustomization("classic"),
+    logo: null,
   };
 }
 

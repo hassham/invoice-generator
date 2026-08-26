@@ -14,6 +14,7 @@ interface InvoicePreviewProps {
   totals: InvoiceTotalsResult;
   supportingContent: SupportingContentValues;
   templateCustomization: TemplateCustomization;
+  logo: string | null;
 }
 
 function formatCurrency(amount: number): string {
@@ -38,6 +39,9 @@ function formatCurrency(amount: number): string {
  * primary/accent color, font, and one of three header styles (Banner: colored top strip; Bordered:
  * accent-colored rule under the header row; Plain: color only on the invoice-number text). Defaults
  * to whichever template is selected (IG-39) but can be overridden by the user.
+ *
+ * IG-42: `logo` is a client-resized data URL (lib/logoUpload.ts) or null - rendered here only;
+ * PDF/print rendering of it is N/A until IG-43/44 exist.
  */
 export function InvoicePreview({
   header,
@@ -49,6 +53,7 @@ export function InvoicePreview({
   totals,
   supportingContent,
   templateCustomization,
+  logo,
 }: InvoicePreviewProps) {
   const itemsWithContent = lineItems.filter(
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
@@ -62,9 +67,17 @@ export function InvoicePreview({
         className={headerStyle === "Bordered" ? "flex items-start justify-between border-b-4 pb-4" : "flex items-start justify-between"}
         style={headerStyle === "Bordered" ? { borderColor: accentColor } : undefined}
       >
-        <div>
-          <p className="text-sm font-semibold text-slate-700">From</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{seller.trim() || "Your business details"}</p>
+        <div className="flex items-start gap-3">
+          {logo ? (
+            // next/image needs a static import or a configured loader - this is an arbitrary,
+            // client-generated data URL (lib/logoUpload.ts), which next/image can't optimize anyway.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="Business logo" className="h-12 w-auto object-contain" />
+          ) : null}
+          <div>
+            <p className="text-sm font-semibold text-slate-700">From</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{seller.trim() || "Your business details"}</p>
+          </div>
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold" style={{ color: accentColor }}>

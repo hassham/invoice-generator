@@ -38,6 +38,7 @@ import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
 import { InvoicePreview } from "./InvoicePreview";
 import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
+import { LogoUpload } from "./LogoUpload";
 import { SupportingContentSection } from "./SupportingContentSection";
 import { TemplateCustomizationPanel } from "./TemplateCustomizationPanel";
 import { TemplateSelector } from "./TemplateSelector";
@@ -214,6 +215,10 @@ export function CreateInvoiceEditor() {
       ...current,
       templateCustomization: sanitizeTemplateCustomization(next, selectedTemplateCode),
     }));
+  };
+
+  const handleLogoChange = (logo: string | null) => {
+    setDraft((current) => ({ ...current, logo }));
   };
 
   const handleSellerChange = (_name: string, value: string) => {
@@ -456,6 +461,7 @@ export function CreateInvoiceEditor() {
             onSelect={handleTemplateSelect}
           />
           <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
+          <LogoUpload logo={draft.logo} onLogoChange={handleLogoChange} />
           <div className="mt-6 border-t border-slate-200 pt-6">
             <InvoiceHeaderSection
               values={draft.header}
@@ -531,6 +537,7 @@ export function CreateInvoiceEditor() {
           totals={totals}
           supportingContent={supportingContent}
           templateCustomization={draft.templateCustomization}
+          logo={draft.logo}
         />
       }
     />

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { processLogoUpload } from "../lib/logoUpload";
 import { getDefaultCustomization } from "../lib/templateCustomization";
 import type { Template } from "../lib/templates";
 import { CreateInvoiceEditor } from "./CreateInvoiceEditor";
@@ -15,6 +16,15 @@ const STUB_TEMPLATES: Template[] = [
 vi.mock("../lib/templates", () => ({
   fetchTemplates: vi.fn(() => Promise.resolve(STUB_TEMPLATES)),
 }));
+
+// processLogoUpload does real image decoding via canvas/Image, which jsdom doesn't implement -
+// stubbed here so logo tests stay deterministic without re-mocking the DOM at this level.
+vi.mock("../lib/logoUpload", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/logoUpload")>()),
+  processLogoUpload: vi.fn(),
+}));
+
+const mockedProcessLogoUpload = vi.mocked(processLogoUpload);
 
 describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
@@ -374,6 +384,53 @@ describe("CreateInvoiceEditor", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.change(screen.getByLabelText("Primary Color"), { target: { value: "#ff0000" } });
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("uploading a logo shows it in the live preview", async () => {
+    const user = userEvent.setup();
+    mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,abc" });
+    render(<CreateInvoiceEditor />);
+
+    await user.upload(
+      screen.getByLabelText("Upload logo"),
+      new File([new Uint8Array([1, 2, 3])], "logo.png", { type: "image/png" }),
+    );
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    await waitFor(() => expect(within(preview).getByAltText("Business logo")).toHaveAttribute("src", "data:image/png;base64,abc"));
+  });
+
+  it("removing a logo clears it from the live preview", async () => {
+    const user = userEvent.setup();
+    mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,abc" });
+    render(<CreateInvoiceEditor />);
+    await user.upload(
+      screen.getByLabelText("Upload logo"),
+      new File([new Uint8Array([1, 2, 3])], "logo.png", { type: "image/png" }),
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Remove logo" })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Remove logo" }));
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).queryByAltText("Business logo")).not.toBeInTheDocument();
+  });
+
+  it("warns via beforeunload once a logo has been uploaded", async () => {
+    const user = userEvent.setup();
+    mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,abc" });
+    render(<CreateInvoiceEditor />);
+
+    await user.upload(
+      screen.getByLabelText("Upload logo"),
+      new File([new Uint8Array([1, 2, 3])], "logo.png", { type: "image/png" }),
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Remove logo" })).toBeInTheDocument());
 
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);

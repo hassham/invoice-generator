@@ -25,6 +25,10 @@ describe("createEmptyDraft", () => {
     expect(draft.templateId).toBe("");
     expect(draft.templateCustomization).toEqual(getDefaultCustomization("classic"));
   });
+
+  it("defaults logo to null", () => {
+    expect(createEmptyDraft().logo).toBeNull();
+  });
 });
 
 describe("todayIsoDate", () => {
