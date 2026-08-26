@@ -2,7 +2,7 @@ import type { FieldValues } from "../lib/invoiceDraft";
 import type { InvoiceTotalsResult } from "../lib/invoiceTotals";
 import { computeLineTotals, type LineItem } from "../lib/lineItems";
 import { hasAnyPaymentInstructionContent, PAYMENT_INSTRUCTION_FIELDS, type SupportingContentValues } from "../lib/supportingContent";
-import { getTemplateStyle } from "../lib/templateStyles";
+import type { TemplateCustomization } from "../lib/templateCustomization";
 
 interface InvoicePreviewProps {
   header: FieldValues;
@@ -13,7 +13,7 @@ interface InvoicePreviewProps {
   lineItems: LineItem[];
   totals: InvoiceTotalsResult;
   supportingContent: SupportingContentValues;
-  templateCode: string;
+  templateCustomization: TemplateCustomization;
 }
 
 function formatCurrency(amount: number): string {
@@ -34,25 +34,40 @@ function formatCurrency(amount: number): string {
  * toggle currently hides that field), so Ship To/Due Date/Reference/Notes content set in Advanced
  * still shows here even while the editor sits in Basic mode.
  *
- * IG-39: `templateCode` drives a light visual identity per launch template (lib/templateStyles.ts)
- * - just a header accent for now. Full color/font/logo customisation on top is IG-40's job.
+ * IG-40: `templateCustomization` (lib/templateCustomization.ts) fully determines appearance -
+ * primary/accent color, font, and one of three header styles (Banner: colored top strip; Bordered:
+ * accent-colored rule under the header row; Plain: color only on the invoice-number text). Defaults
+ * to whichever template is selected (IG-39) but can be overridden by the user.
  */
-export function InvoicePreview({ header, currency, seller, customer, shipTo, lineItems, totals, supportingContent, templateCode }: InvoicePreviewProps) {
+export function InvoicePreview({
+  header,
+  currency,
+  seller,
+  customer,
+  shipTo,
+  lineItems,
+  totals,
+  supportingContent,
+  templateCustomization,
+}: InvoicePreviewProps) {
   const itemsWithContent = lineItems.filter(
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
   );
-  const style = getTemplateStyle(templateCode);
+  const { primaryColor, accentColor, font, headerStyle } = templateCustomization;
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
-      <div className={`h-3 ${style.headerBarClassName}`} />
+    <div className="overflow-hidden rounded-lg border border-slate-200" style={{ fontFamily: font }}>
+      {headerStyle === "Banner" ? <div className="h-3" style={{ backgroundColor: primaryColor }} /> : null}
       <div className="p-6">
-      <div className="flex items-start justify-between">
+      <div
+        className={headerStyle === "Bordered" ? "flex items-start justify-between border-b-4 pb-4" : "flex items-start justify-between"}
+        style={headerStyle === "Bordered" ? { borderColor: accentColor } : undefined}
+      >
         <div>
           <p className="text-sm font-semibold text-slate-700">From</p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{seller.trim() || "Your business details"}</p>
         </div>
         <div className="text-right">
-          <p className={`text-lg font-semibold ${style.accentTextClassName}`}>
+          <p className="text-lg font-semibold" style={{ color: accentColor }}>
             {header.invoiceNumber.trim() || "Invoice"}
           </p>
           <p className="text-sm text-slate-600">{currency}</p>

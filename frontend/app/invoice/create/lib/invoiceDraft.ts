@@ -1,4 +1,5 @@
 import { HEADER_FIELDS, validateField, type FieldConfig } from "./fields";
+import { getDefaultCustomization, type TemplateCustomization } from "./templateCustomization";
 
 export type FieldValues = Record<string, string>;
 
@@ -10,6 +11,8 @@ export interface InvoiceDraft {
   shipTo: string;
   /** IG-39: id of the selected launch template, "" until the template fetch resolves and defaults it. */
   templateId: string;
+  /** IG-40: colors/font/header style layered on top of the selected template - resets to that template's defaults whenever templateId changes. */
+  templateCustomization: TemplateCustomization;
 }
 
 function emptyValues(fields: FieldConfig[]): FieldValues {
@@ -33,6 +36,7 @@ export function createEmptyDraft(): InvoiceDraft {
     customer: "",
     shipTo: "",
     templateId: "",
+    templateCustomization: getDefaultCustomization("classic"),
   };
 }
 

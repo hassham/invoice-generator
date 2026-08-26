@@ -1,6 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getDefaultCustomization } from "../lib/templateCustomization";
 import type { Template } from "../lib/templates";
 import { CreateInvoiceEditor } from "./CreateInvoiceEditor";
 
@@ -334,5 +335,49 @@ describe("CreateInvoiceEditor", () => {
     window.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("customisation defaults to the auto-selected template's colors", async () => {
+    render(<CreateInvoiceEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Primary Color")).toHaveValue(getDefaultCustomization("classic").primaryColor);
+    });
+  });
+
+  it("switching templates resets customisation to the new template's defaults", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
+
+    // Manually customise while on Classic, then switch templates.
+    fireEvent.change(screen.getByLabelText("Primary Color"), { target: { value: "#ff0000" } });
+    expect(screen.getByLabelText("Primary Color")).toHaveValue("#ff0000");
+
+    await user.click(screen.getByRole("button", { name: /Modern/ }));
+
+    expect(screen.getByLabelText("Primary Color")).toHaveValue(getDefaultCustomization("modern").primaryColor);
+  });
+
+  it("changing the accent color updates the live preview immediately - IG-41", async () => {
+    render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
+
+    fireEvent.change(screen.getByLabelText("Accent Color"), { target: { value: "#ff0000" } });
+
+    const preview = screen.getByRole("tabpanel", { name: "Preview" });
+    expect(within(preview).getByText("Invoice")).toHaveStyle({ color: "#ff0000" });
+  });
+
+  it("warns via beforeunload once appearance has been customised", async () => {
+    render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
+
+    fireEvent.change(screen.getByLabelText("Primary Color"), { target: { value: "#ff0000" } });
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
   });
 });

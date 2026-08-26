@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyDraft, hasAnyError, todayIsoDate, validateHeaderFields } from "./invoiceDraft";
+import { getDefaultCustomization } from "./templateCustomization";
 
 describe("createEmptyDraft", () => {
   it("defaults currency to AUD", () => {
@@ -16,6 +17,13 @@ describe("createEmptyDraft", () => {
     expect(draft.seller).toBe("");
     expect(draft.customer).toBe("");
     expect(draft.shipTo).toBe("");
+  });
+
+  it("defaults templateId empty and templateCustomization to Classic's defaults", () => {
+    const draft = createEmptyDraft();
+
+    expect(draft.templateId).toBe("");
+    expect(draft.templateCustomization).toEqual(getDefaultCustomization("classic"));
   });
 });
 

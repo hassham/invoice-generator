@@ -29,6 +29,7 @@ import {
   validateSupportingContent,
   type SupportingContentErrors,
 } from "../lib/supportingContent";
+import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
 import { EditorModeTabs } from "./EditorModeTabs";
@@ -38,6 +39,7 @@ import { InvoicePreview } from "./InvoicePreview";
 import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
 import { SupportingContentSection } from "./SupportingContentSection";
+import { TemplateCustomizationPanel } from "./TemplateCustomizationPanel";
 import { TemplateSelector } from "./TemplateSelector";
 import { TextAreaField } from "./TextAreaField";
 
@@ -61,6 +63,7 @@ export function CreateInvoiceEditor() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
   // supportingContent have no post-mount default-filling, so their very first render's value is
@@ -115,14 +118,19 @@ export function CreateInvoiceEditor() {
         setTemplates(loaded);
         const [firstTemplate] = [...loaded].sort((a, b) => a.sortOrder - b.sortOrder);
         if (firstTemplate) {
+          const defaultCustomization = getDefaultCustomization(firstTemplate.templateCode);
           setDraft((current) => {
             if (current.templateId) {
               return current;
             }
             if (pristineDraftRef.current) {
-              pristineDraftRef.current = { ...pristineDraftRef.current, templateId: firstTemplate.id };
+              pristineDraftRef.current = {
+                ...pristineDraftRef.current,
+                templateId: firstTemplate.id,
+                templateCustomization: defaultCustomization,
+              };
             }
-            return { ...current, templateId: firstTemplate.id };
+            return { ...current, templateId: firstTemplate.id, templateCustomization: defaultCustomization };
           });
         }
       })
@@ -188,9 +196,24 @@ export function CreateInvoiceEditor() {
     setDraft((current) => ({ ...current, currency: value }));
   };
 
-  // FSD section 33: "Selecting a template retains all invoice data" - this touches nothing else.
+  // FSD section 33: "Selecting a template retains all invoice data" - only templateId and
+  // templateCustomization change. Customisation resets to the newly-selected template's defaults
+  // (IG-40 scope decision: appearance is tied to the current template, not carried-over invoice
+  // data - pick a template, then tweak its colors, same model as switching a doc editor's theme).
   const handleTemplateSelect = (templateId: string) => {
-    setDraft((current) => ({ ...current, templateId }));
+    const selected = templates.find((template) => template.id === templateId);
+    setDraft((current) => ({
+      ...current,
+      templateId,
+      templateCustomization: selected ? getDefaultCustomization(selected.templateCode) : current.templateCustomization,
+    }));
+  };
+
+  const handleCustomizationChange = (next: TemplateCustomization) => {
+    setDraft((current) => ({
+      ...current,
+      templateCustomization: sanitizeTemplateCustomization(next, selectedTemplateCode),
+    }));
   };
 
   const handleSellerChange = (_name: string, value: string) => {
@@ -400,8 +423,6 @@ export function CreateInvoiceEditor() {
     [lineItems, invoiceDiscountType, parsedDiscountValue],
   );
 
-  const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
-
   return (
     <InvoiceEditorLayout
       editor={
@@ -434,6 +455,7 @@ export function CreateInvoiceEditor() {
             error={templatesError}
             onSelect={handleTemplateSelect}
           />
+          <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
           <div className="mt-6 border-t border-slate-200 pt-6">
             <InvoiceHeaderSection
               values={draft.header}
@@ -508,7 +530,7 @@ export function CreateInvoiceEditor() {
           lineItems={lineItems}
           totals={totals}
           supportingContent={supportingContent}
-          templateCode={selectedTemplateCode}
+          templateCustomization={draft.templateCustomization}
         />
       }
     />
