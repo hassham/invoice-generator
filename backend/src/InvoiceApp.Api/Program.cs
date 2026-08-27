@@ -28,17 +28,20 @@ builder.Services.AddInfrastructureHealthChecks();
 
 // IG-39: the templates endpoint is this app's first browser-based frontend-to-backend call, so no
 // CORS policy existed until now. Matches the frontend's own default dev origin
-// (NEXT_PUBLIC_SITE_URL in frontend/app/layout.tsx). No AllowCredentials() - every endpoint
-// currently reachable cross-origin is anonymous reference data; a future authenticated
-// cross-origin call would need to revisit this alongside the cookie's SameSite/Secure settings.
+// (NEXT_PUBLIC_SITE_URL in frontend/app/layout.tsx).
 // IG-43: Content-Disposition must be explicitly exposed - it isn't in the CORS safelist browsers
 // grant JS by default, so frontend/lib/invoicePdf.ts's fetch() couldn't read the filename from it
 // without this, silently falling back to a generic name.
+// IG-26: AllowCredentials() is required now that the frontend login/signup pages send
+// credentials: "include" - without it the browser strips the Set-Cookie response header on
+// cross-origin auth calls and the session cookie never persists, even though the login call
+// itself still returns 200. Only compatible with an explicit WithOrigins() list (already the
+// case here), never AllowAnyOrigin().
 const string FrontendCorsPolicy = "Frontend";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
-        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Content-Disposition"));
+        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithExposedHeaders("Content-Disposition"));
 });
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

@@ -1,11 +1,29 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SiteHeader } from "./SiteHeader";
 
+function stubSession(account: { userId: string; email: string; name: string | null } | null) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      account
+        ? { ok: true, json: () => Promise.resolve(account) }
+        : { ok: false, json: () => Promise.resolve(null) },
+    ),
+  );
+}
+
 describe("SiteHeader", () => {
-  it("exposes every approved destination in the desktop navigation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("exposes every approved destination in the desktop navigation", async () => {
+    stubSession(null);
     render(<SiteHeader />);
+    await screen.findByRole("link", { name: "Login" });
 
     const nav = screen.getByRole("navigation", { name: "Primary" });
     expect(within(nav).getByRole("link", { name: "Invoice Generator" })).toHaveAttribute(
@@ -18,8 +36,10 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("link", { name: "Sign Up" })).toHaveAttribute("href", "/signup");
   });
 
-  it("keeps the mobile menu closed and its links out of the DOM until opened", () => {
+  it("keeps the mobile menu closed and its links out of the DOM until opened", async () => {
+    stubSession(null);
     render(<SiteHeader />);
+    await screen.findByRole("link", { name: "Login" });
 
     const toggle = screen.getByRole("button", { name: "Open menu" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -27,8 +47,10 @@ describe("SiteHeader", () => {
   });
 
   it("opens the mobile menu with every destination reachable by pointer, via a real click", async () => {
+    stubSession(null);
     const user = userEvent.setup();
     render(<SiteHeader />);
+    await screen.findByRole("link", { name: "Login" });
 
     await user.click(screen.getByRole("button", { name: "Open menu" }));
 
@@ -47,8 +69,10 @@ describe("SiteHeader", () => {
   });
 
   it("is operable by keyboard: Tab reaches the toggle, Enter opens it, Escape closes it and returns focus to the toggle", async () => {
+    stubSession(null);
     const user = userEvent.setup();
     render(<SiteHeader />);
+    await screen.findByRole("link", { name: "Login" });
 
     await user.tab();
     while (screen.queryByRole("button", { name: "Open menu" }) !== document.activeElement) {
@@ -67,8 +91,10 @@ describe("SiteHeader", () => {
   });
 
   it("closes the mobile menu after a destination is chosen", async () => {
+    stubSession(null);
     const user = userEvent.setup();
     render(<SiteHeader />);
+    await screen.findByRole("link", { name: "Login" });
 
     await user.click(screen.getByRole("button", { name: "Open menu" }));
     const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
@@ -76,5 +102,35 @@ describe("SiteHeader", () => {
 
     expect(screen.queryByRole("navigation", { name: "Mobile primary" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open menu" })).toBeInTheDocument();
+  });
+
+  it("shows the account name and a logout control instead of Login/Sign Up once a session is found", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    render(<SiteHeader />);
+
+    expect(await screen.findByText("Jane")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Login" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Sign Up" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
+  });
+
+  it("falls back to the email when the account has no name", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: null });
+    render(<SiteHeader />);
+
+    expect(await screen.findByText("jane@example.com")).toBeInTheDocument();
+  });
+
+  it("calls the logout endpoint and reverts to Login/Sign Up when Log out is clicked", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await screen.findByRole("button", { name: "Log out" });
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(null) }));
+    await user.click(screen.getByRole("button", { name: "Log out" }));
+
+    await waitFor(() => expect(screen.getByRole("link", { name: "Login" })).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Sign Up" })).toBeInTheDocument();
   });
 });
