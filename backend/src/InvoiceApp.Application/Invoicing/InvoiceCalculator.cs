@@ -1,8 +1,7 @@
-using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
 
-namespace InvoiceApp.Modules.Invoicing.Calculations;
+namespace InvoiceApp.Application.Invoicing;
 
 /// <summary>
 /// The authoritative invoice calculation engine (FSD section 26's 8-step sequence, section 27's
@@ -15,6 +14,10 @@ namespace InvoiceApp.Modules.Invoicing.Calculations;
 /// All internal arithmetic stays at full decimal precision; rounding to 2 decimal places (FSD
 /// section 28) is applied only once, to the figures actually returned, so intermediate steps don't
 /// compound rounding error.
+///
+/// Lives in Application (beside its own request/result DTOs) rather than the Invoicing module so
+/// it can be reused by other modules without a prohibited module-to-module reference (IG-43 needed
+/// it from InvoiceApp.Modules.Documents) - see ModuleReferenceBoundaryTests.
 /// </summary>
 public static class InvoiceCalculator
 {

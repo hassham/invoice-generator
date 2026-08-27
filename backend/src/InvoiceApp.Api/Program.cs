@@ -9,6 +9,10 @@ using InvoiceApp.Infrastructure.Persistence;
 using InvoiceApp.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
+// IG-43: required once at startup or QuestPDF throws on first use. Community is free for
+// organizations under $1M USD annual gross revenue - worth revisiting if that changes.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Structured logging (docs/SAD.md section 76): scopes must be rendered for the correlation ID
@@ -27,11 +31,14 @@ builder.Services.AddInfrastructureHealthChecks();
 // (NEXT_PUBLIC_SITE_URL in frontend/app/layout.tsx). No AllowCredentials() - every endpoint
 // currently reachable cross-origin is anonymous reference data; a future authenticated
 // cross-origin call would need to revisit this alongside the cookie's SameSite/Secure settings.
+// IG-43: Content-Disposition must be explicitly exposed - it isn't in the CORS safelist browsers
+// grant JS by default, so frontend/lib/invoicePdf.ts's fetch() couldn't read the filename from it
+// without this, silently falling back to a generic name.
 const string FrontendCorsPolicy = "Frontend";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
-        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod());
+        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Content-Disposition"));
 });
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -61,6 +68,7 @@ app.UseRateLimiter();
 app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
 app.MapTemplateEndpoints();
+app.MapDocumentEndpoints();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the
 // app look like it needs to be restarted.

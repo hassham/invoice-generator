@@ -11,7 +11,7 @@ import {
   type FieldValues,
   type InvoiceDraft,
 } from "../lib/invoiceDraft";
-import { getInvalidSectionLabels, hasAdvancedOnlyError, validateInvoice } from "../lib/invoiceValidation";
+import { getInvalidSectionLabels, hasAdvancedOnlyError, isInvoiceValid, validateInvoice } from "../lib/invoiceValidation";
 import { calculateInvoiceTotals, validateInvoiceDiscountValue, type InvoiceDiscountType } from "../lib/invoiceTotals";
 import {
   cloneLineItem,
@@ -29,6 +29,7 @@ import {
   validateSupportingContent,
   type SupportingContentErrors,
 } from "../lib/supportingContent";
+import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
@@ -61,6 +62,8 @@ export function CreateInvoiceEditor() {
     paymentInstructions: {},
   });
   const [reviewed, setReviewed] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
@@ -361,12 +364,8 @@ export function CreateInvoiceEditor() {
     setSupportingContentErrors(validateSupportingContent(supportingContent));
   };
 
-  // FSD section 41: runs every section's existing validator at once - equivalent to blurring
-  // every field simultaneously, so it reuses each section's existing error rendering rather than
-  // introducing new per-field UI. Auto-reveals Advanced if that's where the only errors are, so
-  // Review never leaves an error hidden behind the Basic/Advanced toggle (IG-193).
-  const handleReviewInvoice = () => {
-    const result = validateInvoice({
+  const buildCurrentValidationResult = () =>
+    validateInvoice({
       header: draft.header,
       seller: draft.seller,
       customer: draft.customer,
@@ -376,6 +375,12 @@ export function CreateInvoiceEditor() {
       invoiceDiscountValue,
       supportingContent,
     });
+
+  // FSD section 41: runs every section's existing validator at once - equivalent to blurring
+  // every field simultaneously, so it reuses each section's existing error rendering rather than
+  // introducing new per-field UI. Auto-reveals Advanced if that's where the only errors are, so
+  // Review never leaves an error hidden behind the Basic/Advanced toggle (IG-193).
+  const applyValidationResult = (result: ReturnType<typeof validateInvoice>) => {
     setHeaderErrors(result.headerErrors);
     setSellerError(result.sellerError);
     setCustomerError(result.customerError);
@@ -387,6 +392,45 @@ export function CreateInvoiceEditor() {
     if (hasAdvancedOnlyError(result)) {
       setAdvancedVisible(true);
     }
+  };
+
+  const handleReviewInvoice = () => {
+    applyValidationResult(buildCurrentValidationResult());
+  };
+
+  // FSD section 38's "Validate invoice" step - the first real consumer of isInvoiceValid as "the
+  // flag future Save/PDF/Print stories should gate on" (IG-123's plan). An invalid invoice gets
+  // exactly the same treatment as clicking "Review invoice" instead of attempting a doomed request.
+  const handleDownloadPdf = async () => {
+    const result = buildCurrentValidationResult();
+    if (!isInvoiceValid(result)) {
+      applyValidationResult(result);
+      return;
+    }
+    setPdfDownloading(true);
+    setPdfError(null);
+    try {
+      const payload = buildInvoicePdfPayload({
+        draft,
+        lineItems,
+        invoiceDiscountType,
+        invoiceDiscountValue,
+        supportingContent,
+        templateCode: selectedTemplateCode,
+      });
+      await downloadInvoicePdf(payload);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : "Failed to generate the PDF.");
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
+  // FSD section 40 (Print Invoice) - not gated on isInvoiceValid, unlike Download PDF: this
+  // Story's own AC doesn't mention validation, only IG-43's (from FSD section 38's explicit
+  // "Validate invoice" step) does.
+  const handlePrint = () => {
+    window.print();
   };
 
   // Derived from the *current* error states, not a frozen snapshot of the Review click - each
@@ -434,14 +478,36 @@ export function CreateInvoiceEditor() {
         <div className="rounded-lg border border-slate-200 p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
-            <button
-              type="button"
-              onClick={handleReviewInvoice}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-            >
-              Review invoice
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleReviewInvoice}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                Review invoice
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                Print
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={pdfDownloading}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+              >
+                {pdfDownloading ? "Generating…" : "Download PDF"}
+              </button>
+            </div>
           </div>
+          {pdfError ? (
+            <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {pdfError}
+            </p>
+          ) : null}
           {reviewed ? (
             invalidSectionLabels.length > 0 ? (
               <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

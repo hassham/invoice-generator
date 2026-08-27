@@ -56,8 +56,8 @@ export function InvoiceEditorLayout({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      <div role="tablist" aria-label="Invoice editor mode" className="mb-4 flex gap-2 md:hidden">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 print:max-w-none print:p-0">
+      <div role="tablist" aria-label="Invoice editor mode" className="mb-4 flex gap-2 md:hidden print:hidden">
         {TABS.map((tab) => {
           const selected = activeTab === tab;
           return (
@@ -83,14 +83,20 @@ export function InvoiceEditorLayout({
         })}
       </div>
 
-      <div className="md:grid md:grid-cols-[55%_45%] md:gap-6">
+      <div className="md:grid md:grid-cols-[55%_45%] md:gap-6 print:block">
         {TABS.map((tab) => (
           <div
             key={tab}
             id={panelId(tab)}
             role="tabpanel"
             aria-labelledby={tabId(tab)}
-            className={activeTab === tab ? "block" : "hidden md:block"}
+            className={
+              tab === "edit"
+                ? `${activeTab === tab ? "block" : "hidden md:block"} print:hidden`
+                : activeTab === tab
+                  ? "block"
+                  : "hidden md:block"
+            }
           >
             {tab === "edit" ? editor : preview}
           </div>

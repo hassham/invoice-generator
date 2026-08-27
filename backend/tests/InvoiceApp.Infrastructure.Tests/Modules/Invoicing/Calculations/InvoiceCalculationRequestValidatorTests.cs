@@ -2,7 +2,6 @@ using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
-using InvoiceApp.Modules.Invoicing.Calculations;
 
 namespace InvoiceApp.Infrastructure.Tests.Modules.Invoicing.Calculations;
 

@@ -8,3 +8,15 @@
 body {
   margin: 0;
 }
+
+/*
+ * IG-44: browsers strip background colors/borders by default when printing, to save ink - without
+ * this, the invoice template's colors (IG-40) would print as plain black-on-white regardless of
+ * what the preview showed, breaking "the printed layout remains consistent with the preview."
+ */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

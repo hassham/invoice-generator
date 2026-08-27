@@ -1,13 +1,16 @@
 using InvoiceApp.Application.Exceptions;
-using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Invoicing;
 
-namespace InvoiceApp.Modules.Invoicing.Calculations;
+namespace InvoiceApp.Application.Invoicing;
 
 /// <summary>
 /// Server-side re-check of the same numeric-range rules the frontend already enforces
 /// (frontend/app/invoice/create/lib/lineItems.ts) - defence in depth, since this endpoint is
 /// reachable directly, not just through the invoice editor UI.
+///
+/// Lives in Application (beside InvoiceCalculator and its own DTOs) rather than the Invoicing
+/// module so it can be reused by other modules without a prohibited module-to-module reference
+/// (IG-43 needed it from InvoiceApp.Modules.Documents) - see ModuleReferenceBoundaryTests.
 /// </summary>
 public static class InvoiceCalculationRequestValidator
 {

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { downloadInvoicePdf } from "../lib/invoicePdf";
 import { processLogoUpload } from "../lib/logoUpload";
 import { getDefaultCustomization } from "../lib/templateCustomization";
 import type { Template } from "../lib/templates";
@@ -25,6 +26,15 @@ vi.mock("../lib/logoUpload", async (importOriginal) => ({
 }));
 
 const mockedProcessLogoUpload = vi.mocked(processLogoUpload);
+
+// downloadInvoicePdf does a real fetch + browser download - stubbed so PDF tests only verify the
+// editor's own gating/wiring logic, not lib/invoicePdf.ts's mechanics (covered by its own tests).
+vi.mock("../lib/invoicePdf", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/invoicePdf")>()),
+  downloadInvoicePdf: vi.fn(),
+}));
+
+const mockedDownloadInvoicePdf = vi.mocked(downloadInvoicePdf);
 
 describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
@@ -436,5 +446,59 @@ describe("CreateInvoiceEditor", () => {
     window.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("clicking Download PDF on an invalid invoice shows the review banner and does not download", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+    expect(screen.getByText(/This invoice isn't ready yet/)).toBeInTheDocument();
+    expect(mockedDownloadInvoicePdf).not.toHaveBeenCalled();
+  });
+
+  it("clicking Download PDF on a valid invoice downloads the PDF", async () => {
+    const user = userEvent.setup();
+    mockedDownloadInvoicePdf.mockResolvedValue(undefined);
+    render(<CreateInvoiceEditor />);
+
+    await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.type(screen.getByLabelText(/Unit Price/), "50");
+
+    await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+    await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/This invoice isn't ready yet/)).not.toBeInTheDocument();
+  });
+
+  it("shows an inline error message when the PDF download fails", async () => {
+    const user = userEvent.setup();
+    mockedDownloadInvoicePdf.mockRejectedValue(new Error("Failed to generate the PDF."));
+    render(<CreateInvoiceEditor />);
+
+    await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.type(screen.getByLabelText(/Unit Price/), "50");
+
+    await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+    expect(await screen.findByText("Failed to generate the PDF.")).toBeInTheDocument();
+  });
+
+  it("clicking Print calls window.print()", async () => {
+    const user = userEvent.setup();
+    const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+    render(<CreateInvoiceEditor />);
+
+    await user.click(screen.getByRole("button", { name: "Print" }));
+
+    expect(printSpy).toHaveBeenCalledTimes(1);
+    printSpy.mockRestore();
   });
 });
