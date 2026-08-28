@@ -1,10 +1,15 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
+import { createEmptyDraft } from "../lib/invoiceDraft";
 import { downloadInvoicePdf } from "../lib/invoicePdf";
+import { createEmptyLineItem } from "../lib/lineItems";
 import { processLogoUpload } from "../lib/logoUpload";
+import { createEmptySupportingContent } from "../lib/supportingContent";
 import { getDefaultCustomization } from "../lib/templateCustomization";
 import type { Template } from "../lib/templates";
+import type { InvoiceEditorSnapshot } from "../lib/unsavedChanges";
 import { CreateInvoiceEditor } from "./CreateInvoiceEditor";
 
 const STUB_TEMPLATES: Template[] = [
@@ -502,7 +507,7 @@ describe("CreateInvoiceEditor", () => {
     printSpy.mockRestore();
   });
 
-  it("as an anonymous user, filling in and downloading a full invoice never writes to storage or calls any endpoint other than the stateless PDF download - IG-28", async () => {
+  it("as an anonymous user, filling in and downloading a full invoice persists only to local storage (IG-29's draft auto-save) and calls no endpoint other than the stateless PDF download - IG-28", async () => {
     const user = userEvent.setup();
     mockedDownloadInvoicePdf.mockResolvedValue(undefined);
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
@@ -520,12 +525,82 @@ describe("CreateInvoiceEditor", () => {
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
     await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
-    // No account-owned persistence anywhere: no localStorage/sessionStorage write, and the only
-    // "save" is the stubbed, stateless PDF download - no other network call (e.g. a POST to create
-    // an invoice record) fires as a side effect of filling in or downloading the form.
-    expect(setItemSpy).not.toHaveBeenCalled();
+    // No account-owned persistence anywhere: the only network call is the stubbed, stateless PDF
+    // download - no other request (e.g. a POST to create an invoice record) fires as a side effect
+    // of filling in or downloading the form. The IG-29 draft auto-save does write to localStorage
+    // (that's the point of this Story), but only ever to this browser, never to the server.
+    expect(setItemSpy).toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     setItemSpy.mockRestore();
     fetchSpy.mockRestore();
+  });
+
+  describe("IG-29: recover an anonymous invoice draft locally", () => {
+    function seededSnapshot(overrides: Partial<InvoiceEditorSnapshot> = {}): InvoiceEditorSnapshot {
+      return {
+        draft: { ...createEmptyDraft(), seller: "Acme Pty Ltd" },
+        lineItems: [createEmptyLineItem()],
+        invoiceDiscountType: "None",
+        invoiceDiscountValue: "",
+        supportingContent: createEmptySupportingContent(),
+        ...overrides,
+      };
+    }
+
+    it("restores a previously auto-saved draft on mount and shows a restoration notice", async () => {
+      saveDraftSnapshot(seededSnapshot());
+
+      render(<CreateInvoiceEditor />);
+
+      expect(await screen.findByLabelText("From", { exact: false })).toHaveValue("Acme Pty Ltd");
+      expect(screen.getByText(/We restored your unsaved invoice draft/)).toBeInTheDocument();
+    });
+
+    it("does not show a restoration notice or restore anything on a first-ever visit", () => {
+      render(<CreateInvoiceEditor />);
+
+      expect(screen.queryByText(/We restored your unsaved invoice draft/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText("From", { exact: false })).toHaveValue("");
+    });
+
+    it("does not restore a draft saved past the retention window, per the retention policy", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+      saveDraftSnapshot(seededSnapshot());
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z").getTime() + DRAFT_RETENTION_MS + 1);
+
+      render(<CreateInvoiceEditor />);
+
+      expect(screen.queryByText(/We restored your unsaved invoice draft/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText("From", { exact: false })).toHaveValue("");
+      vi.useRealTimers();
+    });
+
+    it("typing into the form auto-saves a draft that a later mount (e.g. after a refresh) restores", async () => {
+      const user = userEvent.setup();
+      const { unmount } = render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
+
+      await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+      await waitFor(() => expect(loadDraftSnapshot()?.draft.seller).toBe("Acme Pty Ltd"));
+      unmount();
+
+      render(<CreateInvoiceEditor />);
+
+      expect(await screen.findByLabelText("From", { exact: false })).toHaveValue("Acme Pty Ltd");
+    });
+
+    it("Discard draft and start over clears the saved draft and resets the form to blank", async () => {
+      const user = userEvent.setup();
+      saveDraftSnapshot(seededSnapshot());
+      render(<CreateInvoiceEditor />);
+      expect(await screen.findByLabelText("From", { exact: false })).toHaveValue("Acme Pty Ltd");
+
+      await user.click(screen.getByRole("button", { name: "Discard draft and start over" }));
+
+      expect(screen.queryByText(/We restored your unsaved invoice draft/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText("From", { exact: false })).toHaveValue("");
+      expect(loadDraftSnapshot()).toBeNull();
+    });
   });
 });

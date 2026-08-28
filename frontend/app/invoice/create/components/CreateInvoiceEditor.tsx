@@ -29,6 +29,7 @@ import {
   validateSupportingContent,
   type SupportingContentErrors,
 } from "../lib/supportingContent";
+import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
@@ -61,6 +62,7 @@ export function CreateInvoiceEditor() {
   const [supportingContentErrors, setSupportingContentErrors] = useState<SupportingContentErrors>({
     paymentInstructions: {},
   });
+  const [draftRestored, setDraftRestored] = useState(false);
   const [reviewed, setReviewed] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -79,8 +81,34 @@ export function CreateInvoiceEditor() {
   const pristineDiscountTypeRef = useRef(invoiceDiscountType);
   const pristineDiscountValueRef = useRef(invoiceDiscountValue);
   const pristineSupportingContentRef = useRef(supportingContent);
+  // IG-29: the auto-save effect below skips its very first invocation using this flag - at that
+  // point `draft`/`lineItems`/etc still hold this component's pre-mount-effect values (the mount
+  // effect hasn't applied a restored draft or filled in today's date yet: setState calls made
+  // inside it don't retroactively change what this same commit's other effects already closed
+  // over), so saving on that first run would overwrite a just-restored draft on disk with stale,
+  // empty data for one tick.
+  const isFirstAutoSaveRef = useRef(true);
 
   useEffect(() => {
+    // IG-29: a previously auto-saved anonymous draft takes priority over today's-date prefill -
+    // restoring the visitor's actual in-progress invoice is the point, so an empty draft's "fill in
+    // today" default only applies when there's nothing to restore.
+    const restored = loadDraftSnapshot();
+    if (restored) {
+      setDraft(restored.draft);
+      setLineItems(restored.lineItems);
+      setInvoiceDiscountType(restored.invoiceDiscountType);
+      setInvoiceDiscountValue(restored.invoiceDiscountValue);
+      setSupportingContent(restored.supportingContent);
+      pristineDraftRef.current = restored.draft;
+      pristineLineItemsRef.current = restored.lineItems;
+      pristineDiscountTypeRef.current = restored.invoiceDiscountType;
+      pristineDiscountValueRef.current = restored.invoiceDiscountValue;
+      pristineSupportingContentRef.current = restored.supportingContent;
+      setDraftRestored(true);
+      return;
+    }
+
     // Computed on mount only, client-side - this page is statically prerendered, so setting
     // "today" during the initial render would bake in the build date instead of the visitor's
     // actual today. Starting both dates empty keeps server and client markup identical for
@@ -105,6 +133,18 @@ export function CreateInvoiceEditor() {
       return next;
     });
   }, []);
+
+  // IG-29: "Auto-save locally where possible" (FSD section 81) - every edit re-persists the full
+  // snapshot to localStorage so a later refresh/reopen can restore it via the effect above. Skips
+  // its first run (see isFirstAutoSaveRef's comment) so it never overwrites a just-restored draft
+  // with this component's pre-restore initial values.
+  useEffect(() => {
+    if (isFirstAutoSaveRef.current) {
+      isFirstAutoSaveRef.current = false;
+      return;
+    }
+    saveDraftSnapshot({ draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent });
+  }, [draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent]);
 
   useEffect(() => {
     // IG-39: fetches the launch templates (first backend call this app makes - see
@@ -364,6 +404,41 @@ export function CreateInvoiceEditor() {
     setSupportingContentErrors(validateSupportingContent(supportingContent));
   };
 
+  // IG-29 (AC3): the retention-policy expiry above clears a draft automatically; this is the
+  // explicit, user-triggered clear - resets every field and validation-error state back to the
+  // same blank slate a fresh mount starts from, not just the five persisted snapshot fields.
+  const handleDiscardDraft = () => {
+    clearDraftSnapshot();
+    // Re-armed so the auto-save effect skips the render this reset triggers, the same way it skips
+    // the very first render after a real mount - otherwise it would immediately re-persist this
+    // blank state right after the clear above, leaving a (blank) entry in storage instead of none.
+    isFirstAutoSaveRef.current = true;
+    const today = todayIsoDate();
+    const emptyDraft = createEmptyDraft();
+    const freshDraft: InvoiceDraft = { ...emptyDraft, header: { ...emptyDraft.header, issueDate: today, dueDate: today } };
+    const freshLineItems = [createEmptyLineItem()];
+    const freshSupportingContent = createEmptySupportingContent();
+    setDraft(freshDraft);
+    setHeaderErrors({});
+    setSellerError(undefined);
+    setCustomerError(undefined);
+    setShipToError(undefined);
+    setLineItems(freshLineItems);
+    setLineItemErrors({});
+    setInvoiceDiscountType("None");
+    setInvoiceDiscountValue("");
+    setInvoiceDiscountError(undefined);
+    setSupportingContent(freshSupportingContent);
+    setSupportingContentErrors({ paymentInstructions: {} });
+    setReviewed(false);
+    pristineDraftRef.current = freshDraft;
+    pristineLineItemsRef.current = freshLineItems;
+    pristineDiscountTypeRef.current = "None";
+    pristineDiscountValueRef.current = "";
+    pristineSupportingContentRef.current = freshSupportingContent;
+    setDraftRestored(false);
+  };
+
   const buildCurrentValidationResult = () =>
     validateInvoice({
       header: draft.header,
@@ -503,6 +578,14 @@ export function CreateInvoiceEditor() {
               </button>
             </div>
           </div>
+          {draftRestored ? (
+            <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+              <span>We restored your unsaved invoice draft from this browser.</span>
+              <button type="button" onClick={handleDiscardDraft} className="font-semibold underline">
+                Discard draft and start over
+              </button>
+            </p>
+          ) : null}
           {pdfError ? (
             <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {pdfError}
