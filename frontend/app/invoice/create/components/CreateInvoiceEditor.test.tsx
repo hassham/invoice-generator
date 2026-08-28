@@ -501,4 +501,31 @@ describe("CreateInvoiceEditor", () => {
     expect(printSpy).toHaveBeenCalledTimes(1);
     printSpy.mockRestore();
   });
+
+  it("as an anonymous user, filling in and downloading a full invoice never writes to storage or calls any endpoint other than the stateless PDF download - IG-28", async () => {
+    const user = userEvent.setup();
+    mockedDownloadInvoicePdf.mockResolvedValue(undefined);
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+    await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+    await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+    await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.type(screen.getByLabelText(/Unit Price/), "50");
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.type(screen.getByLabelText("Ship To"), "Warehouse 3");
+    await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+    await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
+    // No account-owned persistence anywhere: no localStorage/sessionStorage write, and the only
+    // "save" is the stubbed, stateless PDF download - no other network call (e.g. a POST to create
+    // an invoice record) fires as a side effect of filling in or downloading the form.
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    setItemSpy.mockRestore();
+    fetchSpy.mockRestore();
+  });
 });
