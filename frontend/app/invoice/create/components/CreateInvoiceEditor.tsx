@@ -13,7 +13,8 @@ import {
 } from "../lib/invoiceDraft";
 import { getInvalidSectionLabels, hasAdvancedOnlyError, isInvoiceValid, validateInvoice } from "../lib/invoiceValidation";
 import { getCurrentSession } from "../../../lib/auth";
-import { clearPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
+import { clearPendingGateAction, loadPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
+import { track } from "../../../../lib/analytics";
 import { calculateInvoiceTotals, validateInvoiceDiscountValue, type InvoiceDiscountType } from "../lib/invoiceTotals";
 import {
   cloneLineItem,
@@ -515,6 +516,7 @@ export function CreateInvoiceEditor() {
     if (!isAuthenticated) {
       setPendingGateAction("download");
       savePendingGateAction("download");
+      track({ name: "anonymous_gate_shown", properties: { action: "download" } });
       return;
     }
     setPdfDownloading(true);
@@ -543,6 +545,7 @@ export function CreateInvoiceEditor() {
     if (!isAuthenticated) {
       setPendingGateAction("print");
       savePendingGateAction("print");
+      track({ name: "anonymous_gate_shown", properties: { action: "print" } });
       return;
     }
     window.print();
@@ -552,9 +555,53 @@ export function CreateInvoiceEditor() {
   // clearing the persisted pending action (not just this component's local state) means a cancelled
   // request can't resurface and auto-complete later once IG-32 exists to act on it.
   const handleCloseAccountGate = () => {
+    if (pendingGateAction) {
+      track({ name: "anonymous_gate_dismissed", properties: { action: pendingGateAction } });
+    }
     setPendingGateAction(null);
     clearPendingGateAction();
   };
+
+  // IG-32: "The requested download starts or printer-friendly rendering opens without another
+  // click" - once authenticated with a pending action recorded (IG-31), fires it automatically on
+  // return. Download still goes through handleDownloadPdf's own validation rather than assuming
+  // the draft is still valid; print has no validation gate, matching its normal click behavior.
+  // Actually saving the invoice under the account first (this Story's other AC bullet) isn't
+  // possible yet - no persistence exists (Epic IG-7/IG-9) - so the pending action is cleared here
+  // once the automatic hand-off fires, rather than waiting for a "saved" event that can't happen.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    const pending = loadPendingGateAction();
+    if (!pending) {
+      return;
+    }
+    if (pending === "print") {
+      clearPendingGateAction();
+      track({ name: "pending_action_completed", properties: { action: "print" } });
+      window.print();
+      return;
+    }
+    // Download needs the templates list resolved first - selectedTemplateCode looks up the
+    // restored draft.templateId against it, and would resolve to nothing if fired too early.
+    if (templatesLoading) {
+      return;
+    }
+    clearPendingGateAction();
+    track({ name: "pending_action_completed", properties: { action: "download" } });
+    // A deliberate one-shot side effect (fire the previously-requested download once, on the
+    // render where auth+templates first become ready), not the "derive state from props"
+    // anti-pattern this rule targets; handleDownloadPdf's own internal setState calls are
+    // conditional on validation, which static analysis here can't see.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void handleDownloadPdf();
+    // handleDownloadPdf intentionally isn't a dependency: it closes over the latest
+    // draft/lineItems/etc. on every render, and re-running this effect whenever any of those
+    // change would re-fire the one-shot auto-resume repeatedly instead of only once when
+    // authentication first completes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, templatesLoading]);
 
   // Derived from the *current* error states, not a frozen snapshot of the Review click - each
   // section already re-validates live once it has shown an error (the keystroke-revalidation
@@ -626,7 +673,7 @@ export function CreateInvoiceEditor() {
               </button>
             </div>
           </div>
-          {pendingGateAction ? <AccountGateModal onClose={handleCloseAccountGate} /> : null}
+          {pendingGateAction ? <AccountGateModal action={pendingGateAction} onClose={handleCloseAccountGate} /> : null}
           {draftRestored ? (
             <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
               <span>We restored your unsaved invoice draft from this browser.</span>

@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentSession } from "../../../lib/auth";
-import { loadPendingGateAction } from "../../../lib/pendingGateAction";
+import { loadPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
+import { resetAnalyticsSink, setAnalyticsSink, type AnalyticsSink } from "../../../../lib/analytics";
 import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { createEmptyDraft } from "../lib/invoiceDraft";
 import { downloadInvoicePdf } from "../lib/invoicePdf";
@@ -57,6 +58,10 @@ describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetCurrentSession.mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    resetAnalyticsSink();
   });
 
   it("reflects the From and Bill To text in the live preview as it's typed", async () => {
@@ -651,6 +656,93 @@ describe("CreateInvoiceEditor", () => {
       await user.keyboard("{Escape}");
 
       expect(loadPendingGateAction()).toBeNull();
+    });
+  });
+
+  describe("IG-32: complete the pending action automatically once authenticated", () => {
+    it("tracks anonymous_gate_shown with the requested action when the gate appears", async () => {
+      const sink: AnalyticsSink = { track: vi.fn() };
+      setAnalyticsSink(sink);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+      await screen.findByRole("dialog");
+
+      expect(sink.track).toHaveBeenCalledWith({ name: "anonymous_gate_shown", properties: { action: "print" } });
+    });
+
+    it("tracks anonymous_gate_dismissed when the gate is dismissed", async () => {
+      const sink: AnalyticsSink = { track: vi.fn() };
+      setAnalyticsSink(sink);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+      await screen.findByRole("dialog");
+      await user.click(screen.getByRole("button", { name: "Not now" }));
+
+      expect(sink.track).toHaveBeenCalledWith({ name: "anonymous_gate_dismissed", properties: { action: "print" } });
+    });
+
+    it("auto-fires Print without another click when returning authenticated with a pending print action", async () => {
+      savePendingGateAction("print");
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+      const sink: AnalyticsSink = { track: vi.fn() };
+      setAnalyticsSink(sink);
+
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1));
+      expect(loadPendingGateAction()).toBeNull();
+      expect(sink.track).toHaveBeenCalledWith({ name: "pending_action_completed", properties: { action: "print" } });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      printSpy.mockRestore();
+    });
+
+    it("auto-downloads without another click when returning authenticated with a pending download action and a still-valid invoice", async () => {
+      const user = userEvent.setup();
+      mockedDownloadInvoicePdf.mockResolvedValue(undefined);
+      const { unmount } = render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
+
+      // Anonymous: fill a valid invoice and request Download PDF - IG-29's auto-save persists this
+      // exact draft to localStorage, and IG-31 persists the pending action, just as a real gate
+      // encounter would before the visitor navigates off to /signup.
+      await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+      await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+      await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+      await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.click(screen.getByRole("button", { name: "Download PDF" }));
+      await screen.findByRole("dialog");
+      unmount();
+
+      // Simulates the real flow: a full page navigation back to /invoice/create after
+      // registering/logging in - a fresh mount, now authenticated, with the prior draft and
+      // pending action both already sitting in localStorage.
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      const sink: AnalyticsSink = { track: vi.fn() };
+      setAnalyticsSink(sink);
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
+      expect(loadPendingGateAction()).toBeNull();
+      expect(sink.track).toHaveBeenCalledWith({ name: "pending_action_completed", properties: { action: "download" } });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("does not auto-fire anything for an authenticated visitor with no pending action", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      expect(printSpy).not.toHaveBeenCalled();
+      expect(mockedDownloadInvoicePdf).not.toHaveBeenCalled();
+      printSpy.mockRestore();
     });
   });
 

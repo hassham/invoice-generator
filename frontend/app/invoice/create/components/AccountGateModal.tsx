@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { track } from "../../../../lib/analytics";
 
 interface AccountGateModalProps {
+  action: "download" | "print";
   onClose: () => void;
 }
 
@@ -15,7 +17,7 @@ interface AccountGateModalProps {
  * auto-resuming the pending action after sign-in is IG-31/IG-32's job, not this one - this
  * component only blocks and explains.
  */
-export function AccountGateModal({ onClose }: AccountGateModalProps) {
+export function AccountGateModal({ action, onClose }: AccountGateModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,12 +55,14 @@ export function AccountGateModal({ onClose }: AccountGateModalProps) {
         <div className="mt-6 flex flex-col gap-3">
           <Link
             href="/signup"
+            onClick={() => track({ name: "anonymous_gate_conversion", properties: { action, method: "signup" } })}
             className="rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
           >
             Sign up
           </Link>
           <Link
             href="/login"
+            onClick={() => track({ name: "anonymous_gate_conversion", properties: { action, method: "login" } })}
             className="rounded-full border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
             Log in
