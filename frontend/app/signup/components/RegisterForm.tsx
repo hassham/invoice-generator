@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { registerAccount } from "../../lib/auth";
+import { loadPendingGateAction } from "../../lib/pendingGateAction";
 
 /**
  * FSD section 7/7.1 (Registration). Password complexity (uppercase/lowercase/digit/8+ chars) is
@@ -38,7 +39,10 @@ export function RegisterForm() {
         confirmPassword,
         name: name.trim().length > 0 ? name : null,
       });
-      window.location.href = "/";
+      // IG-31 / FSD section 37: a pending Download PDF/Print request (IG-30's account gate) means
+      // this registration was triggered from the invoice editor - return there instead of the
+      // homepage so the preserved invoice is what the visitor actually sees next.
+      window.location.href = loadPendingGateAction() ? "/invoice/create" : "/";
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Failed to create your account.");
       setSubmitting(false);

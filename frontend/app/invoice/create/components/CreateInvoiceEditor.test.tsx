@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentSession } from "../../../lib/auth";
+import { loadPendingGateAction } from "../../../lib/pendingGateAction";
 import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { createEmptyDraft } from "../lib/invoiceDraft";
 import { downloadInvoicePdf } from "../lib/invoicePdf";
@@ -601,6 +602,55 @@ describe("CreateInvoiceEditor", () => {
       await user.keyboard("{Escape}");
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("IG-31: preserve the pending action through authentication", () => {
+    it("persists the requested action when the gate is shown, so it survives navigating to /login or /signup", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+
+      await screen.findByRole("dialog");
+      expect(loadPendingGateAction()).toBe("print");
+    });
+
+    it("records download separately from print", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+      await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+      await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+      await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+      await screen.findByRole("dialog");
+      expect(loadPendingGateAction()).toBe("download");
+    });
+
+    it("clears the persisted action when the gate is dismissed via Not now - a cancelled request must not resurface later", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+      await screen.findByRole("dialog");
+      await user.click(screen.getByRole("button", { name: "Not now" }));
+
+      expect(loadPendingGateAction()).toBeNull();
+    });
+
+    it("clears the persisted action when the gate is dismissed via Escape", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+      await screen.findByRole("dialog");
+      await user.keyboard("{Escape}");
+
+      expect(loadPendingGateAction()).toBeNull();
     });
   });
 

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { savePendingGateAction } from "../../lib/pendingGateAction";
 import { LoginForm } from "./LoginForm";
 
 function stubLocation(search: string) {
@@ -45,6 +46,28 @@ describe("LoginForm", () => {
       }),
     );
     expect(navigations).toContain("/");
+  });
+
+  it("redirects to /invoice/create instead of / when a pending Download/Print action is preserved (IG-31)", async () => {
+    savePendingGateAction("download");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ userId: "u1", email: "jane@example.com", name: "Jane" }) }),
+    );
+    const navigations: string[] = [];
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      writable: true,
+      value: { ...originalLocation, set href(value: string) { navigations.push(value); } },
+    });
+    const user = userEvent.setup();
+
+    render(<LoginForm />);
+    await user.type(screen.getByLabelText("Email"), "jane@example.com");
+    await user.type(screen.getByLabelText("Password"), "Passw0rd!");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
+    expect(navigations).toContain("/invoice/create");
   });
 
   it("shows the server's error message when login fails", async () => {

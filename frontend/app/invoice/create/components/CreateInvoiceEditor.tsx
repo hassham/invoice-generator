@@ -13,6 +13,7 @@ import {
 } from "../lib/invoiceDraft";
 import { getInvalidSectionLabels, hasAdvancedOnlyError, isInvoiceValid, validateInvoice } from "../lib/invoiceValidation";
 import { getCurrentSession } from "../../../lib/auth";
+import { clearPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
 import { calculateInvoiceTotals, validateInvoiceDiscountValue, type InvoiceDiscountType } from "../lib/invoiceTotals";
 import {
   cloneLineItem,
@@ -102,6 +103,12 @@ export function CreateInvoiceEditor() {
     // today" default only applies when there's nothing to restore.
     const restored = loadDraftSnapshot();
     if (restored) {
+      // Hydrating five separate pieces of state from one localStorage read (an external system) on
+      // mount - the same class of problem useSyncExternalStore solves elsewhere in this app, but
+      // doing that here would mean collapsing draft/lineItems/discount/supportingContent into one
+      // shared atom, a much larger refactor of already-shipped, tested state (IG-29) than this lint
+      // rule warrants.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(restored.draft);
       setLineItems(restored.lineItems);
       setInvoiceDiscountType(restored.invoiceDiscountType);
@@ -503,8 +510,11 @@ export function CreateInvoiceEditor() {
     }
     // IG-30 / FSD section 117: anonymous users see the account gate instead of a download - the
     // gate's own Sign up/Log in links are the only way past this, not a retry of this button.
+    // IG-31: the requested action is also persisted (not just held in this component's state) so
+    // it survives the navigation to /signup or /login and back.
     if (!isAuthenticated) {
       setPendingGateAction("download");
+      savePendingGateAction("download");
       return;
     }
     setPdfDownloading(true);
@@ -532,9 +542,18 @@ export function CreateInvoiceEditor() {
   const handlePrint = () => {
     if (!isAuthenticated) {
       setPendingGateAction("print");
+      savePendingGateAction("print");
       return;
     }
     window.print();
+  };
+
+  // IG-31 AC: "Cancellation returns to the populated invoice without completing the gated action" -
+  // clearing the persisted pending action (not just this component's local state) means a cancelled
+  // request can't resurface and auto-complete later once IG-32 exists to act on it.
+  const handleCloseAccountGate = () => {
+    setPendingGateAction(null);
+    clearPendingGateAction();
   };
 
   // Derived from the *current* error states, not a frozen snapshot of the Review click - each
@@ -607,7 +626,7 @@ export function CreateInvoiceEditor() {
               </button>
             </div>
           </div>
-          {pendingGateAction ? <AccountGateModal onClose={() => setPendingGateAction(null)} /> : null}
+          {pendingGateAction ? <AccountGateModal onClose={handleCloseAccountGate} /> : null}
           {draftRestored ? (
             <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
               <span>We restored your unsaved invoice draft from this browser.</span>
