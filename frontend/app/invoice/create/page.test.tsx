@@ -1,6 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import CreateInvoicePage, { metadata } from "./page";
+
+// This page's editor fetches templates (IG-39) and checks the session (IG-30) on mount - stubbed
+// here, same as CreateInvoiceEditor.test.tsx, so this suite doesn't depend on a running backend.
+vi.mock("./lib/templates", () => ({
+  fetchTemplates: vi.fn(() => Promise.resolve([])),
+}));
+
+vi.mock("../../lib/auth", () => ({
+  getCurrentSession: vi.fn(() => Promise.resolve(null)),
+}));
 
 describe("Create invoice page", () => {
   it("renders the invoice header, From and Bill To sections", () => {

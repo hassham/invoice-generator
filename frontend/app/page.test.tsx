@@ -1,6 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Home from "./page";
+
+// SiteHeader checks the session on mount (IG-26) - stubbed so this suite doesn't depend on a
+// running backend.
+vi.mock("./lib/auth", () => ({
+  getCurrentSession: vi.fn(() => Promise.resolve(null)),
+}));
 
 describe("Landing page", () => {
   it("routes every primary Create Invoice CTA to the invoice generator", () => {

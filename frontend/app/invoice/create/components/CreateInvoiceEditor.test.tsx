@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getCurrentSession } from "../../../lib/auth";
 import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { createEmptyDraft } from "../lib/invoiceDraft";
 import { downloadInvoicePdf } from "../lib/invoicePdf";
@@ -41,9 +42,20 @@ vi.mock("../lib/invoicePdf", async (importOriginal) => ({
 
 const mockedDownloadInvoicePdf = vi.mocked(downloadInvoicePdf);
 
+// IG-30: Download PDF/Print are gated on the session check below - defaults to "anonymous" so
+// every test not specifically about authentication exercises the common (anonymous) path without
+// having to opt in explicitly. Tests that need the authenticated path override this per-test.
+vi.mock("../../../lib/auth", () => ({
+  getCurrentSession: vi.fn(() => Promise.resolve(null)),
+}));
+
+const mockedGetCurrentSession = vi.mocked(getCurrentSession);
+const AUTHENTICATED_ACCOUNT = { userId: "u1", email: "jane@example.com", name: "Jane" };
+
 describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedGetCurrentSession.mockResolvedValue(null);
   });
 
   it("reflects the From and Bill To text in the live preview as it's typed", async () => {
@@ -463,10 +475,12 @@ describe("CreateInvoiceEditor", () => {
     expect(mockedDownloadInvoicePdf).not.toHaveBeenCalled();
   });
 
-  it("clicking Download PDF on a valid invoice downloads the PDF", async () => {
+  it("as an authenticated user, clicking Download PDF on a valid invoice downloads the PDF", async () => {
     const user = userEvent.setup();
+    mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
     mockedDownloadInvoicePdf.mockResolvedValue(undefined);
     render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
 
     await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
@@ -478,12 +492,15 @@ describe("CreateInvoiceEditor", () => {
 
     await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(/This invoice isn't ready yet/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows an inline error message when the PDF download fails", async () => {
+  it("as an authenticated user, shows an inline error message when the PDF download fails", async () => {
     const user = userEvent.setup();
+    mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
     mockedDownloadInvoicePdf.mockRejectedValue(new Error("Failed to generate the PDF."));
     render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
 
     await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
@@ -496,20 +513,22 @@ describe("CreateInvoiceEditor", () => {
     expect(await screen.findByText("Failed to generate the PDF.")).toBeInTheDocument();
   });
 
-  it("clicking Print calls window.print()", async () => {
+  it("as an authenticated user, clicking Print calls window.print()", async () => {
     const user = userEvent.setup();
+    mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
     const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
     render(<CreateInvoiceEditor />);
+    await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
 
     await user.click(screen.getByRole("button", { name: "Print" }));
 
     expect(printSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     printSpy.mockRestore();
   });
 
-  it("as an anonymous user, filling in and downloading a full invoice persists only to local storage (IG-29's draft auto-save) and calls no endpoint other than the stateless PDF download - IG-28", async () => {
+  it("as an anonymous user, filling in a full invoice and clicking Download PDF persists only to local storage (IG-29's draft auto-save), shows the account gate, and calls no download endpoint - IG-28/IG-30", async () => {
     const user = userEvent.setup();
-    mockedDownloadInvoicePdf.mockResolvedValue(undefined);
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     render(<CreateInvoiceEditor />);
@@ -524,15 +543,65 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText("Ship To"), "Warehouse 3");
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
-    await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
-    // No account-owned persistence anywhere: the only network call is the stubbed, stateless PDF
-    // download - no other request (e.g. a POST to create an invoice record) fires as a side effect
-    // of filling in or downloading the form. The IG-29 draft auto-save does write to localStorage
-    // (that's the point of this Story), but only ever to this browser, never to the server.
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(mockedDownloadInvoicePdf).not.toHaveBeenCalled();
+    // No account-owned persistence anywhere: the only network calls this app can make are mocked
+    // away entirely (templates, session check, PDF download) - no unmocked request (e.g. a POST to
+    // create an invoice record) fires as a side effect of filling in the form. The IG-29 draft
+    // auto-save does write to localStorage (that's the point of this Story), but only ever to this
+    // browser, never to the server.
     expect(setItemSpy).toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     setItemSpy.mockRestore();
     fetchSpy.mockRestore();
+  });
+
+  describe("IG-30: account gate for Download PDF and Print", () => {
+    it("shows the account gate instead of printing when an anonymous user clicks Print", async () => {
+      const user = userEvent.setup();
+      const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(printSpy).not.toHaveBeenCalled();
+      printSpy.mockRestore();
+    });
+
+    it("shows FSD's exact account-gate message with working Sign up and Log in links", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("Create a free account to download and securely save your invoice.")).toBeInTheDocument();
+      expect(within(dialog).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/signup");
+      expect(within(dialog).getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
+    });
+
+    it("dismisses the gate via the Not now button", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+      await screen.findByRole("dialog");
+      await user.click(screen.getByRole("button", { name: "Not now" }));
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("dismisses the gate via Escape", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+
+      await user.click(screen.getByRole("button", { name: "Print" }));
+      await screen.findByRole("dialog");
+      await user.keyboard("{Escape}");
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   describe("IG-29: recover an anonymous invoice draft locally", () => {

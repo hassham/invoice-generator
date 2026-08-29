@@ -12,6 +12,7 @@ import {
   type InvoiceDraft,
 } from "../lib/invoiceDraft";
 import { getInvalidSectionLabels, hasAdvancedOnlyError, isInvoiceValid, validateInvoice } from "../lib/invoiceValidation";
+import { getCurrentSession } from "../../../lib/auth";
 import { calculateInvoiceTotals, validateInvoiceDiscountValue, type InvoiceDiscountType } from "../lib/invoiceTotals";
 import {
   cloneLineItem,
@@ -34,6 +35,7 @@ import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
+import { AccountGateModal } from "./AccountGateModal";
 import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
 import { InvoiceHeaderSection } from "./InvoiceHeaderSection";
@@ -69,6 +71,11 @@ export function CreateInvoiceEditor() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  // IG-30: defaults to "anonymous" - there's no synchronous way to know the session state before
+  // the /me round trip resolves, and defaulting to authenticated would let an anonymous visitor
+  // briefly slip past the gate on a slow connection.
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pendingGateAction, setPendingGateAction] = useState<"download" | "print" | null>(null);
   const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
@@ -188,6 +195,18 @@ export function CreateInvoiceEditor() {
           setTemplatesLoading(false);
         }
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentSession().then((account) => {
+      if (!cancelled) {
+        setIsAuthenticated(account !== null);
+      }
+    });
     return () => {
       cancelled = true;
     };
@@ -482,6 +501,12 @@ export function CreateInvoiceEditor() {
       applyValidationResult(result);
       return;
     }
+    // IG-30 / FSD section 117: anonymous users see the account gate instead of a download - the
+    // gate's own Sign up/Log in links are the only way past this, not a retry of this button.
+    if (!isAuthenticated) {
+      setPendingGateAction("download");
+      return;
+    }
     setPdfDownloading(true);
     setPdfError(null);
     try {
@@ -503,8 +528,12 @@ export function CreateInvoiceEditor() {
 
   // FSD section 40 (Print Invoice) - not gated on isInvoiceValid, unlike Download PDF: this
   // Story's own AC doesn't mention validation, only IG-43's (from FSD section 38's explicit
-  // "Validate invoice" step) does.
+  // "Validate invoice" step) does. It is gated on authentication (IG-30), same as Download PDF.
   const handlePrint = () => {
+    if (!isAuthenticated) {
+      setPendingGateAction("print");
+      return;
+    }
     window.print();
   };
 
@@ -578,6 +607,7 @@ export function CreateInvoiceEditor() {
               </button>
             </div>
           </div>
+          {pendingGateAction ? <AccountGateModal onClose={() => setPendingGateAction(null)} /> : null}
           {draftRestored ? (
             <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
               <span>We restored your unsaved invoice draft from this browser.</span>
