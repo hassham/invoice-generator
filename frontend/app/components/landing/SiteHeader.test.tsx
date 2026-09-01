@@ -114,11 +114,12 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
   });
 
-  it("hides the Customers and Invoices links when signed out", async () => {
+  it("hides the Dashboard, Customers and Invoices links when signed out", async () => {
     stubSession(null);
     render(<SiteHeader />);
     await screen.findByRole("link", { name: "Login" });
 
+    expect(screen.queryByRole("link", { name: "Dashboard" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Customers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Invoices" })).not.toBeInTheDocument();
   });
@@ -149,6 +150,20 @@ describe("SiteHeader", () => {
     await user.click(screen.getByRole("button", { name: "Open menu" }));
     const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
     expect(within(mobileNav).getByRole("link", { name: "Invoices" })).toHaveAttribute("href", "/documents/invoices");
+  });
+
+  it("shows a Dashboard link, in both navs, once a session is found (IG-60/IG-61)", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    render(<SiteHeader />);
+    await screen.findByRole("button", { name: "Log out" });
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
+    expect(within(mobileNav).getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
   });
 
   it("falls back to the email when the account has no name", async () => {

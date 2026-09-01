@@ -69,6 +69,9 @@ export function SiteHeader() {
           ))}
           {account ? (
             <>
+              <Link href="/dashboard" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+                Dashboard
+              </Link>
               <Link href="/documents/invoices" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
                 Invoices
               </Link>
@@ -136,6 +139,13 @@ export function SiteHeader() {
             ))}
             {account ? (
               <>
+                <Link
+                  href="/dashboard"
+                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
                 <Link
                   href="/documents/invoices"
                   className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
