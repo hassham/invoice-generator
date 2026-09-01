@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../lib/fields";
 import {
@@ -806,8 +807,15 @@ export function CreateInvoiceEditor() {
                 </button>
               </p>
             ) : (
-              <p role="status" className="mb-6 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                {saveStatus === "saving" ? "Saving…" : "Saved."}
+              <p className="mb-6 flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <span role="status">{saveStatus === "saving" ? "Saving…" : "Saved."}</span>
+                {/* IG-47: the only way to reach the detail/edit page today - no invoice list
+                    exists yet (Epic IG-10), so this is the sole reachability path once saved. */}
+                {saveStatus === "saved" && savedInvoiceId ? (
+                  <Link href={`/documents/invoices/${savedInvoiceId}`} className="font-semibold underline">
+                    View saved invoice
+                  </Link>
+                ) : null}
               </p>
             )
           ) : null}

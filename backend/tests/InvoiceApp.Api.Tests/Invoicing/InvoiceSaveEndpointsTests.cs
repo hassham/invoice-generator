@@ -171,4 +171,75 @@ public class InvoiceSaveEndpointsTests
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Missing_session_cannot_get_an_invoice()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Gets_the_full_editable_content_of_a_saved_invoice_including_ship_to()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "get-detail@example.com");
+        var request = ValidRequest() with { ShipTo = "Warehouse 3\n45 Dock Rd" };
+        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, request);
+        var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+
+        var response = await client.GetAsync($"{InvoicesEndpoint}/{created!.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var detail = await response.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
+        Assert.NotNull(detail);
+        Assert.Equal("INV-0001", detail!.InvoiceNumber);
+        Assert.Equal("My Business", detail.Seller);
+        Assert.Equal("Acme Pty Ltd", detail.Customer);
+        Assert.Equal("Warehouse 3\n45 Dock Rd", detail.ShipTo);
+        Assert.Single(detail.Items);
+        Assert.Equal("Consulting", detail.Items[0].Description);
+        Assert.Equal(2, detail.Items[0].Quantity);
+        Assert.Equal(100, detail.Items[0].UnitPrice);
+        Assert.Equal("Thanks for your business", detail.Notes);
+        Assert.Contains("Bank Name: Big Bank", detail.PaymentInstructions);
+        Assert.Contains("Pay via bank transfer", detail.PaymentInstructions);
+    }
+
+    [Fact]
+    public async Task Get_reflects_an_update_including_the_replaced_line_items()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "get-after-update@example.com");
+        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        await client.PutAsJsonAsync(
+            $"{InvoicesEndpoint}/{created!.Id}",
+            ValidRequest() with { Items = [new InvoiceSaveLineItem("Updated Service", 1, null, 500, 10, 0)] });
+
+        var response = await client.GetAsync($"{InvoicesEndpoint}/{created.Id}");
+
+        var detail = await response.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
+        Assert.Single(detail!.Items);
+        Assert.Equal("Updated Service", detail.Items[0].Description);
+        Assert.Equal(550m, detail.TotalAmount);
+    }
+
+    [Fact]
+    public async Task Cannot_get_another_accounts_invoice()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var ownerClient = await RegisteredClientAsync(factory, "get-owner@example.com");
+        var createResponse = await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+
+        using var otherClient = await RegisteredClientAsync(factory, "get-other@example.com");
+        var response = await otherClient.GetAsync($"{InvoicesEndpoint}/{created!.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }

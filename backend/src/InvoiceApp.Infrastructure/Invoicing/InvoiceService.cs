@@ -12,10 +12,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
 {
     public async Task<InvoiceDto> SaveAsync(Guid userId, Guid? invoiceId, InvoiceSaveRequest request, CancellationToken cancellationToken)
     {
-        var businessId = await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
 
         var invoice = invoiceId is { } id
             ? await LoadOwnedAsync(businessId, id, cancellationToken)
@@ -69,8 +66,10 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
         invoice.Reference = NullIfEmpty(request.Reference);
         // No structured seller/customer fields exist to snapshot (IG-193 replaced them with free
         // text) - captures the free text verbatim as the closest available "as issued" record.
-        invoice.SellerSnapshot = JsonSerializer.Serialize(new { text = request.Seller });
-        invoice.CustomerSnapshot = JsonSerializer.Serialize(new { text = request.Customer });
+        // ShipTo has no DB column of its own, so it rides along in the customer snapshot (IG-47
+        // fix: IG-45 accepted this field but never actually persisted it anywhere).
+        invoice.SellerSnapshot = JsonSerializer.Serialize(new SellerSnapshotPayload(request.Seller));
+        invoice.CustomerSnapshot = JsonSerializer.Serialize(new CustomerSnapshotPayload(request.Customer, NullIfEmpty(request.ShipTo)));
         invoice.DiscountType = request.InvoiceDiscountType;
         invoice.DiscountValue = request.InvoiceDiscountValue;
         invoice.Subtotal = calculation.Subtotal;
@@ -117,6 +116,19 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
 
         return ToDto(invoice);
     }
+
+    public async Task<InvoiceDetailDto> GetAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
+        return ToDetailDto(invoice);
+    }
+
+    private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken) =>
+        await dbContext.Businesses
+            .Where(business => business.UserId == userId)
+            .Select(business => business.Id)
+            .SingleAsync(cancellationToken);
 
     private async Task<Invoice> LoadOwnedAsync(Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
@@ -235,4 +247,49 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
         invoice.AmountDue,
         invoice.CreatedAt,
         invoice.UpdatedAt);
+
+    private static InvoiceDetailDto ToDetailDto(Invoice invoice)
+    {
+        var seller = JsonSerializer.Deserialize<SellerSnapshotPayload>(invoice.SellerSnapshot);
+        var customer = JsonSerializer.Deserialize<CustomerSnapshotPayload>(invoice.CustomerSnapshot);
+        var templateCustomization = invoice.TemplateSettings is null
+            ? null
+            : JsonSerializer.Deserialize<InvoiceSaveTemplateCustomization>(invoice.TemplateSettings);
+
+        return new InvoiceDetailDto(
+            invoice.Id,
+            invoice.CustomerId,
+            invoice.InvoiceNumber,
+            invoice.Status,
+            invoice.IssueDate,
+            invoice.DueDate,
+            invoice.Reference,
+            invoice.Currency,
+            seller?.Text ?? string.Empty,
+            customer?.Text ?? string.Empty,
+            customer?.ShipTo,
+            invoice.Items
+                .OrderBy(item => item.SortOrder)
+                .Select(item => new InvoiceDetailLineItem(item.Description, item.Quantity, item.Unit, item.UnitPrice, item.TaxRate, item.Discount))
+                .ToList(),
+            invoice.DiscountType,
+            invoice.DiscountValue,
+            invoice.Notes,
+            invoice.Terms,
+            invoice.PaymentInstructions,
+            invoice.TemplateId,
+            templateCustomization,
+            invoice.Subtotal,
+            invoice.DiscountAmount,
+            invoice.TaxAmount,
+            invoice.TotalAmount,
+            invoice.AmountPaid,
+            invoice.AmountDue,
+            invoice.CreatedAt,
+            invoice.UpdatedAt);
+    }
+
+    private sealed record SellerSnapshotPayload(string Text);
+
+    private sealed record CustomerSnapshotPayload(string Text, string? ShipTo);
 }

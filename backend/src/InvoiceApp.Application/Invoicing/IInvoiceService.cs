@@ -9,4 +9,6 @@ namespace InvoiceApp.Application.Invoicing;
 public interface IInvoiceService
 {
     Task<InvoiceDto> SaveAsync(Guid userId, Guid? invoiceId, InvoiceSaveRequest request, CancellationToken cancellationToken);
+
+    Task<InvoiceDetailDto> GetAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
 }

@@ -941,6 +941,24 @@ describe("CreateInvoiceEditor", () => {
       expect(mockedUpdateInvoice).not.toHaveBeenCalled();
     });
 
+    it("shows a link to the saved invoice's detail page once saved (IG-47)", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      await fillValidInvoice(user);
+
+      expect(screen.queryByRole("link", { name: "View saved invoice" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("link", { name: "View saved invoice" })).toHaveAttribute(
+        "href",
+        "/documents/invoices/invoice-1",
+      );
+    });
+
     it("a second save updates the previously saved invoice instead of creating a new one", async () => {
       mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
       mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
