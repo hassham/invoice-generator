@@ -30,8 +30,11 @@ public class InvoiceSaveEndpointsTests
 
     private static InvoiceSaveRequest ValidRequest(string invoiceNumber = "INV-0001", string customer = "Acme Pty Ltd") => new(
         InvoiceNumber: invoiceNumber,
-        IssueDate: new DateOnly(2026, 8, 1),
-        DueDate: new DateOnly(2026, 8, 15),
+        // Kept safely in the future (IG-50 made Overdue a computed, not stored, status - a due
+        // date that quietly falls into the past as real time passes would otherwise flip this
+        // fixture's invoices from Draft to Overdue out from under unrelated assertions).
+        IssueDate: new DateOnly(2030, 8, 1),
+        DueDate: new DateOnly(2030, 8, 15),
         Reference: "PO-9",
         Currency: "AUD",
         Seller: "My Business",

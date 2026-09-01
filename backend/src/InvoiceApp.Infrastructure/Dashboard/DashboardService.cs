@@ -57,7 +57,9 @@ public sealed class DashboardService(ApplicationDbContext dbContext) : IDashboar
 
         // FSD section 43: "Display latest invoices" - no explicit count given, 5 is a
         // deliberate, small dashboard-widget default (the full history has its own page, IG-62).
-        // Not currency-scoped - each row already displays its own currency.
+        // Not currency-scoped - each row already displays its own currency. Status mirrors
+        // InvoiceStatusRules.DetermineEffectiveStatus (IG-50) - inlined rather than called, since
+        // EF Core can't translate an arbitrary method call into SQL.
         var recentInvoices = await dbContext.Invoices
             .Where(invoice => invoice.BusinessId == businessId && !invoice.IsDeleted)
             .OrderByDescending(invoice => invoice.CreatedAt)
@@ -70,7 +72,10 @@ public sealed class DashboardService(ApplicationDbContext dbContext) : IDashboar
                     invoice.Id,
                     invoice.InvoiceNumber,
                     customer.BusinessName ?? customer.ContactName ?? string.Empty,
-                    invoice.Status,
+                    invoice.Status != InvoiceStatus.Paid && invoice.Status != InvoiceStatus.Cancelled
+                        && invoice.DueDate < today && invoice.AmountDue > 0
+                            ? InvoiceStatus.Overdue
+                            : invoice.Status,
                     invoice.IssueDate,
                     invoice.DueDate,
                     invoice.Currency,

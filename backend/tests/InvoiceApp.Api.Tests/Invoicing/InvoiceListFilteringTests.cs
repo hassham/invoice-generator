@@ -25,7 +25,11 @@ public class InvoiceListFilteringTests
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
-    private static InvoiceSaveRequest ValidRequest(string invoiceNumber, string customer = "Acme Pty Ltd", string? reference = null, decimal unitPrice = 100, string issueDate = "2026-08-01") => new(
+    // issueDate/dueDate default safely into the future (IG-50 made Overdue a computed, not
+    // stored, status) - a due date that quietly falls into the past as real time passes would
+    // otherwise flip these fixtures' invoices from Draft/Sent to Overdue out from under the
+    // status-filter tests below, which don't intend to exercise Overdue at all.
+    private static InvoiceSaveRequest ValidRequest(string invoiceNumber, string customer = "Acme Pty Ltd", string? reference = null, decimal unitPrice = 100, string issueDate = "2030-08-01") => new(
         InvoiceNumber: invoiceNumber,
         IssueDate: DateOnly.Parse(issueDate),
         DueDate: DateOnly.Parse(issueDate),

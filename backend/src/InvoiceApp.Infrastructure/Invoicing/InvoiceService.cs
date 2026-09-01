@@ -1,4 +1,5 @@
 using System.Text.Json;
+using InvoiceApp.Application.Audit;
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Customers;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceApp.Infrastructure.Invoicing;
 
-public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceService
+public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogService auditLogService) : IInvoiceService
 {
     public async Task<InvoiceDto> SaveAsync(Guid userId, Guid? invoiceId, InvoiceSaveRequest request, CancellationToken cancellationToken)
     {
@@ -114,6 +115,17 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
             });
         }
 
+        // FSD sections 83/107: rides along in the SaveChangesAsync call below, not a separate one -
+        // the audit entry and the invoice write it describes commit atomically together.
+        await auditLogService.RecordAsync(
+            userId,
+            businessId,
+            "Invoice",
+            invoice.Id,
+            invoiceId is null ? "Invoice created" : "Invoice updated",
+            new { invoice.InvoiceNumber, invoice.Status },
+            cancellationToken);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToDto(invoice);
@@ -135,14 +147,26 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
         // out-of-range value just falls back to the default rather than erroring.
         var effectivePageSize = query.PageSize is >= 1 and <= 100 ? query.PageSize : 25;
         var effectivePage = query.Page < 1 ? 1 : query.Page;
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
 
         // Joined up front (not just for the final projection) so search can match against the
-        // linked customer's own fields (FSD section 46) alongside the invoice's own.
+        // linked customer's own fields (FSD section 46) alongside the invoice's own. EffectiveStatus
+        // mirrors InvoiceStatusRules.DetermineEffectiveStatus (IG-50) - inlined rather than called,
+        // since EF Core can't translate an arbitrary method call into SQL - so both filtering and
+        // display treat Overdue as computed, not the raw stored Status column.
         var filtered =
             from invoice in dbContext.Invoices
             join customer in dbContext.Customers on invoice.CustomerId equals customer.Id
             where invoice.BusinessId == businessId && !invoice.IsDeleted
-            select new { invoice, customer };
+            select new
+            {
+                invoice,
+                customer,
+                EffectiveStatus = invoice.Status != InvoiceStatus.Paid && invoice.Status != InvoiceStatus.Cancelled
+                    && invoice.DueDate < today && invoice.AmountDue > 0
+                        ? InvoiceStatus.Overdue
+                        : invoice.Status,
+            };
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -157,7 +181,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
 
         if (query.Status is { } status)
         {
-            filtered = filtered.Where(row => row.invoice.Status == status);
+            filtered = filtered.Where(row => row.EffectiveStatus == status);
         }
 
         if (query.CustomerId is { } customerId)
@@ -195,7 +219,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
                 row.invoice.Id,
                 row.invoice.InvoiceNumber,
                 row.customer.BusinessName ?? row.customer.ContactName ?? string.Empty,
-                row.invoice.Status,
+                row.EffectiveStatus,
                 row.invoice.IssueDate,
                 row.invoice.DueDate,
                 row.invoice.Currency,
@@ -323,11 +347,14 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    private static InvoiceStatus EffectiveStatus(Invoice invoice) => InvoiceStatusRules.DetermineEffectiveStatus(
+        invoice.Status, invoice.DueDate, invoice.AmountDue, DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date));
+
     private static InvoiceDto ToDto(Invoice invoice) => new(
         invoice.Id,
         invoice.CustomerId,
         invoice.InvoiceNumber,
-        invoice.Status,
+        EffectiveStatus(invoice),
         invoice.IssueDate,
         invoice.DueDate,
         invoice.Currency,
@@ -353,7 +380,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
             invoice.Id,
             invoice.CustomerId,
             invoice.InvoiceNumber,
-            invoice.Status,
+            EffectiveStatus(invoice),
             invoice.IssueDate,
             invoice.DueDate,
             invoice.Reference,
