@@ -717,19 +717,67 @@ describe("CreateInvoiceEditor", () => {
       expect(sink.track).toHaveBeenCalledWith({ name: "anonymous_gate_dismissed", properties: { action: "print" } });
     });
 
-    it("auto-fires Print without another click when returning authenticated with a pending print action", async () => {
+    it("auto-fires Print without another click when returning authenticated with a pending print action, after saving under the account (IG-32)", async () => {
+      saveDraftSnapshot({
+        draft: {
+          ...createEmptyDraft(),
+          seller: "Acme Pty Ltd",
+          customer: "Jane's Cafe",
+          header: { ...createEmptyDraft().header, invoiceNumber: "INV-000001", issueDate: "2026-08-01", dueDate: "2026-08-15" },
+        },
+        lineItems: [{ ...createEmptyLineItem(), description: "Consulting", unitPrice: "50" }],
+        invoiceDiscountType: "None",
+        invoiceDiscountValue: "",
+        supportingContent: createEmptySupportingContent(),
+      });
       savePendingGateAction("print");
       mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
       const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
       const sink: AnalyticsSink = { track: vi.fn() };
       setAnalyticsSink(sink);
 
       render(<CreateInvoiceEditor />);
 
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1));
       expect(loadPendingGateAction()).toBeNull();
       expect(sink.track).toHaveBeenCalledWith({ name: "pending_action_completed", properties: { action: "print" } });
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      printSpy.mockRestore();
+    });
+
+    it("leaves the pending action in place (no print, not cleared) when the automatic save fails, then completes it on a manual Retry - safe retry, no duplicate invoices (IG-32)", async () => {
+      saveDraftSnapshot({
+        draft: {
+          ...createEmptyDraft(),
+          seller: "Acme Pty Ltd",
+          customer: "Jane's Cafe",
+          header: { ...createEmptyDraft().header, invoiceNumber: "INV-000001", issueDate: "2026-08-01", dueDate: "2026-08-15" },
+        },
+        lineItems: [{ ...createEmptyLineItem(), description: "Consulting", unitPrice: "50" }],
+        invoiceDiscountType: "None",
+        invoiceDiscountValue: "",
+        supportingContent: createEmptySupportingContent(),
+      });
+      savePendingGateAction("print");
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockRejectedValueOnce(new Error("Failed to save this invoice."));
+      mockedCreateInvoice.mockResolvedValueOnce(SAVED_INVOICE);
+      const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+      const user = userEvent.setup();
+
+      render(<CreateInvoiceEditor />);
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Failed to save this invoice.");
+      expect(printSpy).not.toHaveBeenCalled();
+      expect(loadPendingGateAction()).toBe("print");
+
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+
+      await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1));
+      expect(mockedCreateInvoice).toHaveBeenCalledTimes(2);
+      expect(loadPendingGateAction()).toBeNull();
       printSpy.mockRestore();
     });
 
@@ -755,10 +803,13 @@ describe("CreateInvoiceEditor", () => {
       // registering/logging in - a fresh mount, now authenticated, with the prior draft and
       // pending action both already sitting in localStorage.
       mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
       const sink: AnalyticsSink = { track: vi.fn() };
       setAnalyticsSink(sink);
       render(<CreateInvoiceEditor />);
 
+      // IG-32: the invoice is saved under the account before the download fires.
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockedDownloadInvoicePdf).toHaveBeenCalledTimes(1));
       expect(loadPendingGateAction()).toBeNull();
       expect(sink.track).toHaveBeenCalledWith({ name: "pending_action_completed", properties: { action: "download" } });

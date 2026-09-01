@@ -562,19 +562,49 @@ export function CreateInvoiceEditor() {
     }
   };
 
-  // IG-45: backs both the manual "Save" button and the debounced remote auto-save below - both
-  // require a valid invoice (same gate as Download PDF) and both PUT once savedInvoiceId exists
-  // from an earlier save in this session, POST otherwise. `silent` distinguishes the two: a
-  // manual click surfaces validation errors the same way Download PDF does, whereas auto-save
-  // simply skips saving (no error banner) while the draft is still incomplete - the user hasn't
-  // asked to save yet, so there's nothing to report failing.
-  const performSave = async (options: { silent: boolean }) => {
+  // IG-32: "the requested action completes automatically" once the invoice is actually saved
+  // under the account - shared by the pending-action effect below and by a manual Save/Retry
+  // click (a retry after a failed auto-save-and-complete needs this too, or completing the
+  // ORIGINAL download/print would silently never happen once the automatic attempt has failed
+  // once). Clearing the pending record happens here, only once the save that gates it has
+  // actually succeeded - not eagerly, so a failed attempt leaves it in place for the next retry
+  // to pick up rather than losing track of the request.
+  const completePendingActionIfAny = () => {
+    const pending = loadPendingGateAction();
+    if (!pending) {
+      return;
+    }
+    // Download needs the templates list resolved first - selectedTemplateCode looks up the
+    // restored draft.templateId against it, and would resolve to nothing if fired too early.
+    if (pending === "download" && templatesLoading) {
+      return;
+    }
+    clearPendingGateAction();
+    track({ name: "pending_action_completed", properties: { action: pending } });
+    if (pending === "print") {
+      window.print();
+    } else {
+      void handleDownloadPdf();
+    }
+  };
+
+  // IG-45/IG-32: backs the manual "Save" button, the debounced remote auto-save below, and the
+  // pending-action handoff after authentication - all three require a valid invoice (same gate
+  // as Download PDF) and all PUT once savedInvoiceId exists from an earlier save in this
+  // session, POST otherwise. `silent` distinguishes surfaced-vs-swallowed validation errors: a
+  // manual click (or a pending-action retry) surfaces them the same way Download PDF does,
+  // whereas the routine background auto-save simply skips saving while the draft is still
+  // incomplete - the user hasn't asked to save yet, so there's nothing to report failing.
+  // `completePending` is deliberately NOT set by the routine auto-save - only an explicit Save/
+  // Retry click or the dedicated pending-action effect should ever trigger a download/print as a
+  // save side effect, never a silent background tick.
+  const performSave = async (options: { silent: boolean; completePending?: boolean }) => {
     const result = buildCurrentValidationResult();
     if (!isInvoiceValid(result)) {
       if (!options.silent) {
         applyValidationResult(result);
       }
-      return;
+      return null;
     }
 
     setSaveStatus("saving");
@@ -584,14 +614,19 @@ export function CreateInvoiceEditor() {
       const saved = savedInvoiceId ? await updateInvoice(savedInvoiceId, payload) : await createInvoice(payload);
       setSavedInvoiceId(saved.id);
       setSaveStatus("saved");
+      if (options.completePending) {
+        completePendingActionIfAny();
+      }
+      return saved;
     } catch (error) {
       setSaveStatus("error");
       setSaveError(error instanceof Error ? error.message : "Failed to save this invoice.");
+      return null;
     }
   };
 
   const handleSave = () => {
-    void performSave({ silent: false });
+    void performSave({ silent: false, completePending: true });
   };
 
   // IG-45: "Auto-save runs after the configured inactivity interval without saving every
@@ -648,13 +683,17 @@ export function CreateInvoiceEditor() {
     clearPendingGateAction();
   };
 
-  // IG-32: "The requested download starts or printer-friendly rendering opens without another
-  // click" - once authenticated with a pending action recorded (IG-31), fires it automatically on
-  // return. Download still goes through handleDownloadPdf's own validation rather than assuming
-  // the draft is still valid; print has no validation gate, matching its normal click behavior.
-  // Actually saving the invoice under the account first (this Story's other AC bullet) isn't
-  // possible yet - no persistence exists (Epic IG-7/IG-9) - so the pending action is cleared here
-  // once the automatic hand-off fires, rather than waiting for a "saved" event that can't happen.
+  // IG-32: "The invoice is validated and saved under the authenticated account" and "the
+  // requested download starts or printer-friendly rendering opens without another click" - once
+  // authenticated with a pending action recorded (IG-31), this saves the invoice under the
+  // account first and only then fires the originally-requested action, via performSave's
+  // completePending option (which itself does the "without another click" part once the save
+  // succeeds). If the save fails (network error, or the restored draft turns out invalid), the
+  // pending action is deliberately left in storage rather than cleared - "safe retry does not
+  // create duplicate invoices" is satisfied because a retry (this effect re-running, or the user
+  // clicking Save/Retry) reuses the same savedInvoiceId once one exists, and even a lost first
+  // attempt just re-POSTs the same invoice number, which the backend's own uniqueness check
+  // rejects as a 409 rather than silently duplicating.
   useEffect(() => {
     if (!isAuthenticated) {
       return;
@@ -663,29 +702,18 @@ export function CreateInvoiceEditor() {
     if (!pending) {
       return;
     }
-    if (pending === "print") {
-      clearPendingGateAction();
-      track({ name: "pending_action_completed", properties: { action: "print" } });
-      window.print();
+    if (pending === "download" && templatesLoading) {
       return;
     }
-    // Download needs the templates list resolved first - selectedTemplateCode looks up the
-    // restored draft.templateId against it, and would resolve to nothing if fired too early.
-    if (templatesLoading) {
-      return;
-    }
-    clearPendingGateAction();
-    track({ name: "pending_action_completed", properties: { action: "download" } });
-    // A deliberate one-shot side effect (fire the previously-requested download once, on the
-    // render where auth+templates first become ready), not the "derive state from props"
-    // anti-pattern this rule targets; handleDownloadPdf's own internal setState calls are
-    // conditional on validation, which static analysis here can't see.
+    // A deliberate one-shot side effect (attempt the previously-requested save+action once, on
+    // the render where auth+templates first become ready), not the "derive state from props"
+    // anti-pattern this rule targets; performSave's own setState calls are conditional on
+    // validation and network outcome, which static analysis here can't see.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void handleDownloadPdf();
-    // handleDownloadPdf intentionally isn't a dependency: it closes over the latest
-    // draft/lineItems/etc. on every render, and re-running this effect whenever any of those
-    // change would re-fire the one-shot auto-resume repeatedly instead of only once when
-    // authentication first completes.
+    void performSave({ silent: false, completePending: true });
+    // performSave intentionally isn't a dependency: it closes over the latest draft/lineItems/etc
+    // on every render, and re-running this effect whenever any of those change would re-fire the
+    // one-shot auto-resume repeatedly instead of only once when authentication first completes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, templatesLoading]);
 
