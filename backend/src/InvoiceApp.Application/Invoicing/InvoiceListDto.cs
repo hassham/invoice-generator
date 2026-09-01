@@ -22,3 +22,30 @@ public sealed record InvoiceListResponse(
     int Page,
     int PageSize,
     int TotalCount);
+
+/// <summary>FSD section 48's 5 sort options.</summary>
+public enum InvoiceSortOption
+{
+    Newest,
+    Oldest,
+    AmountHighest,
+    AmountLowest,
+    DueDate,
+}
+
+/// <summary>
+/// IG-62/IG-63: every criterion is optional and combines with AND - all null/default means
+/// exactly IG-62's original behavior (no filters, newest first). `Search` (FSD section 46) matches
+/// Invoice Number, Reference, and the linked customer's Business Name/Contact Name/Email.
+/// `StartDate`/`EndDate` (FSD section 47's Date filter) scope by issue date, same convention as
+/// the dashboard's period filter (IG-60).
+/// </summary>
+public sealed record InvoiceListQuery(
+    int Page,
+    int PageSize,
+    string? Search,
+    InvoiceStatus? Status,
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    Guid? CustomerId,
+    InvoiceSortOption Sort);

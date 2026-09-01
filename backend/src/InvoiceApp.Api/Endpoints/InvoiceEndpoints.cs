@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using InvoiceApp.Application.Invoicing;
+using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Modules.Invoicing;
 
 namespace InvoiceApp.Api.Endpoints;
@@ -71,9 +72,16 @@ public static class InvoiceEndpoints
         IInvoiceService invoiceService,
         CancellationToken cancellationToken,
         int page = 1,
-        int pageSize = 25)
+        int pageSize = 25,
+        string? search = null,
+        InvoiceStatus? status = null,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null,
+        Guid? customerId = null,
+        InvoiceSortOption sort = InvoiceSortOption.Newest)
     {
-        var result = await invoiceService.ListAsync(UserId(user), page, pageSize, cancellationToken);
+        var query = new InvoiceListQuery(page, pageSize, search, status, startDate, endDate, customerId, sort);
+        var result = await invoiceService.ListAsync(UserId(user), query, cancellationToken);
         return Results.Ok(result);
     }
 
