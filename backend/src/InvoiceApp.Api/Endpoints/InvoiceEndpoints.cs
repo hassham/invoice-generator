@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using InvoiceApp.Application.Invoicing;
+using InvoiceApp.Modules.Invoicing;
 
 namespace InvoiceApp.Api.Endpoints;
 
@@ -10,6 +12,11 @@ public static class InvoiceEndpoints
         // (FSD section 10.1's /invoice/create route, Epic IG-4) - this endpoint is stateless and
         // reads nothing account-specific, so there's no reason to gate it behind a session.
         app.MapPost("/api/v1/invoices/calculate", Calculate);
+
+        // IG-45: "As an authenticated user..." - unlike /calculate and /pdf above, these two
+        // actually persist, so both require a session.
+        app.MapPost("/api/v1/invoices", CreateAsync).RequireAuthorization();
+        app.MapPut("/api/v1/invoices/{id:guid}", UpdateAsync).RequireAuthorization();
         return app;
     }
 
@@ -21,4 +28,31 @@ public static class InvoiceEndpoints
 
         return Results.Ok(result);
     }
+
+    private static async Task<IResult> CreateAsync(
+        InvoiceSaveRequest request,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        InvoiceSaveRequestValidator.Validate(request);
+
+        var invoice = await invoiceService.SaveAsync(UserId(user), invoiceId: null, request, cancellationToken);
+        return Results.Created($"/api/v1/invoices/{invoice.Id}", invoice);
+    }
+
+    private static async Task<IResult> UpdateAsync(
+        Guid id,
+        InvoiceSaveRequest request,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        InvoiceSaveRequestValidator.Validate(request);
+
+        var invoice = await invoiceService.SaveAsync(UserId(user), id, request, cancellationToken);
+        return Results.Ok(invoice);
+    }
+
+    private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }

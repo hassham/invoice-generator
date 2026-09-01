@@ -34,6 +34,7 @@ import {
 } from "../lib/supportingContent";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
+import { AUTO_SAVE_DEBOUNCE_MS, buildInvoiceSavePayload, createInvoice, updateInvoice } from "../lib/invoiceSave";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
@@ -78,6 +79,13 @@ export function CreateInvoiceEditor() {
   // briefly slip past the gate on a slow connection.
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pendingGateAction, setPendingGateAction] = useState<"download" | "print" | null>(null);
+  // IG-45: null until the first successful save - a later save PUTs to this id instead of
+  // POSTing a new invoice. Not persisted (e.g. to localStorage): a page reload starts a fresh
+  // save identity, a known, documented gap left for IG-47 ("view and edit a saved invoice") to
+  // properly solve with real id-aware routing.
+  const [savedInvoiceId, setSavedInvoiceId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
@@ -97,6 +105,11 @@ export function CreateInvoiceEditor() {
   // over), so saving on that first run would overwrite a just-restored draft on disk with stale,
   // empty data for one tick.
   const isFirstAutoSaveRef = useRef(true);
+  // IG-45: same "skip the first run" reasoning as isFirstAutoSaveRef above, plus a debounce timer
+  // handle so each new edit cancels and reschedules the pending remote auto-save rather than
+  // stacking up requests.
+  const isFirstRemoteAutoSaveRef = useRef(true);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // IG-29: a previously auto-saved anonymous draft takes priority over today's-date prefill -
@@ -440,6 +453,17 @@ export function CreateInvoiceEditor() {
     // the very first render after a real mount - otherwise it would immediately re-persist this
     // blank state right after the clear above, leaving a (blank) entry in storage instead of none.
     isFirstAutoSaveRef.current = true;
+    // IG-45: a discarded draft is a genuinely new invoice, not a continuation of whatever was
+    // previously saved - without this, the next Save/auto-save would PUT the fresh blank form
+    // onto the old saved invoice's id instead of creating a new one. Also cancels any pending
+    // debounced auto-save so a stale timer can't fire and save this just-cleared form.
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    isFirstRemoteAutoSaveRef.current = true;
+    setSavedInvoiceId(null);
+    setSaveStatus("idle");
+    setSaveError(null);
     const today = todayIsoDate();
     const emptyDraft = createEmptyDraft();
     const freshDraft: InvoiceDraft = { ...emptyDraft, header: { ...emptyDraft.header, issueDate: today, dueDate: today } };
@@ -537,6 +561,68 @@ export function CreateInvoiceEditor() {
       setPdfDownloading(false);
     }
   };
+
+  // IG-45: backs both the manual "Save" button and the debounced remote auto-save below - both
+  // require a valid invoice (same gate as Download PDF) and both PUT once savedInvoiceId exists
+  // from an earlier save in this session, POST otherwise. `silent` distinguishes the two: a
+  // manual click surfaces validation errors the same way Download PDF does, whereas auto-save
+  // simply skips saving (no error banner) while the draft is still incomplete - the user hasn't
+  // asked to save yet, so there's nothing to report failing.
+  const performSave = async (options: { silent: boolean }) => {
+    const result = buildCurrentValidationResult();
+    if (!isInvoiceValid(result)) {
+      if (!options.silent) {
+        applyValidationResult(result);
+      }
+      return;
+    }
+
+    setSaveStatus("saving");
+    setSaveError(null);
+    try {
+      const payload = buildInvoiceSavePayload({ draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent });
+      const saved = savedInvoiceId ? await updateInvoice(savedInvoiceId, payload) : await createInvoice(payload);
+      setSavedInvoiceId(saved.id);
+      setSaveStatus("saved");
+    } catch (error) {
+      setSaveStatus("error");
+      setSaveError(error instanceof Error ? error.message : "Failed to save this invoice.");
+    }
+  };
+
+  const handleSave = () => {
+    void performSave({ silent: false });
+  };
+
+  // IG-45: "Auto-save runs after the configured inactivity interval without saving every
+  // keystroke" - authenticated only (this Story is scoped to "As an authenticated user...";
+  // anonymous visitors keep only the local-only auto-save above). Every edit cancels any pending
+  // timer and starts a fresh one, so a save request only ever fires once editing has paused for
+  // AUTO_SAVE_DEBOUNCE_MS, not on every keystroke.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    if (isFirstRemoteAutoSaveRef.current) {
+      isFirstRemoteAutoSaveRef.current = false;
+      return;
+    }
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      void performSave({ silent: true });
+    }, AUTO_SAVE_DEBOUNCE_MS);
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+    // performSave intentionally isn't a dependency: it closes over the latest draft/lineItems/etc
+    // on every render, and including it would reschedule the timer on every render rather than
+    // only on an actual edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent, isAuthenticated]);
 
   // FSD section 40 (Print Invoice) - not gated on isInvoiceValid, unlike Download PDF: this
   // Story's own AC doesn't mention validation, only IG-43's (from FSD section 38's explicit
@@ -671,8 +757,32 @@ export function CreateInvoiceEditor() {
               >
                 {pdfDownloading ? "Generating…" : "Download PDF"}
               </button>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saveStatus === "saving"}
+                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {saveStatus === "saving" ? "Saving…" : "Save"}
+                </button>
+              ) : null}
             </div>
           </div>
+          {isAuthenticated && saveStatus !== "idle" ? (
+            saveStatus === "error" ? (
+              <p role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <span>{saveError}</span>
+                <button type="button" onClick={handleSave} className="font-semibold underline">
+                  Retry
+                </button>
+              </p>
+            ) : (
+              <p role="status" className="mb-6 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                {saveStatus === "saving" ? "Saving…" : "Saved."}
+              </p>
+            )
+          ) : null}
           {pendingGateAction ? <AccountGateModal action={pendingGateAction} onClose={handleCloseAccountGate} /> : null}
           {draftRestored ? (
             <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">

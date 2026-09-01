@@ -6,6 +6,7 @@ using InvoiceApp.Infrastructure.Authentication;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Customers;
 using InvoiceApp.Infrastructure.HealthChecks;
+using InvoiceApp.Infrastructure.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
 using InvoiceApp.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -25,6 +26,7 @@ builder.Services.AddInfrastructureConfiguration(builder.Configuration);
 builder.Services.AddInfrastructurePersistence();
 builder.Services.AddInfrastructureAuthentication(builder.Configuration);
 builder.Services.AddInfrastructureCustomers();
+builder.Services.AddInfrastructureInvoicing();
 builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructureHealthChecks();
 

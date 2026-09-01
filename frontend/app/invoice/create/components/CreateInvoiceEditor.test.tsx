@@ -7,6 +7,7 @@ import { resetAnalyticsSink, setAnalyticsSink, type AnalyticsSink } from "../../
 import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { createEmptyDraft } from "../lib/invoiceDraft";
 import { downloadInvoicePdf } from "../lib/invoicePdf";
+import { AUTO_SAVE_DEBOUNCE_MS, createInvoice, updateInvoice } from "../lib/invoiceSave";
 import { createEmptyLineItem } from "../lib/lineItems";
 import { processLogoUpload } from "../lib/logoUpload";
 import { createEmptySupportingContent } from "../lib/supportingContent";
@@ -44,6 +45,35 @@ vi.mock("../lib/invoicePdf", async (importOriginal) => ({
 
 const mockedDownloadInvoicePdf = vi.mocked(downloadInvoicePdf);
 
+// createInvoice/updateInvoice do a real fetch - stubbed so save tests only verify the editor's own
+// gating/wiring/debounce logic, not lib/invoiceSave.ts's mechanics (covered by its own tests).
+vi.mock("../lib/invoiceSave", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/invoiceSave")>()),
+  createInvoice: vi.fn(),
+  updateInvoice: vi.fn(),
+}));
+
+const mockedCreateInvoice = vi.mocked(createInvoice);
+const mockedUpdateInvoice = vi.mocked(updateInvoice);
+const SAVED_INVOICE = {
+  id: "invoice-1",
+  customerId: "customer-1",
+  invoiceNumber: "INV-000001",
+  status: "Draft",
+  issueDate: "2026-08-01",
+  dueDate: "2026-08-01",
+  currency: "AUD",
+  reference: null,
+  subtotal: 55,
+  discountAmount: 0,
+  taxAmount: 5,
+  totalAmount: 55,
+  amountPaid: 0,
+  amountDue: 55,
+  createdAt: "2026-08-01T00:00:00Z",
+  updatedAt: "2026-08-01T00:00:00Z",
+};
+
 // IG-30: Download PDF/Print are gated on the session check below - defaults to "anonymous" so
 // every test not specifically about authentication exercises the common (anonymous) path without
 // having to opt in explicitly. Tests that need the authenticated path override this per-test.
@@ -58,6 +88,8 @@ describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetCurrentSession.mockResolvedValue(null);
+    mockedCreateInvoice.mockReset();
+    mockedUpdateInvoice.mockReset();
   });
 
   afterEach(() => {
@@ -812,6 +844,162 @@ describe("CreateInvoiceEditor", () => {
       expect(screen.queryByText(/We restored your unsaved invoice draft/)).not.toBeInTheDocument();
       expect(screen.getByLabelText("From", { exact: false })).toHaveValue("");
       expect(loadDraftSnapshot()).toBeNull();
+    });
+  });
+
+  describe("IG-45: save and auto-save invoice drafts", () => {
+    async function fillValidInvoice(user: ReturnType<typeof userEvent.setup>) {
+      await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+      await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
+      await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
+      await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+      await user.type(screen.getByLabelText(/Unit Price/), "50");
+    }
+
+    it("shows no Save button or status area for an anonymous visitor", async () => {
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+    });
+
+    it("clicking Save on an invalid invoice shows the review banner and does not save", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(screen.getByText(/This invoice isn't ready yet/)).toBeInTheDocument();
+      expect(mockedCreateInvoice).not.toHaveBeenCalled();
+    });
+
+    it("saves a valid invoice and shows a Saved status", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      await fillValidInvoice(user);
+
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
+      expect(await screen.findByRole("status")).toHaveTextContent("Saved.");
+      expect(mockedUpdateInvoice).not.toHaveBeenCalled();
+    });
+
+    it("a second save updates the previously saved invoice instead of creating a new one", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      mockedUpdateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      await fillValidInvoice(user);
+      await user.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Description", { exact: false }), " and support");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(mockedUpdateInvoice).toHaveBeenCalledTimes(1));
+      expect(mockedUpdateInvoice).toHaveBeenCalledWith("invoice-1", expect.anything());
+      expect(mockedCreateInvoice).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows a retryable error banner when saving fails, and Retry saves successfully once the failure clears", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockRejectedValueOnce(new Error("Failed to save this invoice."));
+      mockedCreateInvoice.mockResolvedValueOnce(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      await fillValidInvoice(user);
+
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Failed to save this invoice.");
+
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+
+      expect(await screen.findByRole("status")).toHaveTextContent("Saved.");
+      expect(mockedCreateInvoice).toHaveBeenCalledTimes(2);
+    });
+
+    it("auto-saves once editing pauses for the configured interval, resetting that interval on every further edit", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
+      await fillValidInvoice(user);
+
+      vi.useFakeTimers();
+      try {
+        await vi.advanceTimersByTimeAsync(AUTO_SAVE_DEBOUNCE_MS - 500);
+        expect(mockedCreateInvoice).not.toHaveBeenCalled();
+
+        // A further edit here must reset the pending timer, not just leave it running -
+        // fireEvent instead of userEvent, since userEvent's own internal delays don't advance
+        // under a faked clock.
+        fireEvent.change(screen.getByLabelText(/Unit Price/), { target: { value: "60" } });
+
+        await vi.advanceTimersByTimeAsync(AUTO_SAVE_DEBOUNCE_MS - 500);
+        expect(mockedCreateInvoice).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(600);
+        expect(mockedCreateInvoice).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("Discard draft and start over resets the saved invoice identity, so the next save creates a new invoice rather than updating the discarded one", async () => {
+      saveDraftSnapshot({
+        draft: {
+          ...createEmptyDraft(),
+          seller: "Acme Pty Ltd",
+          customer: "Jane's Cafe",
+          header: { ...createEmptyDraft().header, invoiceNumber: "INV-000001", issueDate: "2026-08-01", dueDate: "2026-08-15" },
+        },
+        lineItems: [{ ...createEmptyLineItem(), description: "Consulting", unitPrice: "50" }],
+        invoiceDiscountType: "None",
+        invoiceDiscountValue: "",
+        supportingContent: createEmptySupportingContent(),
+      });
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      expect(await screen.findByLabelText("From", { exact: false })).toHaveValue("Acme Pty Ltd");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
+
+      await user.click(screen.getByRole("button", { name: "Discard draft and start over" }));
+      await fillValidInvoice(user);
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(2));
+      expect(mockedUpdateInvoice).not.toHaveBeenCalled();
+    });
+
+    it("does not attempt a remote auto-save for an anonymous visitor", async () => {
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
+      await fillValidInvoice(user);
+
+      vi.useFakeTimers();
+      try {
+        await vi.advanceTimersByTimeAsync(AUTO_SAVE_DEBOUNCE_MS + 500);
+        expect(mockedCreateInvoice).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });
