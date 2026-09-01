@@ -177,6 +177,108 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<InvoiceDto> DuplicateAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var source = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
+
+        // FSD section 51: "Issue date: Current date" / "Due date: calculated using current
+        // default terms" - no configured default-terms setting exists yet (IG-54/Epic IG-8), so
+        // the source's own issue-to-due day offset is preserved relative to today as the closest
+        // available approximation.
+        var issueDate = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
+        var termDays = source.DueDate.DayNumber - source.IssueDate.DayNumber;
+        var dueDate = issueDate.AddDays(termDays);
+        var invoiceNumber = await GenerateDuplicateInvoiceNumberAsync(businessId, source.InvoiceNumber, cancellationToken);
+
+        var duplicate = new Invoice
+        {
+            Id = Guid.NewGuid(),
+            BusinessId = businessId,
+            CustomerId = source.CustomerId,
+            InvoiceNumber = invoiceNumber,
+            Status = InvoiceStatus.Draft,
+            IssueDate = issueDate,
+            DueDate = dueDate,
+            Currency = source.Currency,
+            Reference = null,
+            // ShipTo rides inside CustomerSnapshot (IG-47) - copying it verbatim carries Customer
+            // and ShipTo together, matching FSD's "Customer" as one copied unit.
+            CustomerSnapshot = source.CustomerSnapshot,
+            SellerSnapshot = source.SellerSnapshot,
+            DiscountType = source.DiscountType,
+            DiscountValue = source.DiscountValue,
+            // Copied directly rather than recalculated - items/discount are unchanged, so this
+            // guarantees the duplicate shows identical figures with no risk of a second
+            // calculation pass drifting from the source (e.g. rounding).
+            Subtotal = source.Subtotal,
+            DiscountAmount = source.DiscountAmount,
+            TaxAmount = source.TaxAmount,
+            TotalAmount = source.TotalAmount,
+            AmountPaid = 0,
+            AmountDue = source.TotalAmount,
+            Notes = source.Notes,
+            Terms = source.Terms,
+            PaymentInstructions = source.PaymentInstructions,
+            TemplateId = source.TemplateId,
+            TemplateSettings = source.TemplateSettings,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        dbContext.Invoices.Add(duplicate);
+
+        foreach (var item in source.Items.OrderBy(i => i.SortOrder))
+        {
+            // Added directly to the DbSet, not via `duplicate.Items.Add(...)` - see SaveAsync's
+            // own comment on why a client-generated Guid key needs this to be tracked as Added.
+            dbContext.InvoiceItems.Add(new InvoiceItem
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = duplicate.Id,
+                Description = item.Description,
+                Quantity = item.Quantity,
+                Unit = item.Unit,
+                UnitPrice = item.UnitPrice,
+                TaxRate = item.TaxRate,
+                Discount = item.Discount,
+                LineSubtotal = item.LineSubtotal,
+                TaxAmount = item.TaxAmount,
+                LineTotal = item.LineTotal,
+                SortOrder = item.SortOrder,
+            });
+        }
+
+        await auditLogService.RecordAsync(
+            userId,
+            businessId,
+            "Invoice",
+            duplicate.Id,
+            "Invoice duplicated",
+            new { duplicate.InvoiceNumber, SourceInvoiceId = source.Id, SourceInvoiceNumber = source.InvoiceNumber },
+            cancellationToken);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(duplicate);
+    }
+
+    /// <summary>No numbering generator exists yet (IG-46) - appends "-COPY", then "-2"/"-3"/...
+    /// on collision, satisfying "the new invoice has an independent identifier" without inventing
+    /// IG-46's own prefix/sequence scheme.</summary>
+    private async Task<string> GenerateDuplicateInvoiceNumberAsync(Guid businessId, string sourceInvoiceNumber, CancellationToken cancellationToken)
+    {
+        var baseNumber = $"{sourceInvoiceNumber}-COPY";
+        var candidate = baseNumber;
+        var suffix = 1;
+        while (await dbContext.Invoices.AnyAsync(invoice => invoice.BusinessId == businessId && invoice.InvoiceNumber == candidate && !invoice.IsDeleted, cancellationToken))
+        {
+            suffix++;
+            candidate = $"{baseNumber}-{suffix}";
+        }
+
+        return candidate;
+    }
+
     public async Task<InvoiceListResponse> ListAsync(Guid userId, InvoiceListQuery query, CancellationToken cancellationToken)
     {
         var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);

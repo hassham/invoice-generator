@@ -23,6 +23,7 @@ public static class InvoiceEndpoints
         // IG-49: same DELETE-archives-not-hard-deletes convention as CustomerEndpoints.
         app.MapPost("/api/v1/invoices/{id:guid}/cancel", CancelAsync).RequireAuthorization();
         app.MapDelete("/api/v1/invoices/{id:guid}", DeleteAsync).RequireAuthorization();
+        app.MapPost("/api/v1/invoices/{id:guid}/duplicate", DuplicateAsync).RequireAuthorization();
         return app;
     }
 
@@ -106,6 +107,16 @@ public static class InvoiceEndpoints
     {
         await invoiceService.DeleteAsync(UserId(user), id, cancellationToken);
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> DuplicateAsync(
+        Guid id,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await invoiceService.DuplicateAsync(UserId(user), id, cancellationToken);
+        return Results.Created($"/api/v1/invoices/{invoice.Id}", invoice);
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchTemplates, type Template } from "../../../../invoice/create/lib/templates";
 import { updateInvoice } from "../../../../invoice/create/lib/invoiceSave";
-import { cancelInvoice, deleteInvoice, getInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
+import { cancelInvoice, deleteInvoice, duplicateInvoice, getInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
 import { InvoiceDetail } from "./InvoiceDetail";
 
 const pushMock = vi.fn();
@@ -21,6 +21,7 @@ vi.mock("../../../../lib/invoiceDetail", async (importOriginal) => ({
   getInvoice: vi.fn(),
   cancelInvoice: vi.fn(),
   deleteInvoice: vi.fn(),
+  duplicateInvoice: vi.fn(),
 }));
 
 vi.mock("../../../../invoice/create/lib/invoiceSave", async (importOriginal) => ({
@@ -33,6 +34,7 @@ const mockedGetInvoice = vi.mocked(getInvoice);
 const mockedUpdateInvoice = vi.mocked(updateInvoice);
 const mockedCancelInvoice = vi.mocked(cancelInvoice);
 const mockedDeleteInvoice = vi.mocked(deleteInvoice);
+const mockedDuplicateInvoice = vi.mocked(duplicateInvoice);
 
 const STUB_TEMPLATES: Template[] = [
   { id: "template-classic", name: "Classic", templateCode: "classic", previewImage: null, isPremium: false, sortOrder: 1 },
@@ -288,6 +290,37 @@ describe("InvoiceDetail", () => {
       await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Failed to delete this invoice.");
+      expect(pushMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("duplicate (IG-48)", () => {
+    it("duplicates the invoice and navigates to the new draft, with no confirmation needed", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedDuplicateInvoice.mockResolvedValue({ id: "invoice-2", status: "Draft", updatedAt: "2026-08-02T00:00:00Z" });
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Duplicate" }));
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      await waitFor(() => expect(mockedDuplicateInvoice).toHaveBeenCalledWith("invoice-1"));
+      expect(pushMock).toHaveBeenCalledWith("/documents/invoices/invoice-2");
+    });
+
+    it("shows an error banner and stays on the page when duplicating fails", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedDuplicateInvoice.mockRejectedValue(new Error("Failed to duplicate this invoice."));
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Duplicate" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Failed to duplicate this invoice.");
       expect(pushMock).not.toHaveBeenCalled();
     });
   });

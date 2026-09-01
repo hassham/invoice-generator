@@ -28,6 +28,7 @@ import {
   buildInvoiceUpdatePayload,
   cancelInvoice,
   deleteInvoice,
+  duplicateInvoice,
   getInvoice,
   toEditableInvoice,
   type EditableInvoice,
@@ -82,6 +83,8 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const [activeDialog, setActiveDialog] = useState<"cancel" | "delete" | null>(null);
   const [dialogPending, setDialogPending] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,6 +298,20 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     }
   };
 
+  // FSD section 51: not destructive to the source invoice, so unlike Cancel/Delete this needs
+  // no confirmation - lands the user straight on the new draft.
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    setDuplicateError(null);
+    try {
+      const summary = await duplicateInvoice(invoiceId);
+      router.push(`/documents/invoices/${summary.id}`);
+    } catch (error) {
+      setDuplicateError(error instanceof Error ? error.message : "Failed to duplicate this invoice.");
+      setDuplicating(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -306,6 +323,14 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleDuplicate()}
+            disabled={duplicating}
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {duplicating ? "Duplicating…" : "Duplicate"}
+          </button>
           {detail.status !== "Cancelled" && detail.status !== "Paid" ? (
             <button
               type="button"
@@ -365,6 +390,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       {detail.status === "Paid" ? (
         <p role="alert" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           This invoice is marked Paid. You can still edit it, but changes may affect records that depend on it.
+        </p>
+      ) : null}
+
+      {duplicateError ? (
+        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {duplicateError}
         </p>
       ) : null}
 

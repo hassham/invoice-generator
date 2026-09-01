@@ -24,4 +24,8 @@ public interface IInvoiceService
     /// "prefer soft deletion... do not permanently remove financial history" applied uniformly
     /// rather than branching a real hard-delete path this codebase has never had.</summary>
     Task DeleteAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
+
+    /// <summary>FSD section 51: creates a new Draft invoice copying Customer/Items/Tax
+    /// settings/Notes/Terms/Template - never Invoice Number, Reference, Payments, or Status.</summary>
+    Task<InvoiceDto> DuplicateAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
 }

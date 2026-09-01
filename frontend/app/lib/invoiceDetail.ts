@@ -212,3 +212,16 @@ export async function deleteInvoice(id: string): Promise<void> {
     throw new Error(await parseErrorDetail(response, "Failed to delete this invoice."));
   }
 }
+
+/** IG-48 / FSD section 51: creates a new Draft invoice copying Customer/Items/Tax
+ * settings/Notes/Terms/Template from this one - the id in the response is enough to navigate
+ * straight to the new duplicate's own detail page. */
+export async function duplicateInvoice(id: string): Promise<InvoiceSummary> {
+  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}/duplicate`, { method: "POST", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to duplicate this invoice."));
+  }
+
+  return response.json();
+}
