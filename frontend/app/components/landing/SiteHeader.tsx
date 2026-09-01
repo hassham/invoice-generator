@@ -68,9 +68,14 @@ export function SiteHeader() {
             </Link>
           ))}
           {account ? (
-            <Link href="/customers" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
-              Customers
-            </Link>
+            <>
+              <Link href="/documents/invoices" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+                Invoices
+              </Link>
+              <Link href="/customers" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+                Customers
+              </Link>
+            </>
           ) : null}
         </nav>
 
@@ -130,13 +135,22 @@ export function SiteHeader() {
               </Link>
             ))}
             {account ? (
-              <Link
-                href="/customers"
-                className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Customers
-              </Link>
+              <>
+                <Link
+                  href="/documents/invoices"
+                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Invoices
+                </Link>
+                <Link
+                  href="/customers"
+                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Customers
+                </Link>
+              </>
             ) : null}
             <div className="mt-2 flex flex-col gap-2 border-t border-slate-200 pt-4">
               {account ? (

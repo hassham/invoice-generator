@@ -124,6 +124,44 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
         return ToDetailDto(invoice);
     }
 
+    public async Task<InvoiceListResponse> ListAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        // FSD section 112: default 25 per page, with 25/50/100 offered as the frontend's page-size
+        // choices - 100 is the upper bound the backend enforces either way, but any value in
+        // between is accepted rather than snapped to exactly one of those three, so a missing or
+        // out-of-range value just falls back to the default rather than erroring.
+        var effectivePageSize = pageSize is >= 1 and <= 100 ? pageSize : 25;
+        var effectivePage = page < 1 ? 1 : page;
+
+        var query = dbContext.Invoices
+            .Where(invoice => invoice.BusinessId == businessId && !invoice.IsDeleted)
+            .OrderByDescending(invoice => invoice.CreatedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((effectivePage - 1) * effectivePageSize)
+            .Take(effectivePageSize)
+            .Join(
+                dbContext.Customers,
+                invoice => invoice.CustomerId,
+                customer => customer.Id,
+                (invoice, customer) => new InvoiceListItemDto(
+                    invoice.Id,
+                    invoice.InvoiceNumber,
+                    customer.BusinessName ?? customer.ContactName ?? string.Empty,
+                    invoice.Status,
+                    invoice.IssueDate,
+                    invoice.DueDate,
+                    invoice.Currency,
+                    invoice.TotalAmount,
+                    invoice.AmountDue))
+            .ToListAsync(cancellationToken);
+
+        return new InvoiceListResponse(items, effectivePage, effectivePageSize, totalCount);
+    }
+
     private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken) =>
         await dbContext.Businesses
             .Where(business => business.UserId == userId)

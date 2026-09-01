@@ -13,11 +13,12 @@ public static class InvoiceEndpoints
         // reads nothing account-specific, so there's no reason to gate it behind a session.
         app.MapPost("/api/v1/invoices/calculate", Calculate);
 
-        // IG-45/IG-47: "As an authenticated user..." - unlike /calculate and /pdf above, these all
-        // read or write account-owned data, so all three require a session.
+        // IG-45/IG-47/IG-62: "As an authenticated user..." - unlike /calculate and /pdf above,
+        // these all read or write account-owned data, so all require a session.
         app.MapPost("/api/v1/invoices", CreateAsync).RequireAuthorization();
         app.MapPut("/api/v1/invoices/{id:guid}", UpdateAsync).RequireAuthorization();
         app.MapGet("/api/v1/invoices/{id:guid}", GetAsync).RequireAuthorization();
+        app.MapGet("/api/v1/invoices", ListAsync).RequireAuthorization();
         return app;
     }
 
@@ -63,6 +64,17 @@ public static class InvoiceEndpoints
     {
         var invoice = await invoiceService.GetAsync(UserId(user), id, cancellationToken);
         return Results.Ok(invoice);
+    }
+
+    private static async Task<IResult> ListAsync(
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken,
+        int page = 1,
+        int pageSize = 25)
+    {
+        var result = await invoiceService.ListAsync(UserId(user), page, pageSize, cancellationToken);
+        return Results.Ok(result);
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

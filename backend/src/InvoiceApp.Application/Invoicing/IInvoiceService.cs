@@ -11,4 +11,6 @@ public interface IInvoiceService
     Task<InvoiceDto> SaveAsync(Guid userId, Guid? invoiceId, InvoiceSaveRequest request, CancellationToken cancellationToken);
 
     Task<InvoiceDetailDto> GetAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
+
+    Task<InvoiceListResponse> ListAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken);
 }

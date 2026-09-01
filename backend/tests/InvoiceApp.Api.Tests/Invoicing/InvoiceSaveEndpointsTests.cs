@@ -242,4 +242,61 @@ public class InvoiceSaveEndpointsTests
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Missing_session_cannot_list_invoices()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync(InvoicesEndpoint);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Lists_only_the_signed_in_accounts_invoices_with_customer_names_newest_first()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "list-owner@example.com");
+        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0001", customer: "Acme Pty Ltd"));
+        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0002", customer: "Beta Pty Ltd"));
+
+        using var otherClient = await RegisteredClientAsync(factory, "list-other@example.com");
+        await otherClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0001", customer: "Someone Else"));
+
+        var response = await client.GetAsync(InvoicesEndpoint);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.TotalCount);
+        Assert.Equal(2, result.Items.Count);
+        Assert.Equal("INV-0002", result.Items[0].InvoiceNumber); // newest first
+        Assert.Equal("Beta Pty Ltd", result.Items[0].CustomerName);
+        Assert.Equal("INV-0001", result.Items[1].InvoiceNumber);
+        Assert.Equal("Acme Pty Ltd", result.Items[1].CustomerName);
+        Assert.Equal(25, result.PageSize);
+        Assert.Equal(1, result.Page);
+    }
+
+    [Fact]
+    public async Task Paginates_and_falls_back_to_the_default_page_size_for_an_out_of_range_value()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "list-paginate@example.com");
+        for (var i = 1; i <= 3; i++)
+        {
+            await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: $"INV-000{i}"));
+        }
+
+        var firstPage = await (await client.GetAsync($"{InvoicesEndpoint}?page=1&pageSize=2")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+        var secondPage = await (await client.GetAsync($"{InvoicesEndpoint}?page=2&pageSize=2")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+        var outOfRangePageSize = await (await client.GetAsync($"{InvoicesEndpoint}?pageSize=0")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+
+        Assert.Equal(2, firstPage!.Items.Count);
+        Assert.Single(secondPage!.Items);
+        Assert.Equal(3, secondPage.TotalCount);
+        Assert.Equal(25, outOfRangePageSize!.PageSize);
+    }
 }
