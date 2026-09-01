@@ -4,6 +4,7 @@ using InvoiceApp.Api.Diagnostics;
 using InvoiceApp.Api.Endpoints;
 using InvoiceApp.Infrastructure.Audit;
 using InvoiceApp.Infrastructure.Authentication;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Customers;
 using InvoiceApp.Infrastructure.Dashboard;
@@ -28,6 +29,7 @@ builder.Services.AddInfrastructureConfiguration(builder.Configuration);
 builder.Services.AddInfrastructurePersistence();
 builder.Services.AddInfrastructureAuthentication(builder.Configuration);
 builder.Services.AddInfrastructureAudit();
+builder.Services.AddInfrastructureBusinesses();
 builder.Services.AddInfrastructureCustomers();
 builder.Services.AddInfrastructureInvoicing();
 builder.Services.AddInfrastructureDashboard();
@@ -82,6 +84,7 @@ app.MapTemplateEndpoints();
 app.MapDocumentEndpoints();
 app.MapCustomerEndpoints();
 app.MapDashboardEndpoints();
+app.MapBusinessEndpoints();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the
 // app look like it needs to be restarted.
