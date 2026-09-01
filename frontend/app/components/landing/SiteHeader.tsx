@@ -67,6 +67,11 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          {account ? (
+            <Link href="/customers" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              Customers
+            </Link>
+          ) : null}
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
@@ -124,6 +129,15 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
+            {account ? (
+              <Link
+                href="/customers"
+                className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Customers
+              </Link>
+            ) : null}
             <div className="mt-2 flex flex-col gap-2 border-t border-slate-200 pt-4">
               {account ? (
                 <>

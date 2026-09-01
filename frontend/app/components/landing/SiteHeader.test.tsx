@@ -114,6 +114,28 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
   });
 
+  it("hides the Customers link when signed out", async () => {
+    stubSession(null);
+    render(<SiteHeader />);
+    await screen.findByRole("link", { name: "Login" });
+
+    expect(screen.queryByRole("link", { name: "Customers" })).not.toBeInTheDocument();
+  });
+
+  it("shows a Customers link, in both navs, once a session is found (IG-55)", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    render(<SiteHeader />);
+    await screen.findByRole("button", { name: "Log out" });
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Customers" })).toHaveAttribute("href", "/customers");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
+    expect(within(mobileNav).getByRole("link", { name: "Customers" })).toHaveAttribute("href", "/customers");
+  });
+
   it("falls back to the email when the account has no name", async () => {
     stubSession({ userId: "u1", email: "jane@example.com", name: null });
     render(<SiteHeader />);
