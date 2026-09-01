@@ -36,9 +36,11 @@ import {
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
 import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
 import { AUTO_SAVE_DEBOUNCE_MS, buildInvoiceSavePayload, createInvoice, updateInvoice } from "../lib/invoiceSave";
+import { formatCustomerForBillTo } from "../lib/customerPicker";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
+import { listCustomers, type Customer } from "../../../lib/customers";
 import { AccountGateModal } from "./AccountGateModal";
 import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
@@ -51,6 +53,7 @@ import { SupportingContentSection } from "./SupportingContentSection";
 import { TemplateCustomizationPanel } from "./TemplateCustomizationPanel";
 import { TemplateSelector } from "./TemplateSelector";
 import { TextAreaField } from "./TextAreaField";
+import { CustomerPicker } from "./CustomerPicker";
 
 export function CreateInvoiceEditor() {
   const [draft, setDraft] = useState(createEmptyDraft);
@@ -87,6 +90,12 @@ export function CreateInvoiceEditor() {
   const [savedInvoiceId, setSavedInvoiceId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+  // IG-56: this account's saved customers, fetched once authenticated, for the search picker
+  // above Bill To. selectedCustomerId records which one (if any) is currently reflected in
+  // draft.customer - cleared as soon as that text is hand-edited (see handleCustomerChange),
+  // since an edited block may no longer match the customer it was filled from.
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
@@ -234,6 +243,28 @@ export function CreateInvoiceEditor() {
     };
   }, []);
 
+  // IG-56: fetches this account's saved customers once authenticated - anonymous visitors have
+  // none reachable (the endpoint requires a session) and the picker just stays empty for them.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    let cancelled = false;
+    listCustomers()
+      .then((loaded) => {
+        if (!cancelled) {
+          setCustomers(loaded);
+        }
+      })
+      .catch(() => {
+        // A failed customer fetch shouldn't block the invoice editor itself - the search box
+        // just has nothing to show, same as a not-yet-loaded state.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!pristineDraftRef.current) {
@@ -321,10 +352,26 @@ export function CreateInvoiceEditor() {
     if (customerError) {
       setCustomerError(validateField(value, BILL_TO_FIELD));
     }
+    // A hand edit may no longer match the customer this text was filled from (if any) - clearing
+    // the recorded id here means a save falls back to IG-45's find-or-create instead of silently
+    // attaching the invoice to a customer the visible text no longer describes.
+    setSelectedCustomerId(null);
   };
 
   const handleCustomerBlur = () => {
     setCustomerError(validateField(draft.customer, BILL_TO_FIELD));
+  };
+
+  // IG-56: fills Bill To from a picked saved customer and records its id for the save payload -
+  // bypasses handleCustomerChange entirely (a programmatic fill, not a hand edit), so
+  // selectedCustomerId is set here, not cleared.
+  const handleSelectCustomer = (customer: Customer) => {
+    const value = formatCustomerForBillTo(customer);
+    setDraft((current) => ({ ...current, customer: value }));
+    if (customerError) {
+      setCustomerError(validateField(value, BILL_TO_FIELD));
+    }
+    setSelectedCustomerId(customer.id);
   };
 
   const handleShipToChange = (_name: string, value: string) => {
@@ -489,6 +536,7 @@ export function CreateInvoiceEditor() {
     pristineDiscountValueRef.current = "";
     pristineSupportingContentRef.current = freshSupportingContent;
     setDraftRestored(false);
+    setSelectedCustomerId(null);
   };
 
   const buildCurrentValidationResult = () =>
@@ -611,7 +659,7 @@ export function CreateInvoiceEditor() {
     setSaveStatus("saving");
     setSaveError(null);
     try {
-      const payload = buildInvoiceSavePayload({ draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent });
+      const payload = buildInvoiceSavePayload({ draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent, selectedCustomerId });
       const saved = savedInvoiceId ? await updateInvoice(savedInvoiceId, payload) : await createInvoice(payload);
       setSavedInvoiceId(saved.id);
       setSaveStatus("saved");
@@ -866,6 +914,7 @@ export function CreateInvoiceEditor() {
           </div>
           <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-6">
             <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={4} onChange={handleSellerChange} onBlur={handleSellerBlur} />
+            {isAuthenticated ? <CustomerPicker customers={customers} onSelect={handleSelectCustomer} /> : null}
             <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={4} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
             <div hidden={!advancedVisible}>
               <TextAreaField field={SHIP_TO_FIELD} value={draft.shipTo} error={shipToError} rows={4} onChange={handleShipToChange} onBlur={handleShipToBlur} />

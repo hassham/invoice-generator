@@ -37,6 +37,10 @@ export interface InvoiceSavePayload {
   seller: string;
   customer: string;
   shipTo: string | null;
+  /** IG-56: set when a saved customer was picked via the search box (see CustomerPicker) rather
+   * than typed as free text - the backend uses this directly instead of its find-or-create
+   * heuristic. Null for a plain free-text Bill To, including every save the edit page makes. */
+  customerId: string | null;
   items: InvoiceSaveLineItemPayload[];
   invoiceDiscountType: InvoiceDiscountType;
   invoiceDiscountValue: number | null;
@@ -85,8 +89,9 @@ export function buildInvoiceSavePayload(input: {
   invoiceDiscountType: InvoiceDiscountType;
   invoiceDiscountValue: string;
   supportingContent: SupportingContentValues;
+  selectedCustomerId?: string | null;
 }): InvoiceSavePayload {
-  const { draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent } = input;
+  const { draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent, selectedCustomerId = null } = input;
   const parsedDiscountValue = invoiceDiscountValue.trim().length > 0 ? Number.parseFloat(invoiceDiscountValue) : null;
 
   return {
@@ -98,6 +103,7 @@ export function buildInvoiceSavePayload(input: {
     seller: draft.seller,
     customer: draft.customer,
     shipTo: nullIfEmpty(draft.shipTo),
+    customerId: selectedCustomerId,
     items: lineItems.map((item) => {
       const numeric = toCalculationInput(item);
       return {

@@ -137,6 +137,9 @@ export function buildInvoiceUpdatePayload(editable: EditableInvoice): InvoiceSav
     seller: editable.seller,
     customer: editable.customer,
     shipTo: nullIfEmpty(editable.shipTo),
+    // IG-56's picker is create-flow only (documented scope decision) - the edit page always
+    // relies on IG-45's existing find-or-create-by-text matching.
+    customerId: null,
     items: editable.lineItems.map((item) => {
       const numeric = toCalculationInput(item);
       return {

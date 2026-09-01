@@ -51,7 +51,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
             throw new ConflictException("An invoice with this number already exists.");
         }
 
-        invoice.CustomerId = await ResolveOrCreateCustomerAsync(businessId, request.Customer, cancellationToken);
+        invoice.CustomerId = request.CustomerId is { } selectedCustomerId
+            ? await ResolveSelectedCustomerAsync(businessId, selectedCustomerId, cancellationToken)
+            : await ResolveOrCreateCustomerAsync(businessId, request.Customer, cancellationToken);
 
         var calculation = InvoiceCalculator.Calculate(new InvoiceCalculationRequest(
             request.Items.Select(item => new InvoiceLineItemCalculationInput(item.Quantity, item.UnitPrice, item.TaxRate, item.Discount)).ToList(),
@@ -160,6 +162,17 @@ public sealed class InvoiceService(ApplicationDbContext dbContext) : IInvoiceSer
             .ToListAsync(cancellationToken);
 
         return new InvoiceListResponse(items, effectivePage, effectivePageSize, totalCount);
+    }
+
+    /// <summary>IG-56: the caller picked an existing saved customer rather than typing free text -
+    /// used directly once ownership is confirmed, bypassing the find-or-create heuristic below
+    /// entirely (which would otherwise re-match by name text, a fragile way to honor an explicit
+    /// selection). Same anti-enumeration precedent as elsewhere: a customer belonging to a
+    /// different account 404s, not a more specific error.</summary>
+    private async Task<Guid> ResolveSelectedCustomerAsync(Guid businessId, Guid customerId, CancellationToken cancellationToken)
+    {
+        var owned = await dbContext.Customers.AnyAsync(customer => customer.Id == customerId && customer.BusinessId == businessId, cancellationToken);
+        return owned ? customerId : throw new NotFoundException("Customer not found.");
     }
 
     private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken) =>

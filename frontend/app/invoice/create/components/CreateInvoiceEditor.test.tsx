@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentSession } from "../../../lib/auth";
+import { listCustomers } from "../../../lib/customers";
 import { loadPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
 import { resetAnalyticsSink, setAnalyticsSink, type AnalyticsSink } from "../../../../lib/analytics";
 import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
@@ -83,6 +84,16 @@ vi.mock("../../../lib/auth", () => ({
 
 const mockedGetCurrentSession = vi.mocked(getCurrentSession);
 const AUTHENTICATED_ACCOUNT = { userId: "u1", email: "jane@example.com", name: "Jane" };
+
+// IG-56: fetches saved customers once authenticated (for the CustomerPicker search box) - stubbed
+// so every authenticated test doesn't also issue a real, unmocked fetch (same gotcha documented
+// for lib/auth.ts: an unstubbed account-owned fetch fails silently in jsdom rather than failing
+// the test, so it has to be caught here rather than relying on a red test to notice it).
+vi.mock("../../../lib/customers", () => ({
+  listCustomers: vi.fn(() => Promise.resolve([])),
+}));
+
+const mockedListCustomers = vi.mocked(listCustomers);
 
 describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
@@ -1069,6 +1080,113 @@ describe("CreateInvoiceEditor", () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+  });
+
+  describe("IG-56: select a saved customer on an invoice", () => {
+    const SAMPLE_CUSTOMER = {
+      id: "customer-42",
+      businessName: "Acme Pty Ltd",
+      contactName: "Jamie Lee",
+      email: "billing@acme.example",
+      phone: null,
+      addressLine1: "1 Main St",
+      addressLine2: null,
+      city: "Sydney",
+      state: "NSW",
+      postalCode: "2000",
+      country: "AU",
+      taxNumber: null,
+      notes: null,
+      isArchived: false,
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+    };
+
+    it("hides the customer search box for an anonymous visitor", async () => {
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      expect(screen.queryByLabelText("Search saved customers")).not.toBeInTheDocument();
+      expect(mockedListCustomers).not.toHaveBeenCalled();
+    });
+
+    it("shows the customer search box and fetches saved customers for an authenticated visitor", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      render(<CreateInvoiceEditor />);
+
+      expect(await screen.findByLabelText("Search saved customers")).toBeInTheDocument();
+      await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
+    });
+
+    it("selecting a matching customer fills Bill To and includes its id in the save payload", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListCustomers.mockResolvedValue([SAMPLE_CUSTOMER]);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Search saved customers"), "Acme");
+      await user.click(await screen.findByRole("button", { name: /Acme Pty Ltd/ }));
+
+      expect(screen.getByLabelText("Bill To", { exact: false })).toHaveValue("Acme Pty Ltd\nJamie Lee\n1 Main St\nSydney, NSW, 2000\nAU");
+
+      await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+      await user.type(screen.getByLabelText("From", { exact: false }), "My Business");
+      await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
+      expect(mockedCreateInvoice).toHaveBeenCalledWith(expect.objectContaining({ customerId: "customer-42" }));
+    });
+
+    it("clears the recorded customer id once the filled-in Bill To text is hand-edited", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListCustomers.mockResolvedValue([SAMPLE_CUSTOMER]);
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Search saved customers"), "Acme");
+      await user.click(await screen.findByRole("button", { name: /Acme Pty Ltd/ }));
+      await user.type(screen.getByLabelText("Bill To", { exact: false }), " (edited)");
+
+      await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
+      await user.type(screen.getByLabelText("From", { exact: false }), "My Business");
+      await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
+      expect(mockedCreateInvoice).toHaveBeenCalledWith(expect.objectContaining({ customerId: null }));
+    });
+
+    it("shows no matches message when the search text does not match any saved customer", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListCustomers.mockResolvedValue([SAMPLE_CUSTOMER]);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Search saved customers"), "Zephyr");
+
+      expect(await screen.findByText("No matching customers.")).toBeInTheDocument();
+    });
+
+    it("does not search until at least 2 characters are typed", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListCustomers.mockResolvedValue([SAMPLE_CUSTOMER]);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Search saved customers"), "A");
+
+      expect(screen.queryByRole("button", { name: /Acme Pty Ltd/ })).not.toBeInTheDocument();
+      expect(screen.queryByText("No matching customers.")).not.toBeInTheDocument();
     });
   });
 });

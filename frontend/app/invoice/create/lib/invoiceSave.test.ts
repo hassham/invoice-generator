@@ -57,6 +57,31 @@ describe("buildInvoiceSavePayload", () => {
     expect(payload.invoiceDiscountType).toBe("Percentage");
     expect(payload.invoiceDiscountValue).toBe(10);
   });
+
+  it("defaults customerId to null when no customer was selected", () => {
+    const payload = buildInvoiceSavePayload({
+      draft: createEmptyDraft(),
+      lineItems: [createEmptyLineItem()],
+      invoiceDiscountType: "None",
+      invoiceDiscountValue: "",
+      supportingContent: createEmptySupportingContent(),
+    });
+
+    expect(payload.customerId).toBeNull();
+  });
+
+  it("includes the selected customer id when one was picked (IG-56)", () => {
+    const payload = buildInvoiceSavePayload({
+      draft: createEmptyDraft(),
+      lineItems: [createEmptyLineItem()],
+      invoiceDiscountType: "None",
+      invoiceDiscountValue: "",
+      supportingContent: createEmptySupportingContent(),
+      selectedCustomerId: "customer-42",
+    });
+
+    expect(payload.customerId).toBe("customer-42");
+  });
 });
 
 const samplePayload = () =>

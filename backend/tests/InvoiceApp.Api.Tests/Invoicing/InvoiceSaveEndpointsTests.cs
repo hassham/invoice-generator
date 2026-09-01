@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using InvoiceApp.Api.Tests.Authentication;
+using InvoiceApp.Application.Customers;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
@@ -298,5 +299,57 @@ public class InvoiceSaveEndpointsTests
         Assert.Single(secondPage!.Items);
         Assert.Equal(3, secondPage.TotalCount);
         Assert.Equal(25, outOfRangePageSize!.PageSize);
+    }
+
+    private static CustomerRequest ValidCustomerRequest(string businessName = "Acme Pty Ltd") => new(
+        businessName, null, "billing@acme.example", null, null, null, null, null, null, null, null, null);
+
+    [Fact]
+    public async Task Uses_a_selected_customer_id_directly_instead_of_find_or_create()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "picker-select@example.com");
+        var customerResponse = await client.PostAsJsonAsync("/api/v1/customers", ValidCustomerRequest("Selected Customer Pty Ltd"));
+        var customer = await customerResponse.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
+
+        // Free text deliberately does NOT match the selected customer's name - proves the id wins
+        // over the find-or-create heuristic rather than the text being re-matched/re-created.
+        var request = ValidRequest(customer: "Some Unrelated Typed Text") with { CustomerId = customer!.Id };
+        var response = await client.PostAsJsonAsync(InvoicesEndpoint, request);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        Assert.Equal(customer.Id, created!.CustomerId);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(1, await db.Customers.CountAsync()); // no new customer created from the unrelated text
+    }
+
+    [Fact]
+    public async Task Rejects_a_selected_customer_id_that_belongs_to_another_account()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var ownerClient = await RegisteredClientAsync(factory, "picker-owner@example.com");
+        var customerResponse = await ownerClient.PostAsJsonAsync("/api/v1/customers", ValidCustomerRequest());
+        var customer = await customerResponse.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
+
+        using var otherClient = await RegisteredClientAsync(factory, "picker-other@example.com");
+        var request = ValidRequest() with { CustomerId = customer!.Id };
+        var response = await otherClient.PostAsJsonAsync(InvoicesEndpoint, request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Rejects_a_selected_customer_id_that_does_not_exist()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "picker-missing@example.com");
+
+        var request = ValidRequest() with { CustomerId = Guid.NewGuid() };
+        var response = await client.PostAsJsonAsync(InvoicesEndpoint, request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

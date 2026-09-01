@@ -57,4 +57,8 @@ public sealed record InvoiceSaveRequest(
     string? CustomInstructions,
     InvoiceSavePaymentInstructions? PaymentInstructions,
     Guid? TemplateId,
-    InvoiceSaveTemplateCustomization? TemplateCustomization);
+    InvoiceSaveTemplateCustomization? TemplateCustomization,
+    // IG-56: set when the caller picked an existing saved customer rather than typing free text -
+    // used directly (verified account-owned) instead of IG-45's find-or-create-from-text
+    // heuristic. Appended last with a default so existing positional callers are unaffected.
+    Guid? CustomerId = null);
