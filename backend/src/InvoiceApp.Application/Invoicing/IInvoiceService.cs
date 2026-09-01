@@ -13,4 +13,15 @@ public interface IInvoiceService
     Task<InvoiceDetailDto> GetAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
 
     Task<InvoiceListResponse> ListAsync(Guid userId, InvoiceListQuery query, CancellationToken cancellationToken);
+
+    /// <summary>FSD section 52: idempotent (cancelling an already-cancelled invoice is a no-op,
+    /// same precedent as ICustomerService.ArchiveAsync) - but throws ConflictException for a Paid
+    /// invoice, since there's no reversal mechanic (Epic IG-11) to un-do the money already
+    /// received.</summary>
+    Task<InvoiceDto> CancelAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
+
+    /// <summary>FSD section 53: always a soft delete (IsDeleted/DeletedAt), regardless of status -
+    /// "prefer soft deletion... do not permanently remove financial history" applied uniformly
+    /// rather than branching a real hard-delete path this codebase has never had.</summary>
+    Task DeleteAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
 }

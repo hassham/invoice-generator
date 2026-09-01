@@ -1,10 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchTemplates, type Template } from "../../../../invoice/create/lib/templates";
 import { updateInvoice } from "../../../../invoice/create/lib/invoiceSave";
-import { getInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
+import { cancelInvoice, deleteInvoice, getInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
 import { InvoiceDetail } from "./InvoiceDetail";
+
+const pushMock = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
 
 vi.mock("../../../../invoice/create/lib/templates", () => ({
   fetchTemplates: vi.fn(),
@@ -13,6 +19,8 @@ vi.mock("../../../../invoice/create/lib/templates", () => ({
 vi.mock("../../../../lib/invoiceDetail", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../lib/invoiceDetail")>()),
   getInvoice: vi.fn(),
+  cancelInvoice: vi.fn(),
+  deleteInvoice: vi.fn(),
 }));
 
 vi.mock("../../../../invoice/create/lib/invoiceSave", async (importOriginal) => ({
@@ -23,6 +31,8 @@ vi.mock("../../../../invoice/create/lib/invoiceSave", async (importOriginal) => 
 const mockedFetchTemplates = vi.mocked(fetchTemplates);
 const mockedGetInvoice = vi.mocked(getInvoice);
 const mockedUpdateInvoice = vi.mocked(updateInvoice);
+const mockedCancelInvoice = vi.mocked(cancelInvoice);
+const mockedDeleteInvoice = vi.mocked(deleteInvoice);
 
 const STUB_TEMPLATES: Template[] = [
   { id: "template-classic", name: "Classic", templateCode: "classic", previewImage: null, isPremium: false, sortOrder: 1 },
@@ -172,5 +182,113 @@ describe("InvoiceDetail", () => {
         expect.objectContaining({ customInstructions: "Bank Name: Big Bank\nPay within 14 days", paymentInstructions: null }),
       ),
     );
+  });
+
+  describe("cancel and delete (IG-49)", () => {
+    it("shows a Cancel Invoice button for a Draft invoice", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      expect(screen.getByRole("button", { name: "Cancel Invoice" })).toBeInTheDocument();
+    });
+
+    it("hides Cancel Invoice for a Paid invoice", async () => {
+      mockedGetInvoice.mockResolvedValue({ ...sampleDetail, status: "Paid" });
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      expect(screen.queryByRole("button", { name: "Cancel Invoice" })).not.toBeInTheDocument();
+    });
+
+    it("hides Cancel Invoice for an already-Cancelled invoice", async () => {
+      mockedGetInvoice.mockResolvedValue({ ...sampleDetail, status: "Cancelled" });
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      expect(screen.queryByRole("button", { name: "Cancel Invoice" })).not.toBeInTheDocument();
+    });
+
+    it("cancels the invoice after confirming, and updates the status badge", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedCancelInvoice.mockResolvedValue({ id: "invoice-1", status: "Cancelled", updatedAt: "2026-08-02T00:00:00Z" });
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Cancel Invoice" }));
+      const dialog = screen.getByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: "Cancel Invoice" }));
+
+      await waitFor(() => expect(mockedCancelInvoice).toHaveBeenCalledWith("invoice-1"));
+      expect(await screen.findByText("Cancelled")).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("dismissing the cancel dialog does not call cancelInvoice", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Cancel Invoice" }));
+      await user.click(screen.getByRole("button", { name: "Never mind" }));
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(mockedCancelInvoice).not.toHaveBeenCalled();
+    });
+
+    it("shows the server's error inside the dialog when cancelling is rejected", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedCancelInvoice.mockRejectedValue(new Error("A paid invoice cannot be cancelled."));
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Cancel Invoice" }));
+      const dialog = screen.getByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: "Cancel Invoice" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("A paid invoice cannot be cancelled.");
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("deletes the invoice after confirming, and navigates back to the invoice list", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedDeleteInvoice.mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+      const dialog = screen.getByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+      await waitFor(() => expect(mockedDeleteInvoice).toHaveBeenCalledWith("invoice-1"));
+      expect(pushMock).toHaveBeenCalledWith("/documents/invoices");
+    });
+
+    it("shows the server's error inside the dialog when deleting fails, and does not navigate away", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedDeleteInvoice.mockRejectedValue(new Error("Failed to delete this invoice."));
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+      const dialog = screen.getByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Failed to delete this invoice.");
+      expect(pushMock).not.toHaveBeenCalled();
+    });
   });
 });

@@ -182,3 +182,33 @@ export async function getInvoice(id: string): Promise<InvoiceDetail> {
 
   return response.json();
 }
+
+/** Subset of InvoiceDetail returned by the cancel/save endpoints - enough to merge the new
+ * status/timestamps into already-loaded detail state without a second GET. */
+export interface InvoiceSummary {
+  id: string;
+  status: string;
+  updatedAt: string;
+}
+
+/** IG-49 / FSD section 52: cancelling is a status transition, not a field edit - a Paid invoice
+ * rejects with a 409 (surfaced via the thrown error's message), everything else transitions. */
+export async function cancelInvoice(id: string): Promise<InvoiceSummary> {
+  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}/cancel`, { method: "POST", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to cancel this invoice."));
+  }
+
+  return response.json();
+}
+
+/** IG-49 / FSD section 53: always a soft delete (archival) server-side, regardless of status -
+ * never removes financial history. */
+export async function deleteInvoice(id: string): Promise<void> {
+  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}`, { method: "DELETE", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to delete this invoice."));
+  }
+}

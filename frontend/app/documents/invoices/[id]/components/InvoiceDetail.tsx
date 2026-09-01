@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../../../../invoice/create/lib/fields";
 import { hasAnyError, validateHeaderFields, type FieldErrors, type FieldValues } from "../../../../invoice/create/lib/invoiceDraft";
@@ -23,7 +24,16 @@ import { InvoiceTotalsSection } from "../../../../invoice/create/components/Invo
 import { TemplateSelector } from "../../../../invoice/create/components/TemplateSelector";
 import { TemplateCustomizationPanel } from "../../../../invoice/create/components/TemplateCustomizationPanel";
 import { TextAreaField } from "../../../../invoice/create/components/TextAreaField";
-import { buildInvoiceUpdatePayload, getInvoice, toEditableInvoice, type EditableInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
+import {
+  buildInvoiceUpdatePayload,
+  cancelInvoice,
+  deleteInvoice,
+  getInvoice,
+  toEditableInvoice,
+  type EditableInvoice,
+  type InvoiceDetail as InvoiceDetailData,
+} from "../../../../lib/invoiceDetail";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -48,9 +58,12 @@ interface InvoiceDetailProps {
  * SupportingContentValues' 7 structured Payment Instructions fields, which this page deliberately
  * doesn't use (see lib/invoiceDetail.ts's doc comment) - a metadata/totals summary stands in for
  * it instead. "Activity" (FSD section 49) is shown minimally as created/updated timestamps - no
- * real audit log exists yet (IG-50, a separate Story).
+ * real audit log exists yet (IG-50, a separate Story - IG-50 wired up the trail server-side, but
+ * still no UI reads it back). IG-49 adds Cancel and Delete alongside Save - both destructive,
+ * one-way actions confirmed via ConfirmDialog per FSD section 52.
  */
 export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
+  const router = useRouter();
   const [state, setState] = useState<LoadState>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetailData | null>(null);
@@ -66,6 +79,9 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [activeDialog, setActiveDialog] = useState<"cancel" | "delete" | null>(null);
+  const [dialogPending, setDialogPending] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,6 +264,37 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     }
   };
 
+  const closeDialog = () => {
+    setActiveDialog(null);
+    setDialogError(null);
+  };
+
+  const handleConfirmCancel = async () => {
+    setDialogPending(true);
+    setDialogError(null);
+    try {
+      const summary = await cancelInvoice(invoiceId);
+      setDetail((current) => (current ? { ...current, ...summary } : current));
+      setActiveDialog(null);
+    } catch (error) {
+      setDialogError(error instanceof Error ? error.message : "Failed to cancel this invoice.");
+    } finally {
+      setDialogPending(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    setDialogPending(true);
+    setDialogError(null);
+    try {
+      await deleteInvoice(invoiceId);
+      router.push("/documents/invoices");
+    } catch (error) {
+      setDialogError(error instanceof Error ? error.message : "Failed to delete this invoice.");
+      setDialogPending(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -258,15 +305,58 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{detail.status}</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saveStatus === "saving"}
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {saveStatus === "saving" ? "Saving…" : "Save"}
-        </button>
+        <div className="flex items-center gap-2">
+          {detail.status !== "Cancelled" && detail.status !== "Paid" ? (
+            <button
+              type="button"
+              onClick={() => setActiveDialog("cancel")}
+              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Cancel Invoice
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setActiveDialog("delete")}
+            className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saveStatus === "saving"}
+            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {saveStatus === "saving" ? "Saving…" : "Save"}
+          </button>
+        </div>
       </div>
+
+      {activeDialog === "cancel" ? (
+        <ConfirmDialog
+          title="Cancel this invoice?"
+          body="The invoice stays visible for your records, but is excluded from outstanding totals and can no longer be marked overdue. This cannot be undone from here."
+          confirmLabel="Cancel Invoice"
+          dismissLabel="Never mind"
+          pending={dialogPending}
+          error={dialogError}
+          onConfirm={() => void handleConfirmCancel()}
+          onDismiss={closeDialog}
+        />
+      ) : null}
+
+      {activeDialog === "delete" ? (
+        <ConfirmDialog
+          title="Delete this invoice?"
+          body="This removes the invoice from your invoice list. It isn't permanently erased, matching how customer records are archived rather than destroyed."
+          confirmLabel="Delete"
+          pending={dialogPending}
+          error={dialogError}
+          onConfirm={() => void handleConfirmDelete()}
+          onDismiss={closeDialog}
+        />
+      ) : null}
 
       <p className="mt-2 text-xs text-slate-500">
         Created {formatDateTime(detail.createdAt)} · Last updated {formatDateTime(detail.updatedAt)}

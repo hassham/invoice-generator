@@ -20,6 +20,9 @@ public static class InvoiceEndpoints
         app.MapPut("/api/v1/invoices/{id:guid}", UpdateAsync).RequireAuthorization();
         app.MapGet("/api/v1/invoices/{id:guid}", GetAsync).RequireAuthorization();
         app.MapGet("/api/v1/invoices", ListAsync).RequireAuthorization();
+        // IG-49: same DELETE-archives-not-hard-deletes convention as CustomerEndpoints.
+        app.MapPost("/api/v1/invoices/{id:guid}/cancel", CancelAsync).RequireAuthorization();
+        app.MapDelete("/api/v1/invoices/{id:guid}", DeleteAsync).RequireAuthorization();
         return app;
     }
 
@@ -83,6 +86,26 @@ public static class InvoiceEndpoints
         var query = new InvoiceListQuery(page, pageSize, search, status, startDate, endDate, customerId, sort);
         var result = await invoiceService.ListAsync(UserId(user), query, cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CancelAsync(
+        Guid id,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await invoiceService.CancelAsync(UserId(user), id, cancellationToken);
+        return Results.Ok(invoice);
+    }
+
+    private static async Task<IResult> DeleteAsync(
+        Guid id,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        await invoiceService.DeleteAsync(UserId(user), id, cancellationToken);
+        return Results.NoContent();
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

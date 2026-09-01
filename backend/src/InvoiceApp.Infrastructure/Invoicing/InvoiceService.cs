@@ -138,6 +138,45 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return ToDetailDto(invoice);
     }
 
+    public async Task<InvoiceDto> CancelAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
+
+        // FSD section 52: a Paid invoice has already received real money with no reversal
+        // mechanic (Epic IG-11) - a genuinely disallowed transition, not the "already cancelled"
+        // idempotent case below.
+        if (invoice.Status == InvoiceStatus.Paid)
+        {
+            throw new ConflictException("A paid invoice cannot be cancelled.");
+        }
+
+        if (invoice.Status != InvoiceStatus.Cancelled)
+        {
+            invoice.Status = InvoiceStatus.Cancelled;
+            invoice.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await auditLogService.RecordAsync(userId, businessId, "Invoice", invoice.Id, "Invoice cancelled", new { invoice.InvoiceNumber }, cancellationToken);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return ToDto(invoice);
+    }
+
+    public async Task DeleteAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
+
+        invoice.IsDeleted = true;
+        invoice.DeletedAt = DateTimeOffset.UtcNow;
+
+        await auditLogService.RecordAsync(userId, businessId, "Invoice", invoice.Id, "Invoice deleted", new { invoice.InvoiceNumber, invoice.Status }, cancellationToken);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<InvoiceListResponse> ListAsync(Guid userId, InvoiceListQuery query, CancellationToken cancellationToken)
     {
         var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
