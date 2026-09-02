@@ -13,6 +13,21 @@ export const PAYMENT_TERMS_LABELS: Record<PaymentTermsOption, string> = {
   Custom: "Custom",
 };
 
+const PAYMENT_TERMS_DAYS: Record<Exclude<PaymentTermsOption, "Custom">, number> = {
+  DueOnReceipt: 0,
+  Net7: 7,
+  Net14: 14,
+  Net30: 30,
+  Net60: 60,
+  Net90: 90,
+};
+
+/** IG-51: the day count a business default's payment terms imply, for deriving a new invoice's
+ * Due Date from its Issue Date. */
+export function paymentTermsToDays(terms: PaymentTermsOption, customDays: number | null): number {
+  return terms === "Custom" ? (customDays ?? 0) : PAYMENT_TERMS_DAYS[terms];
+}
+
 export interface BusinessProfile {
   id: string;
   businessName: string;

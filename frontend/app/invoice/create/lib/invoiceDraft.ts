@@ -51,6 +51,15 @@ export function todayIsoDate(): string {
   return `${year}-${month}-${day}`;
 }
 
+/** IG-51: adds a day count to an ISO date, used to derive Due Date from Issue Date + a business
+ * profile's payment terms. Date.UTC-based (not local-time parsing + arithmetic) so this can't
+ * drift a day around a DST boundary. */
+export function addDaysIso(dateIso: string, days: number): string {
+  const [year, month, day] = dateIso.split("-").map(Number);
+  const result = new Date(Date.UTC(year, month - 1, day + days));
+  return `${result.getUTCFullYear()}-${String(result.getUTCMonth() + 1).padStart(2, "0")}-${String(result.getUTCDate()).padStart(2, "0")}`;
+}
+
 export type FieldErrors = Record<string, string | undefined>;
 
 export function validateFieldValues(values: FieldValues, fields: FieldConfig[]): FieldErrors {

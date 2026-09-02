@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../lib/fields";
 import {
+  addDaysIso,
   createEmptyDraft,
   hasAnyError,
   todayIsoDate,
@@ -37,10 +38,12 @@ import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib
 import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
 import { AUTO_SAVE_DEBOUNCE_MS, buildInvoiceSavePayload, createInvoice, updateInvoice } from "../lib/invoiceSave";
 import { formatCustomerForBillTo } from "../lib/customerPicker";
+import { formatBusinessProfileForSeller } from "../lib/businessProfileSeller";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
 import { listCustomers, type Customer } from "../../../lib/customers";
+import { getBusinessProfile, paymentTermsToDays } from "../../../lib/business";
 import { AccountGateModal } from "./AccountGateModal";
 import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
@@ -120,6 +123,15 @@ export function CreateInvoiceEditor() {
   // stacking up requests.
   const isFirstRemoteAutoSaveRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // IG-51: kept current after every render so the business profile pre-fill effect's async
+  // `.then()` below can read the *actual* latest state at the moment the fetch resolves - the
+  // effect's own closure would otherwise still hold whatever draft/lineItems/etc were at the
+  // render when the fetch started, which could be stale if the visitor typed something into the
+  // form while it was in flight.
+  const latestSnapshotRef = useRef({ draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent });
+  useEffect(() => {
+    latestSnapshotRef.current = { draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent };
+  }, [draft, lineItems, invoiceDiscountType, invoiceDiscountValue, supportingContent]);
 
   useEffect(() => {
     // IG-29: a previously auto-saved anonymous draft takes priority over today's-date prefill -
@@ -264,6 +276,63 @@ export function CreateInvoiceEditor() {
       cancelled = true;
     };
   }, [isAuthenticated]);
+
+  // IG-51: pre-fills a genuinely fresh invoice from the account's business profile (IG-53) once
+  // authenticated - never overwrites a restored draft (`draftRestored`) or anything the visitor
+  // has already typed (the `hasUnsavedChanges` check below, using latestSnapshotRef so it reflects
+  // typing that happened while this fetch was in flight, not this effect's own stale closure).
+  useEffect(() => {
+    if (!isAuthenticated || draftRestored) {
+      return;
+    }
+    let cancelled = false;
+    getBusinessProfile()
+      .then((profile) => {
+        if (cancelled || !pristineDraftRef.current) {
+          return;
+        }
+        const dirty = hasUnsavedChanges(latestSnapshotRef.current, {
+          draft: pristineDraftRef.current,
+          lineItems: pristineLineItemsRef.current,
+          invoiceDiscountType: pristineDiscountTypeRef.current,
+          invoiceDiscountValue: pristineDiscountValueRef.current,
+          supportingContent: pristineSupportingContentRef.current,
+        });
+        if (dirty) {
+          // The visitor already started typing before this resolved - respect what they entered
+          // rather than overwriting it with defaults they didn't ask for.
+          return;
+        }
+
+        const termDays = paymentTermsToDays(profile.defaultPaymentTerms, profile.defaultPaymentTermsDays);
+        setDraft((current) => {
+          const next: InvoiceDraft = {
+            ...current,
+            seller: formatBusinessProfileForSeller(profile),
+            currency: profile.defaultCurrency,
+            header: current.header.issueDate ? { ...current.header, dueDate: addDaysIso(current.header.issueDate, termDays) } : current.header,
+          };
+          pristineDraftRef.current = next;
+          return next;
+        });
+        setSupportingContent((current) => {
+          const next = {
+            ...current,
+            notes: profile.defaultInvoiceNotes ?? current.notes,
+            terms: profile.defaultTermsAndConditions ?? current.terms,
+          };
+          pristineSupportingContentRef.current = next;
+          return next;
+        });
+      })
+      .catch(() => {
+        // Pre-fill is a convenience, not a hard requirement - the form just stays blank on
+        // failure, same as a failed template/customer fetch elsewhere in this component.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, draftRestored]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

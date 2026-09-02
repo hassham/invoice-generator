@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentSession } from "../../../lib/auth";
+import { getBusinessProfile, type BusinessProfile } from "../../../lib/business";
 import { listCustomers } from "../../../lib/customers";
 import { loadPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
 import { resetAnalyticsSink, setAnalyticsSink, type AnalyticsSink } from "../../../../lib/analytics";
@@ -95,12 +96,52 @@ vi.mock("../../../lib/customers", () => ({
 
 const mockedListCustomers = vi.mocked(listCustomers);
 
+// IG-51: fetches the account's business profile once authenticated, to pre-fill a fresh invoice -
+// stubbed to reject by default (matching the pre-IG-51 behavior of every other test in this file
+// that doesn't care about it), same "unstubbed account-owned fetch fails silently in jsdom" gotcha
+// as lib/auth.ts/lib/customers.ts above. Tests that specifically exercise the pre-fill override
+// this per-test.
+vi.mock("../../../lib/business", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../lib/business")>()),
+  getBusinessProfile: vi.fn(() => Promise.reject(new Error("not mocked"))),
+}));
+
+const mockedGetBusinessProfile = vi.mocked(getBusinessProfile);
+
+const SAMPLE_BUSINESS_PROFILE: BusinessProfile = {
+  id: "business-1",
+  businessName: "Acme Pty Ltd",
+  legalName: null,
+  email: "billing@acme.example",
+  phone: null,
+  website: null,
+  addressLine1: "1 Example St",
+  addressLine2: null,
+  city: "Sydney",
+  state: "NSW",
+  postalCode: "2000",
+  country: "AU",
+  registrationNumber: null,
+  taxNumber: null,
+  defaultCurrency: "USD",
+  defaultTaxRate: 0,
+  taxCalculationMethod: "Exclusive",
+  defaultPaymentTerms: "Net14",
+  defaultPaymentTermsDays: null,
+  defaultInvoiceNotes: "Thanks for your business",
+  defaultTermsAndConditions: "Payment due within terms",
+  defaultTemplateId: null,
+  createdAt: "2026-08-01T00:00:00Z",
+  updatedAt: "2026-08-01T00:00:00Z",
+};
+
 describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetCurrentSession.mockResolvedValue(null);
     mockedCreateInvoice.mockReset();
     mockedUpdateInvoice.mockReset();
+    mockedGetBusinessProfile.mockRejectedValue(new Error("not mocked"));
   });
 
   afterEach(() => {
@@ -1187,6 +1228,78 @@ describe("CreateInvoiceEditor", () => {
 
       expect(screen.queryByRole("button", { name: /Acme Pty Ltd/ })).not.toBeInTheDocument();
       expect(screen.queryByText("No matching customers.")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("IG-51: pre-fill a new invoice from the business profile", () => {
+    it("pre-fills Seller, Currency, Due Date, Notes and Terms on a fresh authenticated visit", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedGetBusinessProfile.mockResolvedValue(SAMPLE_BUSINESS_PROFILE);
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(mockedGetBusinessProfile).toHaveResolvedTimes(1));
+      await waitFor(() => expect((screen.getByLabelText("From", { exact: false }) as HTMLTextAreaElement).value).toContain("Acme Pty Ltd"));
+
+      expect((screen.getByLabelText("From", { exact: false }) as HTMLTextAreaElement).value).toContain("billing@acme.example");
+      expect(screen.getByLabelText("Currency")).toHaveValue("USD");
+      // Net14 from today - computed the same way production code does (todayIsoDate + 14 days),
+      // not a fixed date, so this doesn't need fake timers (which don't mix safely with waitFor).
+      const expectedDueDate = new Date();
+      expectedDueDate.setDate(expectedDueDate.getDate() + 14);
+      const expectedDueDateIso = `${expectedDueDate.getFullYear()}-${String(expectedDueDate.getMonth() + 1).padStart(2, "0")}-${String(expectedDueDate.getDate()).padStart(2, "0")}`;
+      expect(screen.getByLabelText(/Due Date/)).toHaveValue(expectedDueDateIso);
+      expect(screen.getByLabelText("Notes", { exact: false })).toHaveValue("Thanks for your business");
+      expect(screen.getByLabelText("Terms and Conditions", { exact: false })).toHaveValue("Payment due within terms");
+    });
+
+    it("does not fetch or apply the profile when a localStorage draft was restored instead", async () => {
+      saveDraftSnapshot({
+        draft: { ...createEmptyDraft(), seller: "Restored Business" },
+        lineItems: [createEmptyLineItem()],
+        invoiceDiscountType: "None",
+        invoiceDiscountValue: "",
+        supportingContent: createEmptySupportingContent(),
+      });
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedGetBusinessProfile.mockResolvedValue(SAMPLE_BUSINESS_PROFILE);
+      render(<CreateInvoiceEditor />);
+
+      expect(await screen.findByLabelText("From", { exact: false })).toHaveValue("Restored Business");
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      expect(mockedGetBusinessProfile).not.toHaveBeenCalled();
+    });
+
+    it("does not fetch the business profile for an anonymous visitor", async () => {
+      mockedGetBusinessProfile.mockResolvedValue(SAMPLE_BUSINESS_PROFILE);
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+      expect(mockedGetBusinessProfile).not.toHaveBeenCalled();
+    });
+
+    it("does not overwrite text the visitor already typed before the profile fetch resolves", async () => {
+      let resolveProfile: (profile: typeof SAMPLE_BUSINESS_PROFILE) => void = () => {};
+      mockedGetBusinessProfile.mockReturnValue(new Promise((resolve) => { resolveProfile = resolve; }));
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      await user.type(screen.getByLabelText("From", { exact: false }), "My Own Business");
+      resolveProfile(SAMPLE_BUSINESS_PROFILE);
+      await waitFor(() => expect(mockedGetBusinessProfile).toHaveResolvedTimes(1));
+
+      expect(screen.getByLabelText("From", { exact: false })).toHaveValue("My Own Business");
+    });
+
+    it("leaves the form blank, without error, when the profile fetch fails", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedGetBusinessProfile.mockRejectedValue(new Error("Failed to load your business profile."));
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(mockedGetBusinessProfile).toHaveBeenCalledTimes(1));
+      expect(screen.getByLabelText("From", { exact: false })).toHaveValue("");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
 });
