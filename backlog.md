@@ -8,13 +8,12 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `0b38daa`, 2026-09-03.** This section (and "Current Focus"/"Next Task" below) was rewritten from scratch against a full, paginated Jira audit on that date — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD`; treat everything below as authoritative for that date, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `cd66f07`, 2026-09-03.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of the start of this date; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-6` and `IG-10` are Done** (7 of 12). Three Epics are each one Story away from Done:
+**Epics `IG-1` through `IG-7`, and `IG-10` are Done** (8 of 12). `IG-7` (Invoice Persistence and Lifecycle Management) was completed 2026-09-03 with `IG-46` ("Assign unique invoice numbers", S34) — see "Last Execution" below for the concurrency-safety work that required. Two Epics are each one Story away from Done:
 
-- **`IG-7` (Invoice Persistence and Lifecycle Management)**: Stories `IG-45`, `IG-47`, `IG-48`, `IG-49`, `IG-50` Done. Only `IG-46` ("Assign unique invoice numbers", S34) remains — **this is the next task**, see below.
-- **`IG-8` (Business Profile and Onboarding)**: Stories `IG-51`, `IG-53`, `IG-54` Done. Only `IG-52` ("Complete or skip guided onboarding", S40) remains.
-- **`IG-9` (Customer and Item Catalogue Management)**: Stories `IG-55`, `IG-56` (customer records/selection) Done. `IG-57` (product/service records), `IG-58` (select saved item on invoice), `IG-59` (archive reusable records) are still To Do — this Epic has more remaining work than `IG-7`/`IG-8`, not just one Story.
+- **`IG-8` (Business Profile and Onboarding)**: Stories `IG-51`, `IG-53`, `IG-54` Done. Only `IG-52` ("Complete or skip guided onboarding", S40) remains — **this is the next task**, see below.
+- **`IG-9` (Customer and Item Catalogue Management)**: Stories `IG-55`, `IG-56` (customer records/selection) Done. `IG-57` (product/service records), `IG-58` (select saved item on invoice), `IG-59` (archive reusable records) are still To Do — this Epic has more remaining work than `IG-8`, not just one Story.
 
 **Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do.
 
@@ -38,35 +37,63 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-`IG-7`'s last unclaimed Story is `IG-46` (S34, assign unique invoice numbers) — check its live Subtasks before claiming:
+`IG-8`'s last unclaimed Story is `IG-52` (S40, complete or skip guided onboarding) — check its live Subtasks before claiming:
 
 ```text
-Epic:    IG-7  — Invoice Persistence and Lifecycle Management
-Story:   IG-46 — Assign unique invoice numbers
+Epic:    IG-8  — Business Profile and Onboarding
+Story:   IG-52 — Complete or skip guided onboarding
 ```
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-7>
-- <https://appitometechnologies.atlassian.net/browse/IG-46>
+- <https://appitometechnologies.atlassian.net/browse/IG-8>
+- <https://appitometechnologies.atlassian.net/browse/IG-52>
 
 ## Next Task
 
-Resume `IG-46` ("Assign unique invoice numbers", S34): numbers must be unique within the business account, follow the configured prefix/sequence/editing rules from the FSD, and **concurrent creation cannot produce duplicate numbers**.
+Resume `IG-52` ("Complete or skip guided onboarding", S40): onboarding covers the fields/steps defined in the FSD, users can skip optional steps without being blocked, and saved steps populate the business profile (`IG-51`/`IG-53` already built the profile itself and its defaults - this Story is the guided *setup flow* on top of that, not a new data model).
 
 Before implementation:
 
-1. **This is genuinely a concurrency-safety Story, not just a formatting one** — `BusinessService.GenerateNextInvoiceNumberAsync` (built in `IG-54`, `backend/src/InvoiceApp.Infrastructure/Businesses/BusinessService.cs`) currently does a plain read-then-write in C#, which is not safe against two concurrent requests. Confirmed via grep (2026-09-03 audit) that **zero backend tests use a real Postgres provider today** — every test project uses EF Core's `UseInMemoryDatabase`, which structurally cannot prove concurrency safety. This Story needs a genuinely atomic Postgres-native replacement (e.g. a single `UPDATE ... RETURNING` raw SQL statement, one round trip, atomic by construction) plus new Postgres-backed test infrastructure.
-2. **Reuse the existing `invoiceapp-postgres` docker container** for the new Postgres-backed test path (user's explicit choice, 2026-09-03) rather than introducing Testcontainers. Decide and document how these tests behave when Postgres/Docker isn't running (skip gracefully vs. hard-fail) so they don't silently break the standard pre-push verification gate (see item 4) on a machine without Docker available.
-3. Write a concurrency test firing ~20-50 simultaneous `GenerateNextInvoiceNumberAsync` calls via `Task.WhenAll` and asserting zero duplicate numbers — confirm it would actually fail against the old unfixed read-then-write code, not just pass against the new one.
-4. **Standing four-command verification gate, adopted 2026-09-03, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed; don't repeat that.
-5. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if this Story touches it at all** (e.g. surfacing a numbering-conflict message) — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
-6. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
-7. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
-8. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
-9. After `IG-46`, `IG-7` is Done and the next candidates are `IG-52` (closes `IG-8`) or continuing `IG-9`'s remaining Stories (`IG-57`-`IG-59`) — confirm with the user before starting new-Epic-adjacent work, same as always.
+1. **Standing four-command verification gate, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed (fixed 2026-09-03); don't repeat that.
+2. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
+3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
+4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
+5. **A real Postgres-backed test path now exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. It skips gracefully (via `Xunit.SkippableFact`) when Postgres isn't reachable, since CI's backend job has no Postgres service container. Reuse this fixture rather than building a parallel one if a future Story also needs real-database behavior the InMemory provider can't prove.
+6. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if this Story touches it at all** — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
+7. After `IG-52`, `IG-8` is Done and the next candidates are `IG-9`'s remaining Stories (`IG-57`-`IG-59`) or a new Epic (`IG-11`/`IG-12`, both entirely unstarted) — confirm with the user before starting new-Epic-adjacent work, same as always.
 
 ## Last Execution
+
+**Date:** 2026-09-03 (later same day)
+
+Completed: `IG-46` ("Assign unique invoice numbers", S34) — the last Story in Epic `IG-7`, which is now Done.
+
+- **Real concurrency bug fixed, not just a theoretical one**: `BusinessService.GenerateNextInvoiceNumberAsync` (built in `IG-54`) did a plain read-then-write - read `NextInvoiceNumber`, increment in memory, `SaveChangesAsync`. Replaced with a single `UPDATE business.businesses SET next_invoice_number = next_invoice_number + 1 ... RETURNING next_invoice_number - 1` raw SQL statement, atomic by construction via Postgres's own row-level locking on the row. EF Core's `Database.SqlQueryRaw<T>()` needed `.ToListAsync()` rather than `.SingleAsync()` - the latter tries to compose a row-limit onto the raw SQL as a subquery, which fails since `UPDATE ... RETURNING` isn't composable the way a `SELECT` is (confirmed by actually running it, not assumed).
+- **New Postgres-backed test infrastructure**: zero backend tests used a real Postgres provider before this - every test project used EF Core's `UseInMemoryDatabase`, which cannot prove concurrency safety. Added `PostgresAvailabilityFixture` + `BusinessServiceConcurrencyTests` (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers, per explicit user choice. Isolation is per-test-row (a fresh `Business`/`ApplicationUser` pair created and deleted per test), not a shared rollback transaction - a shared transaction would force "concurrent" calls through one connection, defeating the point.
+- **Proved the test actually catches the bug, not just that it passes**: temporarily reverted the fix, ran the new test - 30 concurrent calls produced only 5 distinct numbers. Restored the fix, reran - all 30 distinct.
+- **Skip-not-fail decided and documented**: this repo's `.github/workflows/ci.yml` backend job runs `dotnet test` with no Postgres service container, so a hard failure would break every CI run. Both new Postgres-backed tests skip gracefully (via the `Xunit.SkippableFact` package) when unreachable - verified both paths directly (container stopped -> Skipped; container running -> Passed), not just reasoned about.
+- **One existing test broke as a direct, necessary consequence, not scope creep**: `BusinessEndpointsTests.Generates_a_formatted_next_invoice_number_and_increments_it` used the shared `AuthenticatedRouteTestFactory`'s InMemory database, which can't execute the new Postgres-specific raw SQL at all. Added an optional Postgres-connection-string override to that factory (defaults to the existing InMemory behavior for every other test, unchanged) and moved just this one test onto the real container, with its own cleanup (deletes the test account/business row it creates).
+- **No frontend change needed** - the AC ("concurrent creation cannot produce duplicate numbers") is fully satisfied server-side; the existing `/api/v1/business/next-invoice-number` endpoint and its frontend caller from `IG-54` are unchanged. Kept `CreateInvoiceEditor.tsx` untouched entirely, per the standing caution against unscoped changes to that file.
+
+Files changed or created (`IG-46`):
+
+- `backend/src/InvoiceApp.Infrastructure/Businesses/BusinessService.cs` (`GenerateNextInvoiceNumberAsync` rewritten to the atomic `UPDATE ... RETURNING`)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/{PostgresAvailabilityFixture,BusinessServiceConcurrencyTests}.cs` (new)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/InvoiceApp.Infrastructure.Tests.csproj` (extended: `Xunit.SkippableFact`)
+- `backend/tests/InvoiceApp.Api.Tests/Authentication/AuthenticatedRouteTestFactory.cs` (extended: optional `postgresConnectionStringOverride`)
+- `backend/tests/InvoiceApp.Api.Tests/Businesses/BusinessEndpointsTests.cs` (`Generates_a_formatted_next_invoice_number_and_increments_it` moved onto the real Postgres container, with cleanup)
+- `backend/tests/InvoiceApp.Api.Tests/InvoiceApp.Api.Tests.csproj` (extended: `Xunit.SkippableFact`)
+- `backlog.md`
+
+Verification performed (`IG-46`):
+
+- Full backend suite: 248/248 passing (14 architecture + 119 infrastructure + 115 API, up from 247 - the 1 new concurrency test). Frontend: full suite (484 tests), `npx eslint .`, and `npm run build` all clean (frontend wasn't touched, but re-verified per the standing four-command gate).
+- Confirmed the new concurrency test fails against the old code and passes against the fix (see Completed above) - not just that it's green now.
+- Confirmed both the skip path (Postgres stopped) and the run path (Postgres started) work as intended, by actually stopping and restarting the `invoiceapp-postgres` container mid-session.
+- Committed locally only (`cd66f07`) - not pushed (standing workflow, unchanged).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-03
 
