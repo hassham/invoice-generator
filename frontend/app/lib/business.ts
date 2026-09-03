@@ -51,6 +51,9 @@ export interface BusinessProfile {
   defaultInvoiceNotes: string | null;
   defaultTermsAndConditions: string | null;
   defaultTemplateId: string | null;
+  invoicePrefix: string;
+  nextInvoiceNumber: number;
+  invoiceNumberPadding: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -77,6 +80,21 @@ export interface BusinessProfileRequest {
   defaultInvoiceNotes: string | null;
   defaultTermsAndConditions: string | null;
   defaultTemplateId: string | null;
+  invoicePrefix: string;
+  nextInvoiceNumber: number;
+  invoiceNumberPadding: number;
+}
+
+export interface GeneratedInvoiceNumber {
+  invoiceNumber: string;
+}
+
+/** FSD section 64: mirrors the backend's own formatting exactly (prefix + next number zero-padded)
+ * - used for the settings page's live preview, purely client-side, no request needed. */
+export function formatInvoiceNumberPreview(prefix: string, nextNumber: number, padding: number): string {
+  const safeNumber = Number.isFinite(nextNumber) && nextNumber > 0 ? Math.trunc(nextNumber) : 0;
+  const safePadding = Number.isFinite(padding) && padding > 0 ? Math.trunc(padding) : 1;
+  return `${prefix}${String(safeNumber).padStart(safePadding, "0")}`;
 }
 
 function baseUrl(): string {
@@ -110,6 +128,18 @@ export async function updateBusinessProfile(request: BusinessProfileRequest): Pr
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to save your business profile."));
+  }
+
+  return response.json();
+}
+
+/** IG-54: has a server-side side effect (increments NextInvoiceNumber) - not idempotent, so this
+ * should only be called once per invoice-creation pre-fill, not speculatively. */
+export async function generateNextInvoiceNumber(): Promise<GeneratedInvoiceNumber> {
+  const response = await fetch(`${baseUrl()}/api/v1/business/next-invoice-number`, { method: "POST", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to generate the next invoice number."));
   }
 
   return response.json();

@@ -46,6 +46,17 @@ public static class BusinessProfileRequestValidator
             errors.Add("Email must be a valid email address.");
         }
 
+        // IG-54 / FSD section 64.
+        if (request.NextInvoiceNumber < 1)
+        {
+            errors.Add("Next invoice number must be 1 or greater.");
+        }
+        if (request.InvoiceNumberPadding is < 1 or > 10)
+        {
+            errors.Add("Invoice number padding must be between 1 and 10.");
+        }
+        CheckMaxLength(request.InvoicePrefix, 20, "Invoice prefix", errors);
+
         CheckMaxLength(request.BusinessName, 200, "Business name", errors);
         CheckMaxLength(request.LegalName, 200, "Legal name", errors);
         CheckMaxLength(request.Email, 320, "Email", errors);

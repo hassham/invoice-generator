@@ -43,7 +43,7 @@ import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCu
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
 import { listCustomers, type Customer } from "../../../lib/customers";
-import { getBusinessProfile, paymentTermsToDays } from "../../../lib/business";
+import { generateNextInvoiceNumber, getBusinessProfile, paymentTermsToDays } from "../../../lib/business";
 import { AccountGateModal } from "./AccountGateModal";
 import { EditorModeTabs } from "./EditorModeTabs";
 import { InvoiceEditorLayout } from "./InvoiceEditorLayout";
@@ -277,10 +277,11 @@ export function CreateInvoiceEditor() {
     };
   }, [isAuthenticated]);
 
-  // IG-51: pre-fills a genuinely fresh invoice from the account's business profile (IG-53) once
-  // authenticated - never overwrites a restored draft (`draftRestored`) or anything the visitor
-  // has already typed (the `hasUnsavedChanges` check below, using latestSnapshotRef so it reflects
-  // typing that happened while this fetch was in flight, not this effect's own stale closure).
+  // IG-51/IG-54: pre-fills a genuinely fresh invoice from the account's business profile (IG-53)
+  // and a generated Invoice Number (IG-54) once authenticated - never overwrites a restored draft
+  // (`draftRestored`) or anything the visitor has already typed (the `hasUnsavedChanges` check
+  // below, using latestSnapshotRef so it reflects typing that happened while this fetch was in
+  // flight, not this effect's own stale closure).
   useEffect(() => {
     if (!isAuthenticated || draftRestored) {
       return;
@@ -324,6 +325,36 @@ export function CreateInvoiceEditor() {
           pristineSupportingContentRef.current = next;
           return next;
         });
+
+        // IG-54: a second, sequential round trip (not parallel with the profile fetch above) -
+        // generating a number has a real server-side side effect (increments the account's
+        // NextInvoiceNumber), so it's only attempted once the profile pre-fill above is already
+        // known to be wanted, rather than eagerly burning a number that might get thrown away.
+        generateNextInvoiceNumber()
+          .then((generated) => {
+            if (cancelled || !pristineDraftRef.current) {
+              return;
+            }
+            const stillDirty = hasUnsavedChanges(latestSnapshotRef.current, {
+              draft: pristineDraftRef.current,
+              lineItems: pristineLineItemsRef.current,
+              invoiceDiscountType: pristineDiscountTypeRef.current,
+              invoiceDiscountValue: pristineDiscountValueRef.current,
+              supportingContent: pristineSupportingContentRef.current,
+            });
+            if (stillDirty) {
+              return;
+            }
+            setDraft((current) => {
+              const next: InvoiceDraft = { ...current, header: { ...current.header, invoiceNumber: generated.invoiceNumber } };
+              pristineDraftRef.current = next;
+              return next;
+            });
+          })
+          .catch(() => {
+            // Same "convenience, not a hard requirement" reasoning - Invoice Number just stays
+            // blank/manual on failure, exactly like today.
+          });
       })
       .catch(() => {
         // Pre-fill is a convenience, not a hard requirement - the form just stays blank on

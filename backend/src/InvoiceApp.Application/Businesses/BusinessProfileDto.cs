@@ -2,10 +2,9 @@ using InvoiceApp.Domain.Businesses;
 
 namespace InvoiceApp.Application.Businesses;
 
-/// <summary>FSD sections 62/63: the Business entity already has every column this Story needs
-/// (created day one, never exposed via any endpoint until now). Excludes InvoicePrefix/
-/// NextInvoiceNumber/InvoiceNumberPadding (IG-54's own scope) and LogoUrl (no server-side file
-/// storage exists anywhere in this app - the same documented gap IG-42 flagged).</summary>
+/// <summary>FSD sections 62/63/64: the Business entity already has every column this Story needs
+/// (created day one, never exposed via any endpoint until now). Excludes LogoUrl (no server-side
+/// file storage exists anywhere in this app - the same documented gap IG-42 flagged).</summary>
 public sealed record BusinessProfileDto(
     Guid Id,
     string BusinessName,
@@ -29,5 +28,9 @@ public sealed record BusinessProfileDto(
     string? DefaultInvoiceNotes,
     string? DefaultTermsAndConditions,
     Guid? DefaultTemplateId,
+    // IG-54 / FSD section 64.
+    string InvoicePrefix,
+    int NextInvoiceNumber,
+    int InvoiceNumberPadding,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

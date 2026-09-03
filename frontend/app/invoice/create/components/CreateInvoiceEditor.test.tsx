@@ -131,6 +131,9 @@ const SAMPLE_BUSINESS_PROFILE: BusinessProfile = {
   defaultInvoiceNotes: "Thanks for your business",
   defaultTermsAndConditions: "Payment due within terms",
   defaultTemplateId: null,
+  invoicePrefix: "INV-",
+  nextInvoiceNumber: 1,
+  invoiceNumberPadding: 4,
   createdAt: "2026-08-01T00:00:00Z",
   updatedAt: "2026-08-01T00:00:00Z",
 };

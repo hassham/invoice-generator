@@ -42,6 +42,9 @@ const sampleProfile: BusinessProfile = {
   defaultInvoiceNotes: null,
   defaultTermsAndConditions: null,
   defaultTemplateId: null,
+  invoicePrefix: "INV-",
+  nextInvoiceNumber: 1,
+  invoiceNumberPadding: 4,
   createdAt: "2026-08-01T00:00:00Z",
   updatedAt: "2026-08-01T00:00:00Z",
 };

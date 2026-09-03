@@ -5,7 +5,13 @@ import type { TaxCalculationMethod } from "../../../invoice/create/lib/invoiceTo
 import { fetchTemplates, type Template } from "../../../invoice/create/lib/templates";
 import { TemplateSelector } from "../../../invoice/create/components/TemplateSelector";
 import { CURRENCY_OPTIONS } from "../../../invoice/create/lib/fields";
-import { PAYMENT_TERMS_LABELS, PAYMENT_TERMS_OPTIONS, type BusinessProfileRequest, type PaymentTermsOption } from "../../../lib/business";
+import {
+  formatInvoiceNumberPreview,
+  PAYMENT_TERMS_LABELS,
+  PAYMENT_TERMS_OPTIONS,
+  type BusinessProfileRequest,
+  type PaymentTermsOption,
+} from "../../../lib/business";
 
 export interface BusinessProfileFormValues {
   businessName: string;
@@ -29,6 +35,9 @@ export interface BusinessProfileFormValues {
   defaultInvoiceNotes: string;
   defaultTermsAndConditions: string;
   defaultTemplateId: string;
+  invoicePrefix: string;
+  nextInvoiceNumber: string;
+  invoiceNumberPadding: string;
 }
 
 function trimmedOrNull(value: string): string | null {
@@ -38,6 +47,8 @@ function trimmedOrNull(value: string): string | null {
 function toRequest(values: BusinessProfileFormValues): BusinessProfileRequest {
   const parsedTaxRate = Number.parseFloat(values.defaultTaxRate);
   const parsedTermsDays = Number.parseInt(values.defaultPaymentTermsDays, 10);
+  const parsedNextInvoiceNumber = Number.parseInt(values.nextInvoiceNumber, 10);
+  const parsedInvoiceNumberPadding = Number.parseInt(values.invoiceNumberPadding, 10);
 
   return {
     businessName: values.businessName.trim(),
@@ -61,6 +72,9 @@ function toRequest(values: BusinessProfileFormValues): BusinessProfileRequest {
     defaultInvoiceNotes: trimmedOrNull(values.defaultInvoiceNotes),
     defaultTermsAndConditions: trimmedOrNull(values.defaultTermsAndConditions),
     defaultTemplateId: trimmedOrNull(values.defaultTemplateId),
+    invoicePrefix: values.invoicePrefix.trim(),
+    nextInvoiceNumber: Number.isFinite(parsedNextInvoiceNumber) ? parsedNextInvoiceNumber : 1,
+    invoiceNumberPadding: Number.isFinite(parsedInvoiceNumberPadding) ? parsedInvoiceNumberPadding : 4,
   };
 }
 
@@ -72,9 +86,9 @@ interface BusinessProfileFormProps {
 }
 
 /**
- * FSD sections 62 (identity/contact fields) and 63 (invoice defaults). Logo and the invoice
- * numbering fields (Prefix/Next Number/Padding) are deliberately not here - see IG-53's Jira
- * comment for why (no file storage; numbering is IG-54's own Story).
+ * FSD sections 62 (identity/contact fields), 63 (invoice defaults) and 64 (invoice numbering).
+ * Logo is deliberately not here - see IG-53's Jira comment for why (no server-side file storage
+ * exists anywhere in this app).
  */
 export function BusinessProfileForm({ initialValues, submitting, error, onSubmit }: BusinessProfileFormProps) {
   const [values, setValues] = useState<BusinessProfileFormValues>(initialValues);
@@ -269,6 +283,21 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             onSelect={(templateId) => setValues((current) => ({ ...current, defaultTemplateId: templateId }))}
           />
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-base font-semibold text-slate-950">Invoice Numbering</legend>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <TextField id="business-invoice-prefix" label="Prefix" value={values.invoicePrefix} onChange={setField("invoicePrefix")} maxLength={20} />
+          <TextField id="business-next-invoice-number" label="Next Number" type="number" value={values.nextInvoiceNumber} onChange={setField("nextInvoiceNumber")} />
+          <TextField id="business-invoice-number-padding" label="Number Padding" type="number" value={values.invoiceNumberPadding} onChange={setField("invoiceNumberPadding")} />
+        </div>
+        <p className="mt-2 text-sm text-slate-600">
+          Preview:{" "}
+          <span className="font-mono font-semibold text-slate-950">
+            {formatInvoiceNumberPreview(values.invoicePrefix, Number.parseInt(values.nextInvoiceNumber, 10), Number.parseInt(values.invoiceNumberPadding, 10))}
+          </span>
+        </p>
       </fieldset>
 
       <button

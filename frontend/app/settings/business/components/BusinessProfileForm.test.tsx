@@ -32,6 +32,9 @@ const emptyValues: BusinessProfileFormValues = {
   defaultInvoiceNotes: "",
   defaultTermsAndConditions: "",
   defaultTemplateId: "",
+  invoicePrefix: "INV-",
+  nextInvoiceNumber: "1",
+  invoiceNumberPadding: "4",
 };
 
 describe("BusinessProfileForm", () => {
@@ -115,5 +118,42 @@ describe("BusinessProfileForm", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Failed to save your business profile.");
     expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  });
+
+  describe("invoice numbering (IG-54)", () => {
+    it("shows a live preview of the generated invoice number that updates as the fields change", async () => {
+      const user = userEvent.setup();
+      render(<BusinessProfileForm initialValues={emptyValues} submitting={false} error={null} onSubmit={vi.fn()} />);
+
+      expect(screen.getByText("INV-0001")).toBeInTheDocument();
+
+      await user.clear(screen.getByLabelText("Prefix"));
+      await user.type(screen.getByLabelText("Prefix"), "ACME-");
+      await user.clear(screen.getByLabelText("Next Number"));
+      await user.type(screen.getByLabelText("Next Number"), "500");
+
+      expect(screen.getByText("ACME-0500")).toBeInTheDocument();
+    });
+
+    it("submits the numbering fields as parsed numbers", async () => {
+      const onSubmit = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <BusinessProfileForm
+          initialValues={{ ...emptyValues, businessName: "Acme Pty Ltd" }}
+          submitting={false}
+          error={null}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      await user.clear(screen.getByLabelText("Next Number"));
+      await user.type(screen.getByLabelText("Next Number"), "1001");
+      await user.clear(screen.getByLabelText("Number Padding"));
+      await user.type(screen.getByLabelText("Number Padding"), "6");
+      await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ invoicePrefix: "INV-", nextInvoiceNumber: 1001, invoiceNumberPadding: 6 }));
+    });
   });
 });

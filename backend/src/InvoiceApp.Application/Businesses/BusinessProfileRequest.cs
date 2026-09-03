@@ -25,4 +25,8 @@ public sealed record BusinessProfileRequest(
     int? DefaultPaymentTermsDays,
     string? DefaultInvoiceNotes,
     string? DefaultTermsAndConditions,
-    Guid? DefaultTemplateId);
+    Guid? DefaultTemplateId,
+    // IG-54 / FSD section 64.
+    string InvoicePrefix,
+    int NextInvoiceNumber,
+    int InvoiceNumberPadding);

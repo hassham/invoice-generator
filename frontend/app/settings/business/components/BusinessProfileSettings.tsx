@@ -31,6 +31,9 @@ function toFormValues(profile: BusinessProfile): BusinessProfileFormValues {
     defaultInvoiceNotes: orEmpty(profile.defaultInvoiceNotes),
     defaultTermsAndConditions: orEmpty(profile.defaultTermsAndConditions),
     defaultTemplateId: profile.defaultTemplateId ?? "",
+    invoicePrefix: profile.invoicePrefix,
+    nextInvoiceNumber: String(profile.nextInvoiceNumber),
+    invoiceNumberPadding: String(profile.invoiceNumberPadding),
   };
 }
 
