@@ -8,13 +8,19 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Phase:** Epic `IG-1` and Epic `IG-2` are both complete. Within Epic `IG-3` (Identity, Authentication and Account Security), Stories `IG-22` (register), `IG-24` (login/logout), `IG-27` (delete account), `IG-23` (Google sign-in) and `IG-25` (password recovery) are all complete. Story `IG-26` (secure session) has both its Subtasks Done but **the Story itself is deliberately left In Progress, not Done** — its "offers sign-in" acceptance criterion can't be satisfied yet because no frontend auth UI exists anywhere in `frontend/` (only the Epic IG-2 landing page). Same class of gap as `IG-21`. `IG-3` has **no remaining unclaimed Stories** — the only open item left in the Epic is `IG-26`'s frontend-UI gap.
+**Synced to commit `0b38daa`, 2026-09-03.** This section (and "Current Focus"/"Next Task" below) was rewritten from scratch against a full, paginated Jira audit on that date — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD`; treat everything below as authoritative for that date, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epic `IG-5` (Invoice Editor and Calculation Engine) is now the active Epic**, picked over `IG-4` because `IG-4`'s own Jira description lists `IG-5`/`IG-6`/`IG-7` as dependencies and none of those exist yet, while `IG-5` only depends on the already-Done `IG-1`. `IG-5` has 6 Stories (`IG-33`-`IG-38`, S21-S26). `IG-33`-`IG-37` (S21-S25: layout, header/party fields, line items, totals, notes/terms/payment instructions) are all Done. **`IG-38` (S26, validate and protect unsaved invoice changes) is the last Story in this Epic** - once it's done, Epic `IG-5` itself should be reviewed for completion.
+**Epics `IG-1` through `IG-6` and `IG-10` are Done** (7 of 12). Three Epics are each one Story away from Done:
 
-**Open follow-up carried over from `IG-26`, not yet resolved:** "offers sign-in" (part of `IG-26`'s session-expiry acceptance criterion) needs a frontend sign-in page/auth UI that doesn't exist yet. None of Epic IG-3's auth flows (register, login, session) have any frontend UI — only backend endpoints. Revisit once frontend auth pages are built, likely alongside `IG-23`/`IG-25`.
+- **`IG-7` (Invoice Persistence and Lifecycle Management)**: Stories `IG-45`, `IG-47`, `IG-48`, `IG-49`, `IG-50` Done. Only `IG-46` ("Assign unique invoice numbers", S34) remains — **this is the next task**, see below.
+- **`IG-8` (Business Profile and Onboarding)**: Stories `IG-51`, `IG-53`, `IG-54` Done. Only `IG-52` ("Complete or skip guided onboarding", S40) remains.
+- **`IG-9` (Customer and Item Catalogue Management)**: Stories `IG-55`, `IG-56` (customer records/selection) Done. `IG-57` (product/service records), `IG-58` (select saved item on invoice), `IG-59` (archive reusable records) are still To Do — this Epic has more remaining work than `IG-7`/`IG-8`, not just one Story.
 
-**Open follow-up carried over from `IG-21`, not yet resolved:** the acquisition events built in `IG-89`/`IG-90` only reach a console sink so far — nothing durably captures them yet. See "Blockers and Open Decisions" below for the full note; revisit once an analytics provider is chosen so this doesn't get silently forgotten.
+**Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do.
+
+**Jira reconciliation performed 2026-09-03**: an audit flagged that 38 Subtasks across all 19 then-Done Stories (spanning both this session's own work and earlier work done under the name "Codex") were still sitting at To Do despite their parent Stories being Done and their own summaries ("Implement X" / "Verify Y") describing work that was genuinely completed and verified as part of delivering those Stories. All 38 were confirmed against the actual Jira data and transitioned to Done — see git/Jira history around 2026-09-03 for the full list. No other Epic/Story/Subtask status inconsistency was found project-wide.
+
+**Also resolved 2026-09-03, same audit**: a real `next build` failure (`useSearchParams()` without a Suspense boundary on `/documents/invoices`, never caught because `next build` had never actually been run this session despite several prior commits) and a genuine frontend test-suite flakiness root cause (a second unprotected `vi.useFakeTimers()`/`vi.useRealTimers()` pair in `CreateInvoiceEditor.test.tsx` that could leak fake timers into later tests in the same file if an assertion threw first) were both fixed at the root cause, not papered over. `vitest.config.ts`'s `testTimeout` was empirically re-measured (not just bumped again) and settled at 10000ms, down from the prior 15000ms — see that file's own comment for the measurement methodology if it ever needs revisiting.
 
 Product requirements, architecture and backlog planning remain available under `docs/` and Jira.
 
@@ -22,7 +28,7 @@ Jira backlog created and verified:
 
 - Epics: `IG-1` through `IG-12` — 12 total
 - Stories: `IG-13` through `IG-72` — 60 total
-- Subtasks: `IG-73` through `IG-192` — 120 total
+- Subtasks: `IG-73` through `IG-192`, plus later additions through `IG-174` — 120+ total
 - All Stories have Epic parents.
 - All Subtasks have Story parents.
 - Created issues were configured as Highest priority and Unassigned.
@@ -32,39 +38,60 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-Epic `IG-5`'s last unclaimed Story is `IG-38` (S26, validate and protect unsaved invoice changes) — check its live Subtasks before claiming, Codex may have picked something up:
+`IG-7`'s last unclaimed Story is `IG-46` (S34, assign unique invoice numbers) — check its live Subtasks before claiming:
 
 ```text
-Epic:    IG-5  — Invoice Editor and Calculation Engine
-Story:   IG-38 — Validate and protect unsaved invoice changes
-Subtask: IG-123 (validation feedback), IG-124 (unsaved-change protection) — check live status before claiming
+Epic:    IG-7  — Invoice Persistence and Lifecycle Management
+Story:   IG-46 — Assign unique invoice numbers
 ```
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-5>
-- <https://appitometechnologies.atlassian.net/browse/IG-38>
+- <https://appitometechnologies.atlassian.net/browse/IG-7>
+- <https://appitometechnologies.atlassian.net/browse/IG-46>
 
 ## Next Task
 
-`IG-121`/`IG-122` (T049/T050, both Subtasks of `IG-37`) are Done; `IG-37` itself is Done — the fifth Story in Epic `IG-5`.
+Resume `IG-46` ("Assign unique invoice numbers", S34): numbers must be unique within the business account, follow the configured prefix/sequence/editing rules from the FSD, and **concurrent creation cannot produce duplicate numbers**.
 
 Before implementation:
 
-1. Check `IG-38`'s Subtasks (`IG-123`, `IG-124`) and their live status/assignee/comments first.
-2. **This is the last Story in Epic `IG-5`** - once it's Done, check whether the Epic itself should be marked Done in Jira (it's currently sitting at "To Do" status despite 5 of 6 Stories complete - Epics don't appear to auto-transition in this project, see the pattern from `IG-1`/`IG-2` which WERE manually marked Done). After that, check Jira for the next Epic (`IG-4`, `IG-6`, or `IG-7` are the likely candidates - `IG-4` still lists `IG-6`/`IG-7` as unmet dependencies per its own Jira description, so probably not `IG-4` yet) and confirm with the user before starting new-Epic work.
-3. **FSD §81 "Unsaved Changes Handling" is the "defined warning" S26's acceptance criteria refers to**, already checked so the next session doesn't have to re-find it: "If user attempts to leave invoice editor with unsaved changes: Display confirmation: 'You have unsaved changes. Leave without saving?' Buttons: Stay / Leave." A real in-app confirmation dialog (Stay/Leave buttons) matches this more precisely than a bare native `beforeunload` browser prompt (which can't be styled/worded and offers no custom buttons) - decide which is achievable/appropriate given there's no routing-away action yet to actually intercept (no other pages link away from `/invoice/create` except the landing page itself), and document the choice rather than picking silently.
-4. **Every section built so far (`IG-33`-`IG-37`) already validates its own fields on blur with live-clearing on correction** - this Story is likely about tying it all together (e.g. a page-level "is everything valid" check, not yet built) rather than inventing new per-field validation from scratch. Check whether `hasAnyError`/`hasAnyLineItemError`/`hasAnySupportingContentError`/`invoiceDiscountError` already give you everything needed to compose an overall validity check.
-5. Continue the pattern established in `IG-33`-`IG-37`: colocate `*.test.tsx` next to the component being tested, verify with `npm test`/`npm run lint`/`npm run build`, and do a **real-browser pass** (Playwright/Chromium via `npx`, already installed at `~/AppData/Local/ms-playwright`) for anything jsdom can't actually verify - this has caught a real bug in every Story so far (see "Blockers and Open Decisions" below).
-6. **A doc mismatch was flagged during `IG-34`/`IG-115` and again during `IG-37`/`IG-121`, not yet resolved**: FSD §13's Seller "Contact Name" field and FSD §32's 8 structured Payment Instructions fields both have no matching shape in `docs/DATABASE_SCHEMA.md` (a missing column, and a single flat text column respectively). Doesn't block frontend work, but flag it again if a backend Invoice Persistence Story (`IG-7`) picks this up before it's reconciled.
-7. **`IG-36` added the first backend code in Epic `IG-5`**: `POST /api/v1/invoices/calculate` (`InvoiceApp.Modules.Invoicing/Calculations/InvoiceCalculator.cs`, stateless, no persistence, no auth). Reuse it if relevant; don't rebuild it.
-8. **Remember the open frontend-auth-UI gap** (see "Open follow-up carried over from `IG-26`" below) — if `IG-31` (preserve invoice context through authentication, later in Epic `IG-4`) or any other Epic IG-3 revisit needs frontend sign-in UI, flag it the same way rather than silently building only a backend endpoint.
-9. **Local-commit-only workflow as of 2026-08-25**: commit but do not push to GitHub — the user pushes manually at the end of the day (they have asked for an explicit one-time push before, which was done; that doesn't change the default). Don't watch GitHub Actions after a commit unless the user has just asked you to push. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
-10. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
-11. **Password-reset email delivery is a dev-only log stub as of 2026-08-25** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
-12. **Vitest's default test timeout was raised from 5s to 15s as of `IG-37`** (`frontend/vitest.config.ts`) - the suite occasionally hit the old ceiling under parallel-file CPU contention, unrelated to any specific test's own logic. Keep this in mind if a future test seems to hang rather than fail cleanly.
+1. **This is genuinely a concurrency-safety Story, not just a formatting one** — `BusinessService.GenerateNextInvoiceNumberAsync` (built in `IG-54`, `backend/src/InvoiceApp.Infrastructure/Businesses/BusinessService.cs`) currently does a plain read-then-write in C#, which is not safe against two concurrent requests. Confirmed via grep (2026-09-03 audit) that **zero backend tests use a real Postgres provider today** — every test project uses EF Core's `UseInMemoryDatabase`, which structurally cannot prove concurrency safety. This Story needs a genuinely atomic Postgres-native replacement (e.g. a single `UPDATE ... RETURNING` raw SQL statement, one round trip, atomic by construction) plus new Postgres-backed test infrastructure.
+2. **Reuse the existing `invoiceapp-postgres` docker container** for the new Postgres-backed test path (user's explicit choice, 2026-09-03) rather than introducing Testcontainers. Decide and document how these tests behave when Postgres/Docker isn't running (skip gracefully vs. hard-fail) so they don't silently break the standard pre-push verification gate (see item 4) on a machine without Docker available.
+3. Write a concurrency test firing ~20-50 simultaneous `GenerateNextInvoiceNumberAsync` calls via `Task.WhenAll` and asserting zero duplicate numbers — confirm it would actually fail against the old unfixed read-then-write code, not just pass against the new one.
+4. **Standing four-command verification gate, adopted 2026-09-03, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed; don't repeat that.
+5. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if this Story touches it at all** (e.g. surfacing a numbering-conflict message) — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
+6. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
+7. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
+8. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
+9. After `IG-46`, `IG-7` is Done and the next candidates are `IG-52` (closes `IG-8`) or continuing `IG-9`'s remaining Stories (`IG-57`-`IG-59`) — confirm with the user before starting new-Epic-adjacent work, same as always.
 
 ## Last Execution
+
+**Date:** 2026-09-03
+
+Completed (audit follow-up — paused new feature development to restore a trustworthy baseline, per explicit user instruction):
+
+- **Fixed a real production-build failure**: `frontend/app/documents/invoices/page.tsx`'s `InvoiceListView` calls `useSearchParams()` with no Suspense boundary anywhere in its ancestor tree — Next.js's App Router requires one on a statically-rendered route, or `next build` fails outright. Wrapped it in `<Suspense fallback={...}>`. This had shipped across several prior commits because `next build` had never actually been run this session (only `tsc`/`eslint`/`vitest` were checked before each push) — adopted a standing four-command gate (`dotnet test`, `eslint`, `npm test`, `npm run build`) going forward specifically to prevent a repeat.
+- **Fixed the real root cause of frontend test flakiness, not just the symptom**: found and fixed a second unprotected `vi.useFakeTimers()`/`vi.useRealTimers()` pair in `CreateInvoiceEditor.test.tsx` (a draft-retention test) that had no `try/finally` or `afterEach` cleanup net, so a thrown assertion before its own `useRealTimers()` call would leak fake timers into every later test in the file — the same bug class fixed once already earlier this session in the same file. Fixed by moving `vi.useRealTimers()` into the file's `afterEach` (unconditional, harmless no-op if fake timers were never installed), matching the pattern already used in `pendingGateAction.test.ts`/`draftStorage.test.ts`.
+- **Empirically re-measured `testTimeout` instead of assuming a value**, per explicit instruction not to treat raising it as the final answer: ran the full suite 3x at the 5000ms default after the fix above — still failed 7-9 tests every run, confirming genuine CPU-contention-driven flakiness under parallel test-file execution independent of the timer-leak bug (matching `IG-37`'s original diagnosis). 10000ms passed 484/484 cleanly across 5 consecutive runs; kept at 10000ms (down from the prior, unverified 15000ms).
+- **Reconciled Jira project-wide**: a full paginated audit (all Epics/Stories/Subtasks) found exactly one class of inconsistency — 38 Subtasks across all 19 then-Done Stories still at To Do despite each one's own summary describing work already completed and verified as part of its Done parent Story. Confirmed the pattern held with no exceptions across all 19 Stories (spanning both this session's work and Codex's earlier `IG-28`-`IG-32` work) before proposing the transition list to the user and getting explicit approval; all 38 transitioned to Done. No Epic/Story mismatch, no stray non-standard status, found anywhere else in the project.
+- **Rewrote this file** (`backlog.md`) to reflect actual current position — previously synced to commit `df9516a` (2026-08-25, mid-Epic-5), now current through `0b38daa`, roughly 26 commits and 5 Epics of drift corrected. Older narrative preserved below rather than deleted, for history.
+
+Files changed or created (audit follow-up):
+
+- `frontend/app/documents/invoices/page.tsx` (Suspense boundary added around `InvoiceListView`)
+- `frontend/app/invoice/create/components/CreateInvoiceEditor.test.tsx` (`afterEach` now unconditionally calls `vi.useRealTimers()`; redundant manual call removed from the one test that already needed it)
+- `frontend/vitest.config.ts` (`testTimeout` 15000 → 10000, with a comment documenting the measurement)
+- `backlog.md`
+
+Verification performed (audit follow-up):
+
+- `npm run build` succeeds; `/documents/invoices` now listed as `○ (Static)`.
+- Full frontend suite (484 tests) run 5 consecutive times at the new 10000ms timeout — clean every time. Backend suite (247 tests), `npx eslint .`, and `npm run build` all clean.
+- Committed locally only, not pushed (standing workflow, unchanged).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-08-25 Australia/Sydney
 
