@@ -25,15 +25,18 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
     private readonly TimeSpan? _cookieExpireOverride;
     private readonly int? _rateLimitPermitLimitOverride;
     private readonly TimeSpan? _passwordResetTokenLifespanOverride;
+    private readonly string? _postgresConnectionStringOverride;
 
     public AuthenticatedRouteTestFactory(
         TimeSpan? cookieExpireOverride = null,
         int? rateLimitPermitLimitOverride = null,
-        TimeSpan? passwordResetTokenLifespanOverride = null)
+        TimeSpan? passwordResetTokenLifespanOverride = null,
+        string? postgresConnectionStringOverride = null)
     {
         _cookieExpireOverride = cookieExpireOverride;
         _rateLimitPermitLimitOverride = rateLimitPermitLimitOverride;
         _passwordResetTokenLifespanOverride = passwordResetTokenLifespanOverride;
+        _postgresConnectionStringOverride = postgresConnectionStringOverride;
     }
 
     // Swaps out the real LoggingPasswordResetEmailSender for a capturing fake - HTTP-level tests
@@ -47,7 +50,20 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
         {
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseInMemoryDatabase(_databaseName));
+            {
+                // IG-46: GenerateNextInvoiceNumberAsync now issues Postgres-specific raw SQL
+                // (UPDATE ... RETURNING) for atomicity, which the InMemory provider can't execute
+                // at all - a test exercising that endpoint needs a real Npgsql connection instead.
+                // Every other test keeps using the default per-factory InMemory database, unaffected.
+                if (_postgresConnectionStringOverride is { } connectionString)
+                {
+                    options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();
+                }
+                else
+                {
+                    options.UseInMemoryDatabase(_databaseName);
+                }
+            });
 
             // No real Authentication:Google:ClientId/Secret exists in the test environment, but
             // GoogleOptions requires non-empty values before it will build a challenge redirect

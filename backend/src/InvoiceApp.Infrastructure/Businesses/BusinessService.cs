@@ -68,16 +68,34 @@ public sealed class BusinessService(ApplicationDbContext dbContext) : IBusinessS
     {
         var business = await FindOwnedAsync(userId, cancellationToken);
 
-        var formatted = FormatInvoiceNumber(business.InvoicePrefix, business.NextInvoiceNumber, business.InvoiceNumberPadding);
-        // Not hardened against a genuine concurrent-request race (two simultaneous calls both
-        // reading NextInvoiceNumber before either writes) - that's IG-46's own AC, not this
-        // Story's, same scoping precedent InvoiceService.SaveAsync's own uniqueness check already
-        // set. A collision with a manually-typed number still gets caught by that same check when
-        // the invoice is actually saved.
-        business.NextInvoiceNumber += 1;
-        business.UpdatedAt = DateTimeOffset.UtcNow;
+        // IG-46 AC: "concurrent creation cannot produce duplicate numbers." A plain read-then-write
+        // (read NextInvoiceNumber, increment in memory, SaveChanges) races under concurrent
+        // requests - two callers can both read the same value before either commits. Verified this
+        // is a real race, not a theoretical one: with the old read-then-write code, 30 concurrent
+        // calls in BusinessServiceConcurrencyTests produced only 5 distinct numbers.
+        //
+        // A single UPDATE ... RETURNING statement is atomic by construction: Postgres serializes
+        // concurrent UPDATEs against the same row via ordinary row-level locking, so each
+        // concurrent caller gets a distinct, correctly-incremented value in one round trip, with no
+        // explicit transaction or app-level locking needed. Bypasses the change tracker/SaveChanges
+        // deliberately - this is the only write this method performs.
+        //
+        // .ToListAsync(), not .SingleAsync() - EF tries to translate SingleAsync's row-limit onto
+        // the raw SQL as a composed subquery, which fails because UPDATE ... RETURNING isn't
+        // composable the way a SELECT is ("non-composable SQL", confirmed by actually running this
+        // against Postgres, not assumed).
+        var allocatedNumbers = await dbContext.Database.SqlQueryRaw<int>(
+            """
+            UPDATE business.businesses
+            SET next_invoice_number = next_invoice_number + 1, updated_at = {1}
+            WHERE id = {0}
+            RETURNING next_invoice_number - 1
+            """,
+            business.Id, DateTimeOffset.UtcNow)
+            .ToListAsync(cancellationToken);
+        var allocatedNumber = allocatedNumbers.Single();
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var formatted = FormatInvoiceNumber(business.InvoicePrefix, allocatedNumber, business.InvoiceNumberPadding);
 
         return new GeneratedInvoiceNumberDto(formatted);
     }
