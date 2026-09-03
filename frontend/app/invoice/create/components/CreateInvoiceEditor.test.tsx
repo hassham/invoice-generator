@@ -149,6 +149,11 @@ describe("CreateInvoiceEditor", () => {
 
   afterEach(() => {
     resetAnalyticsSink();
+    // Unconditional (a no-op if fake timers were never installed) - guards every fake-timer test
+    // below uniformly, so a test that throws before reaching its own vi.useRealTimers() can't
+    // leave fake timers active for every later test in this file. Matches the same file-wide
+    // afterEach pattern already used in lib/pendingGateAction.test.ts and lib/draftStorage.test.ts.
+    vi.useRealTimers();
   });
 
   it("reflects the From and Bill To text in the live preview as it's typed", async () => {
@@ -922,7 +927,9 @@ describe("CreateInvoiceEditor", () => {
 
       expect(screen.queryByText(/We restored your unsaved invoice draft/)).not.toBeInTheDocument();
       expect(screen.getByLabelText("From", { exact: false })).toHaveValue("");
-      vi.useRealTimers();
+      // vi.useRealTimers() intentionally not called here - the file-wide afterEach above handles
+      // it unconditionally, so this doesn't leak fake timers into later tests even if an
+      // assertion above this line throws.
     });
 
     it("typing into the form auto-saves a draft that a later mount (e.g. after a refresh) restores", async () => {
