@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BusinessLogoUpload } from "../../../components/business/BusinessLogoUpload";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfile, type BusinessProfileRequest } from "../../../lib/business";
 import { BusinessProfileForm, type BusinessProfileFormValues } from "./BusinessProfileForm";
 
@@ -108,6 +109,10 @@ export function BusinessProfileSettings() {
           Changes saved.
         </p>
       ) : null}
+
+      <div className="mt-6">
+        <BusinessLogoUpload logoUrl={profile.logoUrl} onChange={setProfile} />
+      </div>
 
       <div className="mt-6">
         <BusinessProfileForm initialValues={toFormValues(profile)} submitting={submitting} error={submitError} onSubmit={handleSubmit} />

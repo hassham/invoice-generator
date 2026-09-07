@@ -41,8 +41,9 @@ export function RegisterForm() {
       });
       // IG-31 / FSD section 37: a pending Download PDF/Print request (IG-30's account gate) means
       // this registration was triggered from the invoice editor - return there instead of the
-      // homepage so the preserved invoice is what the visitor actually sees next.
-      window.location.href = loadPendingGateAction() ? "/invoice/create" : "/";
+      // homepage so the preserved invoice is what the visitor actually sees next. Otherwise,
+      // FSD section 116: send a fresh registration into the guided (skippable) onboarding wizard.
+      window.location.href = loadPendingGateAction() ? "/invoice/create" : "/onboarding";
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Failed to create your account.");
       setSubmitting(false);

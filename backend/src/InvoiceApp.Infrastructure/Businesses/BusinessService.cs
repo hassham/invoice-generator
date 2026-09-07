@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceApp.Infrastructure.Businesses;
 
-public sealed class BusinessService(ApplicationDbContext dbContext) : IBusinessService
+public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLogoStorage logoStorage) : IBusinessService
 {
     public async Task<BusinessProfileDto> GetAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -100,6 +100,32 @@ public sealed class BusinessService(ApplicationDbContext dbContext) : IBusinessS
         return new GeneratedInvoiceNumberDto(formatted);
     }
 
+    public async Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Stream content, string contentType, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, cancellationToken);
+
+        await logoStorage.SaveAsync(business.Id, content, contentType, cancellationToken);
+        business.LogoUrl = $"/api/v1/business/logo/{business.Id}";
+        business.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(business);
+    }
+
+    public async Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, cancellationToken);
+
+        logoStorage.Delete(business.Id);
+        business.LogoUrl = null;
+        business.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(business);
+    }
+
     private async Task<Business> FindOwnedAsync(Guid userId, CancellationToken cancellationToken) =>
         await dbContext.Businesses.SingleAsync(business => business.UserId == userId, cancellationToken);
 
@@ -136,6 +162,7 @@ public sealed class BusinessService(ApplicationDbContext dbContext) : IBusinessS
         business.InvoicePrefix,
         business.NextInvoiceNumber,
         business.InvoiceNumberPadding,
+        business.LogoUrl,
         business.CreatedAt,
         business.UpdatedAt);
 }

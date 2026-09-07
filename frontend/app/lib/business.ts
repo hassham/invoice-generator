@@ -54,6 +54,7 @@ export interface BusinessProfile {
   invoicePrefix: string;
   nextInvoiceNumber: number;
   invoiceNumberPadding: number;
+  logoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -143,4 +144,40 @@ export async function generateNextInvoiceNumber(): Promise<GeneratedInvoiceNumbe
   }
 
   return response.json();
+}
+
+/** IG-52: sends the raw file as-is - resizing/validation already happened client-side
+ * (lib/logoUpload.ts) before this is called, and the server repeats the same checks itself
+ * (defense in depth), so nothing here needs to duplicate that logic. */
+export async function uploadBusinessLogo(file: Blob, fileName: string): Promise<BusinessProfile> {
+  const formData = new FormData();
+  formData.append("file", file, fileName);
+
+  const response = await fetch(`${baseUrl()}/api/v1/business/logo`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to upload your logo."));
+  }
+
+  return response.json();
+}
+
+export async function removeBusinessLogo(): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/business/logo`, { method: "DELETE", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to remove your logo."));
+  }
+
+  return response.json();
+}
+
+/** Resolves a LogoUrl (a relative API path, e.g. "/api/v1/business/logo/{id}") against the API's
+ * own base URL, the same convention every other request in this module already uses. */
+export function resolveLogoUrl(logoUrl: string): string {
+  return `${baseUrl()}${logoUrl}`;
 }

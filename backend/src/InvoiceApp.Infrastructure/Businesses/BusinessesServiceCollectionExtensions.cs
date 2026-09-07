@@ -8,6 +8,7 @@ public static class BusinessesServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureBusinesses(this IServiceCollection services)
     {
         services.AddScoped<IBusinessService, BusinessService>();
+        services.AddScoped<IBusinessLogoStorage, BusinessLogoStorage>();
         return services;
     }
 }

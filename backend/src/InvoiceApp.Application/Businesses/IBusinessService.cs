@@ -12,4 +12,12 @@ public interface IBusinessService
     /// NextInvoiceNumber/InvoiceNumberPadding into a suggested invoice number, then increments
     /// NextInvoiceNumber so the next call/generation produces a different one.</summary>
     Task<GeneratedInvoiceNumberDto> GenerateNextInvoiceNumberAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>IG-52 / FSD section 14: caller (InvoiceApp.Api) is responsible for validating
+    /// <paramref name="content"/> via BusinessLogoValidator before calling this - same convention
+    /// as UpdateAsync's BusinessProfileRequestValidator call happening in the endpoint layer, not
+    /// here.</summary>
+    Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Stream content, string contentType, CancellationToken cancellationToken);
+
+    Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, CancellationToken cancellationToken);
 }

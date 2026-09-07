@@ -3,11 +3,16 @@
 **/obj/
 /publish/
 
+# IG-52: uploaded business logos (local-disk storage, BusinessLogoStorage) - user content, never
+# committed, same reasoning as the secrets/environment-file rules below.
+**/App_Data/
+
 # Next.js / Node
 frontend/node_modules/
 frontend/.next/
 frontend/generated/
 frontend/out/
+*.tsbuildinfo
 
 # Local SDK and tooling
 .dotnet/

@@ -13,7 +13,7 @@ describe("RegisterForm", () => {
     Object.defineProperty(window, "location", { configurable: true, writable: true, value: originalLocation });
   });
 
-  it("submits email, password, confirmPassword and name, then navigates home on success", async () => {
+  it("submits email, password, confirmPassword and name, then navigates to onboarding on success", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ userId: "u1", email: "jane@example.com", name: "Jane", businessId: "b1" }),
@@ -41,7 +41,7 @@ describe("RegisterForm", () => {
         body: JSON.stringify({ email: "jane@example.com", password: "Passw0rd!", confirmPassword: "Passw0rd!", name: "Jane" }),
       }),
     );
-    expect(navigations).toContain("/");
+    expect(navigations).toContain("/onboarding");
   });
 
   it("redirects to /invoice/create instead of / when a pending Download/Print action is preserved (IG-31)", async () => {

@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Businesses;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Identity;
@@ -112,7 +113,7 @@ public sealed class BusinessServiceConcurrencyTests : IClassFixture<PostgresAvai
         var tasks = Enumerable.Range(0, concurrentRequests).Select(async _ =>
         {
             await using var context = PostgresAvailabilityFixture.CreateContext();
-            var service = new BusinessService(context);
+            var service = new BusinessService(context, new NoopBusinessLogoStorage());
             var result = await service.GenerateNextInvoiceNumberAsync(userId, CancellationToken.None);
             return result.InvoiceNumber;
         });
@@ -120,5 +121,18 @@ public sealed class BusinessServiceConcurrencyTests : IClassFixture<PostgresAvai
         var results = await Task.WhenAll(tasks);
 
         Assert.Equal(concurrentRequests, results.Distinct().Count());
+    }
+
+    // This test doesn't exercise logo storage at all - a real BusinessLogoStorage needs
+    // IWebHostEnvironment, which isn't available in this plain xUnit test context.
+    private sealed class NoopBusinessLogoStorage : IBusinessLogoStorage
+    {
+        public Task SaveAsync(Guid businessId, Stream content, string contentType, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public void Delete(Guid businessId)
+        {
+        }
+
+        public BusinessLogoFile? Locate(Guid businessId) => null;
     }
 }
