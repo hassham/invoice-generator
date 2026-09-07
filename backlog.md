@@ -8,11 +8,12 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `998d73e`, 2026-09-07.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `26588bc`, 2026-09-07.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-8`, and `IG-10` are Done** (9 of 12). `IG-8` (Business Profile and Onboarding) was completed 2026-09-07 with `IG-52` ("Complete or skip guided onboarding", S40) — see "Last Execution" below for the onboarding wizard and new business-logo file storage that required. One Epic remains one Story away from Done:
+**Epics `IG-1` through `IG-8`, and `IG-10` are Done** (9 of 12). `IG-9` (Customer and Item Catalogue Management) is in progress:
 
-- **`IG-9` (Customer and Item Catalogue Management)**: Stories `IG-55`, `IG-56` (customer records/selection) Done. `IG-57` (product/service records), `IG-58` (select saved item on invoice), `IG-59` (archive reusable records) are still To Do — this Epic has 3 Stories remaining, not just one.
+- Stories `IG-55`, `IG-56` (customer records/selection) and `IG-57` (product/service records, completed 2026-09-07 - see "Last Execution") are Done.
+- `IG-58` ("Select a saved item on an invoice", the item search-picker for the invoice editor - mirrors `IG-56`'s saved-customer picker) and `IG-59` ("Archive reusable records safely") remain — **`IG-58` is the next task**, see below.
 
 **Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do.
 
@@ -36,21 +37,21 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-`IG-9`'s next unclaimed Story is `IG-57` (manage product and service records) — check its live Subtasks before claiming. `IG-58` (select a saved item on an invoice) and `IG-59` (archive reusable records safely) remain after it.
+`IG-9`'s next unclaimed Story is `IG-58` (select a saved item on an invoice) — check its live Subtasks before claiming. `IG-59` (archive reusable records safely) remains after it.
 
 ```text
 Epic:    IG-9  — Customer and Item Catalogue Management
-Story:   IG-57 — Manage product and service records
+Story:   IG-58 — Select a saved item on an invoice
 ```
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-9>
-- <https://appitometechnologies.atlassian.net/browse/IG-57>
+- <https://appitometechnologies.atlassian.net/browse/IG-58>
 
 ## Next Task
 
-Resume `IG-9` with `IG-57` ("Manage product and service records") - likely closely mirrors `IG-55`'s existing customer-records CRUD pattern (`backend/src/InvoiceApp.Infrastructure/Customers/`, `frontend/app/customers/`), just for catalog items/products instead of customers. Confirm scope with the user before claiming (per standing preference), including whether `IG-58` (select a saved item on an invoice, mirrors `IG-56`'s saved-customer picker) should be picked up in the same pass given how closely the two Stories parallel `IG-55`/`IG-56`.
+Resume `IG-9` with `IG-58` ("Select a saved item on an invoice") - FSD section 25 (Item Catalogue Lookup): typing into a line item's description searches saved products/services (`GET /api/v1/items`, now live from `IG-57`), selecting one populates Description/Unit/Unit Price/Tax Rate on that line, and the invoice stores its own snapshot so later catalogue edits don't retroactively change historical invoices (already true by construction - `InvoiceItem` copies its own field values, no live FK to `CatalogItem`, confirm this before assuming). Likely mirrors whatever picker/autocomplete pattern IG-56 already built for saved-customer selection in the invoice editor - check `frontend/app/invoice/create/` for that component before building a new one from scratch.
 
 Before implementation:
 
@@ -59,11 +60,43 @@ Before implementation:
 3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
 4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
 5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. It skips gracefully (via `Xunit.SkippableFact`) when Postgres isn't reachable, since CI's backend job has no Postgres service container. Reuse this fixture rather than building a parallel one if a future Story also needs real-database behavior the InMemory provider can't prove.
-6. **Real server-side file storage now exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern (interface in Application, disk implementation in Infrastructure, `IWebHostEnvironment`-rooted path) if a future Story needs file storage again, rather than inventing a second approach.
-7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if a Story touches it at all** — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
-8. After `IG-9`'s remaining Stories, the only unstarted Epics left are `IG-11` (Payment Recording and Invoice Status) and `IG-12` (Product Quality, Security and Operational Readiness) — confirm with the user before starting new-Epic work, same as always.
+6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern (interface in Application, disk implementation in Infrastructure, `IWebHostEnvironment`-rooted path) if a future Story needs file storage again, rather than inventing a second approach.
+7. **Catalogue item CRUD now exists** (`IG-57`: `backend/src/InvoiceApp.Infrastructure/Catalog/`, `frontend/app/items/`, `frontend/app/lib/items.ts`'s `listItems()`) - `IG-58` builds the invoice-editor picker on top of this, it doesn't need its own catalogue storage.
+8. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if a Story touches it at all** — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
+9. After `IG-58`/`IG-59`, the only unstarted Epics left are `IG-11` (Payment Recording and Invoice Status) and `IG-12` (Product Quality, Security and Operational Readiness) — confirm with the user before starting new-Epic work, same as always.
 
 ## Last Execution
+
+**Date:** 2026-09-07 (later same day)
+
+Completed: `IG-57` ("Manage product and service records", S45).
+
+- **Full CRUD for `catalog.items`**, mirroring `CustomerService`'s account-ownership pattern exactly (never a caller-supplied business id) - the `CatalogItem` domain entity and its EF configuration already existed (scaffolded early, never wired up); this added everything above them: `CatalogItemDto`/`CatalogItemRequest`, `ICatalogItemService`/`CatalogItemService`, `CatalogItemRequestValidator`, and `CatalogEndpoints` (`GET`/`POST`/`PUT`/`DELETE /api/v1/items`).
+- **Validation follows FSD section 60 exactly**: Name and Unit Price are the only required fields. Tax rate is bounded 0-100, the same bound `InvoiceCalculationRequestValidator` already enforces on line items - a catalogue item's tax rate feeds directly into that same calculation once selected on an invoice, so it can't be a value the calculator would itself reject.
+- **`POST /api/v1/items/{id}/duplicate` added** for FSD section 59's Duplicate list action (not in `IG-57`'s own Jira AC, but present in the FSD's fuller feature description, matching how `IG-55`'s "Create Invoice" row action also went beyond `IG-55`'s own bare AC) - creates a real independent copy (own id, `"{name} (Copy)"`), not a reference, confirmed by editing the duplicate and checking the original is untouched.
+- **Frontend**: `/items` (list - Name/Description/Unit/Price/Tax/Status per FSD section 59, with Edit/Duplicate/Archive), `/items/new`, `/items/[id]` (view/edit/archive - no restore, same documented limitation as `CustomerDetail`, no unarchive endpoint exists yet). Added an "Items" link to `SiteHeader`'s signed-in navigation.
+- **Real end-to-end browser verification** (Playwright, ad-hoc script, cleaned up afterward): created an item, edited its price, duplicated it, archived the original - confirmed the archived original disappears from the default list while the untouched duplicate remains visible.
+
+Files changed or created (`IG-57`):
+
+- `backend/src/InvoiceApp.Application/Catalog/{CatalogItemDto,CatalogItemRequest,ICatalogItemService}.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Catalog/{CatalogItemService,CatalogServiceCollectionExtensions}.cs` (new)
+- `backend/src/InvoiceApp.Modules.Catalog/CatalogItemRequestValidator.cs` (new)
+- `backend/src/InvoiceApp.Api/Endpoints/CatalogEndpoints.cs` (new); `Program.cs` (extended: `AddInfrastructureCatalog`, `MapCatalogEndpoints`)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Modules/Catalog/CatalogItemRequestValidatorTests.cs` (new, 8 tests)
+- `backend/tests/InvoiceApp.Api.Tests/Catalog/CatalogEndpointsTests.cs` (new, 10 tests)
+- `frontend/app/lib/items.ts` (new)
+- `frontend/app/items/{page.tsx,components/{ItemForm,ItemListView}.tsx,new/{page.tsx,components/CreateItemForm.tsx},[id]/{page.tsx,components/ItemDetail.tsx}}` (new, plus one `.test.tsx` per component, 21 tests total)
+- `frontend/app/components/landing/SiteHeader.tsx` (extended: Items nav link)
+- `backlog.md`
+
+Verification performed (`IG-57`):
+
+- Full backend suite: 277/277 passing (14 architecture + 128 infrastructure + 135 API, up from 258 - 18 new). Full frontend suite: 521/521 passing (up from 500 - 21 new); `npx eslint .` and `npm run build` both clean.
+- Real-browser verification via Playwright (see Completed above) - 9/9 checks passed.
+- Committed locally only (`26588bc`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-07
 
