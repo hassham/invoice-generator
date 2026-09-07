@@ -8,12 +8,11 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `cd66f07`, 2026-09-03.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of the start of this date; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `998d73e`, 2026-09-07.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-7`, and `IG-10` are Done** (8 of 12). `IG-7` (Invoice Persistence and Lifecycle Management) was completed 2026-09-03 with `IG-46` ("Assign unique invoice numbers", S34) — see "Last Execution" below for the concurrency-safety work that required. Two Epics are each one Story away from Done:
+**Epics `IG-1` through `IG-8`, and `IG-10` are Done** (9 of 12). `IG-8` (Business Profile and Onboarding) was completed 2026-09-07 with `IG-52` ("Complete or skip guided onboarding", S40) — see "Last Execution" below for the onboarding wizard and new business-logo file storage that required. One Epic remains one Story away from Done:
 
-- **`IG-8` (Business Profile and Onboarding)**: Stories `IG-51`, `IG-53`, `IG-54` Done. Only `IG-52` ("Complete or skip guided onboarding", S40) remains — **this is the next task**, see below.
-- **`IG-9` (Customer and Item Catalogue Management)**: Stories `IG-55`, `IG-56` (customer records/selection) Done. `IG-57` (product/service records), `IG-58` (select saved item on invoice), `IG-59` (archive reusable records) are still To Do — this Epic has more remaining work than `IG-8`, not just one Story.
+- **`IG-9` (Customer and Item Catalogue Management)**: Stories `IG-55`, `IG-56` (customer records/selection) Done. `IG-57` (product/service records), `IG-58` (select saved item on invoice), `IG-59` (archive reusable records) are still To Do — this Epic has 3 Stories remaining, not just one.
 
 **Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do.
 
@@ -37,21 +36,21 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-`IG-8`'s last unclaimed Story is `IG-52` (S40, complete or skip guided onboarding) — check its live Subtasks before claiming:
+`IG-9`'s next unclaimed Story is `IG-57` (manage product and service records) — check its live Subtasks before claiming. `IG-58` (select a saved item on an invoice) and `IG-59` (archive reusable records safely) remain after it.
 
 ```text
-Epic:    IG-8  — Business Profile and Onboarding
-Story:   IG-52 — Complete or skip guided onboarding
+Epic:    IG-9  — Customer and Item Catalogue Management
+Story:   IG-57 — Manage product and service records
 ```
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-8>
-- <https://appitometechnologies.atlassian.net/browse/IG-52>
+- <https://appitometechnologies.atlassian.net/browse/IG-9>
+- <https://appitometechnologies.atlassian.net/browse/IG-57>
 
 ## Next Task
 
-Resume `IG-52` ("Complete or skip guided onboarding", S40): onboarding covers the fields/steps defined in the FSD, users can skip optional steps without being blocked, and saved steps populate the business profile (`IG-51`/`IG-53` already built the profile itself and its defaults - this Story is the guided *setup flow* on top of that, not a new data model).
+Resume `IG-9` with `IG-57` ("Manage product and service records") - likely closely mirrors `IG-55`'s existing customer-records CRUD pattern (`backend/src/InvoiceApp.Infrastructure/Customers/`, `frontend/app/customers/`), just for catalog items/products instead of customers. Confirm scope with the user before claiming (per standing preference), including whether `IG-58` (select a saved item on an invoice, mirrors `IG-56`'s saved-customer picker) should be picked up in the same pass given how closely the two Stories parallel `IG-55`/`IG-56`.
 
 Before implementation:
 
@@ -59,11 +58,47 @@ Before implementation:
 2. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
 3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
 4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
-5. **A real Postgres-backed test path now exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. It skips gracefully (via `Xunit.SkippableFact`) when Postgres isn't reachable, since CI's backend job has no Postgres service container. Reuse this fixture rather than building a parallel one if a future Story also needs real-database behavior the InMemory provider can't prove.
-6. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if this Story touches it at all** — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
-7. After `IG-52`, `IG-8` is Done and the next candidates are `IG-9`'s remaining Stories (`IG-57`-`IG-59`) or a new Epic (`IG-11`/`IG-12`, both entirely unstarted) — confirm with the user before starting new-Epic-adjacent work, same as always.
+5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. It skips gracefully (via `Xunit.SkippableFact`) when Postgres isn't reachable, since CI's backend job has no Postgres service container. Reuse this fixture rather than building a parallel one if a future Story also needs real-database behavior the InMemory provider can't prove.
+6. **Real server-side file storage now exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern (interface in Application, disk implementation in Infrastructure, `IWebHostEnvironment`-rooted path) if a future Story needs file storage again, rather than inventing a second approach.
+7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if a Story touches it at all** — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
+8. After `IG-9`'s remaining Stories, the only unstarted Epics left are `IG-11` (Payment Recording and Invoice Status) and `IG-12` (Product Quality, Security and Operational Readiness) — confirm with the user before starting new-Epic work, same as always.
 
 ## Last Execution
+
+**Date:** 2026-09-07
+
+Completed: `IG-52` ("Complete or skip guided onboarding", S40) — the last Story in Epic `IG-8`, which is now Done.
+
+- **Real server-side file storage added, the first in this app**: `IBusinessLogoStorage`/`BusinessLogoStorage` (local disk under `App_Data/business-logos`, keyed by business id, extension implied by content type). Backs a genuine "Upload Logo" onboarding step (FSD section 116) that had been deferred twice before (`IG-42`, `IG-53`) for lacking exactly this. `BusinessProfileDto` now includes `LogoUrl`.
+- **New endpoints**: `POST`/`DELETE /api/v1/business/logo` (authenticated, server-side validated via `BusinessLogoValidator` - same MIME/5MB/magic-byte-signature rules as the frontend's existing `invoice/create/lib/logoUpload.ts`, defense in depth) and an anonymous `GET /api/v1/business/logo/{businessId}` - deliberately keyed by id rather than session, since a logo must render in `<img>` tags and PDF/print output an unauthenticated invoice recipient can view (same reasoning `IG-28` established for anonymous invoice creation). `POST` needed `.DisableAntiforgery()` - ASP.NET Core 8 auto-requires an antiforgery token on any `IFormFile`-binding endpoint, and this app has no antiforgery middleware anywhere (confirmed by actually hitting the endpoint and getting a 500 first, not assumed).
+- **5-step onboarding wizard** at `/onboarding` (Business Name, Country, Currency, Tax Registration, Upload Logo), shown after registration instead of the homepage - `IG-31`'s pending-Download/Print-gate redirect to `/invoice/create` still takes priority. "Tax Registration" is read as covering both Registration Number and Tax Number together (FSD names one step, the Business entity has always had both as separate fields since `IG-53`).
+- **"Skip" genuinely skips, not just advances**: every step (Skip or Save & Continue) persists via the same `PUT /api/v1/business` call, but Skip specifically reverts only *that step's own* field(s) to their last-saved value first - a user who types something then clicks Skip doesn't have it silently saved anyway, which would have made the label dishonest. Other steps' already-saved edits are carried forward regardless. A separate, persistent "Skip onboarding" link exits immediately from any step with no further save.
+- **Shared `BusinessLogoUpload` component** (`frontend/app/components/business/`) used by both the wizard and the existing Business Profile settings page - reuses `IG-42`'s exact validation/resize logic (`invoice/create/lib/logoUpload.ts`) rather than duplicating it, only adding the actual upload call that logic never had a server to talk to before now.
+- **Real end-to-end browser verification** (Playwright, ad-hoc script, cleaned up afterward): registered a fresh account, confirmed the `/onboarding` redirect, saved the business name, skipped Country and Currency, filled and saved Tax Registration, uploaded a real PNG, confirmed the thumbnail appeared, finished to `/invoice/create`, then independently reloaded `/settings/business` and confirmed the saved name/tax number/logo were all actually persisted (not just reflected in in-memory state) - including fetching the logo URL directly and checking its content-type.
+
+Files changed or created (`IG-52`):
+
+- `backend/src/InvoiceApp.Application/Businesses/{IBusinessLogoStorage,IBusinessService,BusinessProfileDto}.cs` (new/extended)
+- `backend/src/InvoiceApp.Infrastructure/Businesses/{BusinessLogoStorage,BusinessService,BusinessesServiceCollectionExtensions}.cs` (new/extended)
+- `backend/src/InvoiceApp.Modules.Businesses/BusinessLogoValidator.cs` (new)
+- `backend/src/InvoiceApp.Api/Endpoints/BusinessEndpoints.cs` (extended: logo upload/remove/get)
+- `backend/tests/InvoiceApp.Api.Tests/Businesses/BusinessLogoEndpointsTests.cs` (new, 10 tests)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/BusinessServiceConcurrencyTests.cs` (extended: `NoopBusinessLogoStorage` test double for the new constructor parameter)
+- `frontend/app/components/business/{BusinessLogoUpload,BusinessLogoUpload.test}.tsx` (new)
+- `frontend/app/onboarding/{page.tsx,components/OnboardingWizard.tsx,components/OnboardingWizard.test.tsx,lib/onboarding.ts,lib/onboarding.test.ts}` (new)
+- `frontend/app/lib/business.ts` (extended: `logoUrl`, `uploadBusinessLogo`, `removeBusinessLogo`, `resolveLogoUrl`)
+- `frontend/app/settings/business/components/BusinessProfileSettings.tsx` (extended: renders `BusinessLogoUpload`)
+- `frontend/app/signup/components/RegisterForm.tsx` (redirect target `/` → `/onboarding`)
+- `.gitignore` (extended: `**/App_Data/`, `*.tsbuildinfo`)
+- `backlog.md`
+
+Verification performed (`IG-52`):
+
+- Full backend suite: 258/258 passing (14 architecture + 119 infrastructure + 125 API, up from 248 - 10 new logo endpoint tests). Full frontend suite: 500/500 passing (up from 484 - 16 new tests across the wizard, its lib, and the shared logo component); `npx eslint .` and `npm run build` both clean.
+- Real-browser verification via Playwright (see Completed above) - 11/11 checks passed.
+- Committed locally only (`998d73e`) - not pushed by default (standing workflow), though the user did ask for a push earlier this session covering the prior Jira-reconciliation/IG-46 commits.
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-03 (later same day)
 
