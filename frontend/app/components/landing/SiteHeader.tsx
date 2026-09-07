@@ -78,6 +78,9 @@ export function SiteHeader() {
               <Link href="/customers" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
                 Customers
               </Link>
+              <Link href="/items" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+                Items
+              </Link>
               <Link href="/settings/business" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
                 Settings
               </Link>
@@ -162,6 +165,13 @@ export function SiteHeader() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Customers
+                </Link>
+                <Link
+                  href="/items"
+                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Items
                 </Link>
                 <Link
                   href="/settings/business"
