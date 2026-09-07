@@ -1,11 +1,18 @@
+import type { CatalogItem } from "../../../lib/items";
 import type { LineItem, LineItemErrors } from "../lib/lineItems";
 import { LineItemRow } from "./LineItemRow";
 
 interface LineItemsSectionProps {
   items: LineItem[];
   errors: Record<string, LineItemErrors>;
+  // IG-58: optional, defaulting to "off" - InvoiceDetail.tsx (IG-47's saved-invoice edit page)
+  // renders this same section without the item picker, matching how it never wired up IG-56's
+  // CustomerPicker either. Only the invoice-creation flow needs this.
+  catalogItems?: CatalogItem[];
+  showItemPicker?: boolean;
   onFieldChange: (id: string, field: keyof LineItem, value: string) => void;
   onFieldBlur: (id: string) => void;
+  onSelectCatalogItem?: (id: string, catalogItem: CatalogItem) => void;
   onAdd: () => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
@@ -17,8 +24,11 @@ interface LineItemsSectionProps {
 export function LineItemsSection({
   items,
   errors,
+  catalogItems = [],
+  showItemPicker = false,
   onFieldChange,
   onFieldBlur,
+  onSelectCatalogItem,
   onAdd,
   onMoveUp,
   onMoveDown,
@@ -36,8 +46,11 @@ export function LineItemsSection({
             index={index}
             itemCount={items.length}
             errors={errors[item.id] ?? {}}
+            catalogItems={catalogItems}
+            showItemPicker={showItemPicker}
             onFieldChange={onFieldChange}
             onFieldBlur={onFieldBlur}
+            onSelectCatalogItem={onSelectCatalogItem}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
             onDuplicate={onDuplicate}

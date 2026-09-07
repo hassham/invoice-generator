@@ -38,11 +38,13 @@ import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib
 import { buildInvoicePdfPayload, downloadInvoicePdf } from "../lib/invoicePdf";
 import { AUTO_SAVE_DEBOUNCE_MS, buildInvoiceSavePayload, createInvoice, updateInvoice } from "../lib/invoiceSave";
 import { formatCustomerForBillTo } from "../lib/customerPicker";
+import { applyCatalogItemToLineItem } from "../lib/itemPicker";
 import { formatBusinessProfileForSeller } from "../lib/businessProfileSeller";
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../lib/templateCustomization";
 import { fetchTemplates, type Template } from "../lib/templates";
 import { hasUnsavedChanges } from "../lib/unsavedChanges";
 import { listCustomers, type Customer } from "../../../lib/customers";
+import { listItems, type CatalogItem } from "../../../lib/items";
 import { generateNextInvoiceNumber, getBusinessProfile, paymentTermsToDays } from "../../../lib/business";
 import { AccountGateModal } from "./AccountGateModal";
 import { EditorModeTabs } from "./EditorModeTabs";
@@ -99,6 +101,9 @@ export function CreateInvoiceEditor() {
   // since an edited block may no longer match the customer it was filled from.
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  // IG-58: this account's saved catalogue items, fetched once authenticated, for each line item's
+  // search picker - same fetch-once-and-filter-client-side pattern as IG-56's customers.
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
@@ -271,6 +276,29 @@ export function CreateInvoiceEditor() {
       .catch(() => {
         // A failed customer fetch shouldn't block the invoice editor itself - the search box
         // just has nothing to show, same as a not-yet-loaded state.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  // IG-58: fetches this account's saved catalogue items once authenticated, same reasoning as the
+  // customers fetch above. listItems() defaults to active-only (includeArchived=false), which is
+  // exactly this Story's own AC ("matching active account-owned items appear during search").
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    let cancelled = false;
+    listItems()
+      .then((loaded) => {
+        if (!cancelled) {
+          setCatalogItems(loaded);
+        }
+      })
+      .catch(() => {
+        // A failed item fetch shouldn't block the invoice editor itself - same reasoning as the
+        // customers fetch above.
       });
     return () => {
       cancelled = true;
@@ -495,6 +523,17 @@ export function CreateInvoiceEditor() {
 
   const handleLineItemFieldBlur = () => {
     setLineItemErrors(validateLineItems(lineItems));
+  };
+
+  // IG-58: fills Description/Unit/Unit Price/Tax Rate on one line from a picked catalogue item
+  // (FSD section 25) - a single replace of that line, not a sequence of per-field onFieldChange
+  // calls, so it's one state update and one validation pass instead of several.
+  const handleSelectCatalogItem = (id: string, catalogItem: CatalogItem) => {
+    const nextItems = lineItems.map((item) => (item.id === id ? applyCatalogItemToLineItem(item, catalogItem) : item));
+    setLineItems(nextItems);
+    if (hasAnyLineItemError(lineItemErrors)) {
+      setLineItemErrors(validateLineItems(nextItems));
+    }
   };
 
   const handleAddLineItem = () => {
@@ -1023,8 +1062,11 @@ export function CreateInvoiceEditor() {
           <LineItemsSection
             items={lineItems}
             errors={lineItemErrors}
+            catalogItems={catalogItems}
+            showItemPicker={isAuthenticated}
             onFieldChange={handleLineItemFieldChange}
             onFieldBlur={handleLineItemFieldBlur}
+            onSelectCatalogItem={handleSelectCatalogItem}
             onAdd={handleAddLineItem}
             onMoveUp={handleMoveLineItemUp}
             onMoveDown={handleMoveLineItemDown}

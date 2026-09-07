@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentSession } from "../../../lib/auth";
 import { getBusinessProfile, type BusinessProfile } from "../../../lib/business";
 import { listCustomers } from "../../../lib/customers";
+import { listItems } from "../../../lib/items";
 import { loadPendingGateAction, savePendingGateAction } from "../../../lib/pendingGateAction";
 import { resetAnalyticsSink, setAnalyticsSink, type AnalyticsSink } from "../../../../lib/analytics";
 import { DRAFT_RETENTION_MS, loadDraftSnapshot, saveDraftSnapshot } from "../lib/draftStorage";
@@ -95,6 +96,14 @@ vi.mock("../../../lib/customers", () => ({
 }));
 
 const mockedListCustomers = vi.mocked(listCustomers);
+
+// IG-58: fetches saved catalogue items once authenticated (for each line item's ItemPicker) - same
+// stub-by-default reasoning as lib/customers.ts above.
+vi.mock("../../../lib/items", () => ({
+  listItems: vi.fn(() => Promise.resolve([])),
+}));
+
+const mockedListItems = vi.mocked(listItems);
 
 // IG-51: fetches the account's business profile once authenticated, to pre-fill a fresh invoice -
 // stubbed to reject by default (matching the pre-IG-51 behavior of every other test in this file
@@ -1239,6 +1248,79 @@ describe("CreateInvoiceEditor", () => {
 
       expect(screen.queryByRole("button", { name: /Acme Pty Ltd/ })).not.toBeInTheDocument();
       expect(screen.queryByText("No matching customers.")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("IG-58: select a saved item on an invoice", () => {
+    const SAMPLE_ITEM = {
+      id: "item-42",
+      name: "Consulting Hour",
+      description: "One hour of consulting",
+      sku: "SKU-1",
+      unit: "Hour",
+      unitPrice: 150,
+      taxRate: 10,
+      isArchived: false,
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+    };
+
+    it("hides the item search box for an anonymous visitor", async () => {
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      expect(screen.queryByLabelText("Search saved items")).not.toBeInTheDocument();
+      expect(mockedListItems).not.toHaveBeenCalled();
+    });
+
+    it("shows the item search box and fetches saved items for an authenticated visitor", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      render(<CreateInvoiceEditor />);
+
+      expect(await screen.findByLabelText("Search saved items")).toBeInTheDocument();
+      await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
+    });
+
+    it("selecting a matching item fills Description, Unit, Unit Price and Tax Rate on that line", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListItems.mockResolvedValue([SAMPLE_ITEM]);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Search saved items"), "Consult");
+      await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
+
+      expect(screen.getByLabelText("Description", { exact: false })).toHaveValue("One hour of consulting");
+      expect(screen.getByLabelText(/Unit Price/)).toHaveValue(150);
+      expect(screen.getByLabelText("Tax Rate")).toHaveValue("10");
+    });
+
+    it("leaves Quantity untouched when an item is selected", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListItems.mockResolvedValue([SAMPLE_ITEM]);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
+
+      await user.clear(screen.getByLabelText(/Quantity/));
+      await user.type(screen.getByLabelText(/Quantity/), "4");
+      await user.type(screen.getByLabelText("Search saved items"), "Consult");
+      await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
+
+      expect(screen.getByLabelText(/Quantity/)).toHaveValue(4);
+    });
+
+    it("shows no matches message when the search text does not match any saved item", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListItems.mockResolvedValue([SAMPLE_ITEM]);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
+
+      await user.type(screen.getByLabelText("Search saved items"), "Zephyr");
+
+      expect(await screen.findByText("No matching items.")).toBeInTheDocument();
     });
   });
 

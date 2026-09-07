@@ -1,13 +1,18 @@
 import { useId } from "react";
+import type { CatalogItem } from "../../../lib/items";
 import { computeLineTotals, TAX_RATE_PRESETS, UNIT_OPTIONS, type LineItem, type LineItemErrors } from "../lib/lineItems";
+import { ItemPicker } from "./ItemPicker";
 
 interface LineItemRowProps {
   item: LineItem;
   index: number;
   itemCount: number;
   errors: LineItemErrors;
+  catalogItems?: CatalogItem[];
+  showItemPicker?: boolean;
   onFieldChange: (id: string, field: keyof LineItem, value: string) => void;
   onFieldBlur: (id: string) => void;
+  onSelectCatalogItem?: (id: string, catalogItem: CatalogItem) => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
   onDuplicate: (id: string) => void;
@@ -28,13 +33,17 @@ export function LineItemRow({
   index,
   itemCount,
   errors,
+  catalogItems = [],
+  showItemPicker = false,
   onFieldChange,
   onFieldBlur,
+  onSelectCatalogItem,
   onMoveUp,
   onMoveDown,
   onDuplicate,
   onRemove,
 }: LineItemRowProps) {
+  const itemPickerId = useId();
   const descriptionId = useId();
   const quantityId = useId();
   const unitId = useId();
@@ -91,6 +100,12 @@ export function LineItemRow({
           </button>
         </div>
       </div>
+
+      {showItemPicker ? (
+        <div className="mt-3">
+          <ItemPicker id={itemPickerId} items={catalogItems} onSelect={(catalogItem) => onSelectCatalogItem?.(item.id, catalogItem)} />
+        </div>
+      ) : null}
 
       <div className="mt-3 flex flex-col gap-1">
         <label htmlFor={descriptionId} className="text-sm font-medium text-slate-700">
