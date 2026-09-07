@@ -49,7 +49,7 @@
 
 ## Findings
 
-### 1. Bug — Issue Date/Due Date silently cleared if a header field is edited immediately on page load
+### 1. Bug — Issue Date/Due Date silently cleared if a header field is edited immediately on page load ([IG-194](https://appitometechnologies.atlassian.net/browse/IG-194))
 
 **Severity:** Medium. Confusing (validation blames fields the user never touched), affects both anonymous and authenticated invoice creation, but the window is narrow.
 
@@ -75,7 +75,7 @@ const handleHeaderChange = (name: string, value: string) => {
 
 **Suggested fix (not applied — this was a QA pass, not a fix pass):** compute the merge inside the functional updater, e.g. `setDraft((current) => ({ ...current, header: { ...current.header, [name]: value } }))`, removing the outer `nextHeader` variable's dependency on the closure's `draft`.
 
-### 2. Gap — No discoverable "Forgot password" UI, despite a fully working backend
+### 2. Gap — No discoverable "Forgot password" UI, despite a fully working backend ([IG-195](https://appitometechnologies.atlassian.net/browse/IG-195))
 
 The backend (`POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`) works correctly end-to-end — verified directly in this pass: request → dev-stub-logged token → reset with token → login with new password succeeds → login with old password rejected (401). But there is no link to it anywhere in the UI. `frontend/app/login/components/LoginForm.tsx`'s own comment confirms this is deliberate, not an oversight:
 
@@ -83,7 +83,7 @@ The backend (`POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-passw
 
 **Practical effect:** a real user who forgets their password has no way to discover or use the reset flow, despite `IG-25` ("Recover a forgotten password") showing as Done in Jira.
 
-### 3. Gap — No discoverable "Sign in with Google" UI, and the callback has nowhere to land
+### 3. Gap — No discoverable "Sign in with Google" UI, and the callback has nowhere to land ([IG-196](https://appitometechnologies.atlassian.net/browse/IG-196))
 
 Confirmed via direct API check: `GET /api/v1/auth/google/login` issues a real, correctly-formed redirect to `accounts.google.com` with the app's real registered `client_id`. But:
 - No link/button to it exists anywhere in the frontend.
@@ -117,4 +117,4 @@ Confirmed via direct API check: `GET /api/v1/auth/google/login` issues a real, c
 
 ## Recommendation
 
-File Findings #1, #2 and #3 in Jira (see separate proposal to the user before creating). #1 is a real, fixable bug; #2/#3 are pre-existing, already-self-documented gaps worth a tracked follow-up rather than staying only as code comments, especially since the parent Stories currently read as Done in Jira despite them.
+Findings #1, #2 and #3 have been filed in Jira: [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (bug, parented to `IG-5`), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) and [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (gaps, both parented to `IG-3`). #1 is a real, fixable bug; #2/#3 are pre-existing, already-self-documented gaps now tracked as issues rather than staying only as code comments, especially since the parent Stories (`IG-25`, `IG-23`) currently read as Done in Jira despite them.
