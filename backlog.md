@@ -8,14 +8,13 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `93d766a`, 2026-09-07.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `633eeb9`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-8`, and `IG-10` are Done** (9 of 12). `IG-9` (Customer and Item Catalogue Management) is in progress:
+**Epics `IG-1` through `IG-10` are all Done** (10 of 12) — `IG-9` (Customer and Item Catalogue Management) was completed 2026-09-08 with `IG-59` ("Archive reusable records safely", verification-only, no new code — see "Last Execution"). **Every Story-level Epic in the original MVP scope except payments and quality/security/ops is now delivered.**
 
-- Stories `IG-55`, `IG-56` (customer records/selection), `IG-57` (product/service records) and `IG-58` (select a saved item on an invoice, completed 2026-09-07 - see "Last Execution") are Done.
-- `IG-59` ("Archive reusable records safely") is the only Story left in this Epic — **it's the next task**, see below.
+**Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do. These are the only two Epics with any remaining Story-level work.
 
-**Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do.
+**A full-depth regression pass was run 2026-09-07/08** across every built Epic (see `qa-reports/2026-09-07-regression.md`), on top of the existing automated suites. It found one real, reproducible bug and two pre-existing UI gaps, all filed in Jira: [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (Issue Date/Due Date silently cleared if a header field is edited before the page-load date-default effect commits — root-caused to a stale-closure race in `CreateInvoiceEditor.tsx`'s `handleHeaderChange`, not yet fixed), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) (no UI entry point for password reset, despite a fully working backend) and [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to). None of these are new regressions — all three were pre-existing, `IG-194` just never triggered by normal typing speed, `IG-195`/`IG-196` are gaps already flagged in the code's own comments as deliberate, undone follow-ups.
 
 **Jira reconciliation performed 2026-09-03**: an audit flagged that 38 Subtasks across all 19 then-Done Stories (spanning both this session's own work and earlier work done under the name "Codex") were still sitting at To Do despite their parent Stories being Done and their own summaries ("Implement X" / "Verify Y") describing work that was genuinely completed and verified as part of delivering those Stories. All 38 were confirmed against the actual Jira data and transitioned to Done — see git/Jira history around 2026-09-03 for the full list. No other Epic/Story/Subtask status inconsistency was found project-wide.
 
@@ -37,35 +36,56 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-`IG-9`'s last remaining Story is `IG-59` (archive reusable records safely) — check its live Subtasks before claiming.
+No Story is claimed right now. There are two genuinely different kinds of work open, and which to pick is a call for whoever picks this file up next, not an automatic default:
 
-```text
-Epic:    IG-9  — Customer and Item Catalogue Management
-Story:   IG-59 — Archive reusable records safely
-Subtask: IG-165 (implement customer and item archiving), IG-166 (verify historical record integrity)
-```
+1. **Fix/build the 3 issues the 2026-09-07/08 regression pass found** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work). None of these are regressions from today's work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
+2. **Start a new Epic**: `IG-11` (Payment Recording and Invoice Status, `IG-64`-`IG-67`) or `IG-12` (Product Quality, Security and Operational Readiness, `IG-68`-`IG-72`) — both entirely unstarted, genuinely new scope, not touched by any Story so far.
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-9>
-- <https://appitometechnologies.atlassian.net/browse/IG-59>
+- <https://appitometechnologies.atlassian.net/browse/IG-194>
+- <https://appitometechnologies.atlassian.net/browse/IG-195>
+- <https://appitometechnologies.atlassian.net/browse/IG-196>
+- <https://appitometechnologies.atlassian.net/browse/IG-11>
+- <https://appitometechnologies.atlassian.net/browse/IG-12>
 
 ## Next Task
 
-Resume `IG-9` with `IG-59` ("Archive reusable records safely"). **Read this closely before assuming there's a full Story's worth of new work** - its AC is "archived records excluded from normal new-invoice selection," "existing invoices continue to display their historical snapshots," and "authorized users can identify archived state where management views require it," and all three already appear to be true today for both Customers (`IG-55`) and Items (`IG-57`): both entities already have `IsArchived`, both list endpoints default to `includeArchived=false`, both list UIs show an "Archived" badge/Status column, and neither `CustomerPicker` nor `ItemPicker` (`IG-56`/`IG-58`) ever fetches with `includeArchived=true`. Verify this is actually true end-to-end (especially "existing invoices continue to display their historical snapshots" - check `InvoiceDetail.tsx`/`IG-47` renders a saved invoice's line items/customer correctly even after the source record is archived) before concluding whether this Story needs new code or is mostly a verification-and-close pass - don't assume either way without checking.
+**Ask the user which of the two directions above to take before starting anything** - this isn't a "check subtasks and proceed" situation like resuming an already-identified next Story; it's a genuine fork (bug/gap cleanup vs. new-Epic scope) that's the user's call, not a default to assume.
 
-Before implementation:
+Whichever is chosen:
 
 1. **Standing four-command verification gate, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed (fixed 2026-09-03); don't repeat that.
 2. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
-3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section).
-4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Swapping in a real provider (SendGrid/SES/etc.) is a follow-up, not yet a Jira item.
-5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. It skips gracefully (via `Xunit.SkippableFact`) when Postgres isn't reachable, since CI's backend job has no Postgres service container. Reuse this fixture rather than building a parallel one if a future Story also needs real-database behavior the InMemory provider can't prove.
-6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern (interface in Application, disk implementation in Infrastructure, `IWebHostEnvironment`-rooted path) if a future Story needs file storage again, rather than inventing a second approach.
-7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if a Story touches it at all** — extract only the new piece into its own component/lib file if one is needed, no broader restructuring. The file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate; a 2026-09-03 audit re-confirmed this is a deliberate, already-good state, not something to fix.
-8. After `IG-59` closes Epic `IG-9`, the only unstarted Epics left are `IG-11` (Payment Recording and Invoice Status) and `IG-12` (Product Quality, Security and Operational Readiness) — confirm with the user before starting new-Epic work, same as always.
+3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section). Directly relevant if picking up `IG-196`.
+4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Directly relevant if picking up `IG-195` - the request/token/reset backend flow itself doesn't need to change, only the UI.
+5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. Reuse this fixture rather than building a parallel one if a future Story needs real-database behavior the InMemory provider can't prove.
+6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern if a future Story needs file storage again.
+7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if touching it at all** (directly relevant for `IG-194`'s fix) — the file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate. `IG-194`'s own fix is a single small change inside one existing handler - don't let it grow into anything larger.
+8. **When testing in a real browser, remember the auth rate limiter is real** (10 requests/60s/IP on `/api/v1/auth/register` and `/login`) - confirmed genuinely firing during the 2026-09-07/08 regression pass under rapid automated testing. Space out repeated register/login calls in any future browser-driven verification script, or expect 429s.
 
 ## Last Execution
+
+**Date:** 2026-09-08
+
+Completed: a full-depth regression test pass, followed by `IG-59` ("Archive reusable records safely", S47) — the last Story in Epic `IG-9`, which is now Done. **Epic `IG-9` closing means Epics `IG-1` through `IG-10` are all Done** - only `IG-11`/`IG-12` remain in the entire MVP backlog.
+
+- **Regression pass** (requested explicitly by the user, scoped to "full depth, all Epics"): ran the existing automated suites fresh (backend 277/277, frontend 539/539, lint/build clean), then four real-browser Playwright scripts (written, debugged, and discarded - not part of the repo) covering integration paths across every built Epic: core authenticated journey (onboarding → business settings → customer/item CRUD → invoice creation with both pickers → save → PDF → list/search → edit/duplicate/cancel → dashboard), anonymous flow + auth edge cases (draft persistence, download gate, signup-preserves-context, duplicate email, invalid login, password reset full round trip via direct API since no UI link exists, Google OAuth redirect shape, rate limiting), saved-invoice lifecycle (duplicate, cancel, template switching), and account deletion + a console-error sweep across 9 authenticated pages. 49/50 scripted checks passed. Full report: `qa-reports/2026-09-07-regression.md`.
+- **Found and filed 3 real issues**, all confirmed with the user before filing: [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (a genuine bug - Issue Date/Due Date silently cleared if a header field is edited before the page-load date-default effect commits, root-caused to `CreateInvoiceEditor.tsx`'s `handleHeaderChange` reading a stale closure instead of the functional `setDraft` pattern, confirmed reproducible 3/3 with no delay and 0/3 with a 1s delay) and [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (pre-existing, already-self-documented UI gaps - no Forgot Password or Sign in with Google entry point anywhere, despite both backends working, confirmed by direct API testing). None were fixed this pass - this was a QA/report pass, not a fix pass, per the user's own framing of the request.
+- **`IG-59` turned out to need zero new code**, confirmed by direct investigation rather than assumed: `Invoice.CustomerSnapshot`/`SellerSnapshot` and `InvoiceItem`'s own Description/Quantity/UnitPrice/TaxRate columns are self-contained copies taken at save time (archiving a Customer or CatalogItem only sets `IsArchived=true`, which no historical invoice ever re-reads for display); the one live join against `Customers` (`InvoiceService`'s list/search query) is an inner join on `Id`, unaffected by archival since archived rows are never deleted. Verified end-to-end in a real browser (not just by reading code): created a customer + item, used both on an invoice, archived both, confirmed the invoice list still showed the archived customer's name, the invoice detail page still showed the exact historical Bill To text and line description, and both were excluded from a fresh invoice's pickers - 8/8 checks passed.
+
+Files changed or created (this session):
+
+- `qa-reports/2026-09-07-regression.md` (new)
+- `backlog.md`
+- No source files changed for `IG-59` (verification-only) or for the regression pass itself (all test scripts were temporary and removed after use).
+
+Verification performed:
+
+- See the regression pass bullet above for the full-suite results. `IG-59` verification: 8/8 real-browser checks passed (see above).
+- Committed locally only (`5c3c69c`, `633eeb9`) - pushed at the user's explicit request; CI green on both. `IG-59` itself has no commit (nothing to commit).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-07 (later still)
 
