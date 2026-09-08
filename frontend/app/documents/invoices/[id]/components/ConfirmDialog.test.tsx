@@ -64,4 +64,26 @@ describe("ConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Working…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   });
+
+  it("traps Tab within the dialog's own buttons rather than escaping to the page behind it (IG-69)", async () => {
+    render(
+      <>
+        <button type="button">Background button</button>
+        <ConfirmDialog title="Delete this invoice?" body="Body" confirmLabel="Delete" onConfirm={vi.fn()} onDismiss={vi.fn()} />
+      </>,
+    );
+    const user = userEvent.setup();
+    const dismissButton = screen.getByRole("button", { name: "Cancel" });
+    const confirmButton = screen.getByRole("button", { name: "Delete" });
+
+    dismissButton.focus();
+    await user.keyboard("{Tab}");
+    expect(confirmButton).toHaveFocus();
+
+    await user.keyboard("{Tab}");
+    expect(dismissButton).toHaveFocus();
+
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(confirmButton).toHaveFocus();
+  });
 });

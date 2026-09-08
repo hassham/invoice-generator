@@ -82,4 +82,29 @@ describe("AccountGateModal", () => {
       properties: { action: "download", method: "login" },
     });
   });
+
+  it("traps Tab within the dialog's own links/button rather than escaping to the page behind it (IG-69)", async () => {
+    render(
+      <>
+        <button type="button">Background button</button>
+        <AccountGateModal action="download" onClose={vi.fn()} />
+      </>,
+    );
+    const user = userEvent.setup();
+    const signUp = screen.getByRole("link", { name: "Sign up" });
+    const logIn = screen.getByRole("link", { name: "Log in" });
+    const notNow = screen.getByRole("button", { name: "Not now" });
+
+    signUp.focus();
+    await user.keyboard("{Tab}");
+    expect(logIn).toHaveFocus();
+    await user.keyboard("{Tab}");
+    expect(notNow).toHaveFocus();
+
+    await user.keyboard("{Tab}");
+    expect(signUp).toHaveFocus();
+
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(notNow).toHaveFocus();
+  });
 });

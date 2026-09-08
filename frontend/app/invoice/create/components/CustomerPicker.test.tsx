@@ -84,4 +84,22 @@ describe("CustomerPicker", () => {
     expect(onSelect).toHaveBeenCalledWith(customers[0]);
     expect(screen.getByLabelText("Search saved customers")).toHaveValue("");
   });
+
+  it("stays open and selectable via keyboard after Tabbing from the search box into it (IG-69)", async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(<CustomerPicker customers={customers} onSelect={onSelect} />);
+
+    await user.type(screen.getByLabelText("Search saved customers"), "Ac");
+    const match = await screen.findByRole("button", { name: /Acme Pty Ltd/ });
+
+    await user.keyboard("{Tab}");
+    expect(match).toHaveFocus();
+    // The dropdown must not unmount once focus has moved onto one of its own buttons - a plain
+    // input-level onBlur used to close it out from under a keyboard user shortly after Tab.
+    expect(match).toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledWith(customers[0]);
+  });
 });

@@ -73,4 +73,22 @@ describe("ItemPicker", () => {
     expect(onSelect).toHaveBeenCalledWith(items[0]);
     expect(screen.getByLabelText("Search saved items")).toHaveValue("");
   });
+
+  it("stays open and selectable via keyboard after Tabbing from the search box into it (IG-69)", async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(<ItemPicker id="item-picker" items={items} onSelect={onSelect} />);
+
+    await user.type(screen.getByLabelText("Search saved items"), "Consult");
+    const match = await screen.findByRole("button", { name: /Consulting Hour/ });
+
+    await user.keyboard("{Tab}");
+    expect(match).toHaveFocus();
+    // The dropdown must not unmount once focus has moved onto one of its own buttons - a plain
+    // input-level onBlur used to close it out from under a keyboard user shortly after Tab.
+    expect(match).toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledWith(items[0]);
+  });
 });

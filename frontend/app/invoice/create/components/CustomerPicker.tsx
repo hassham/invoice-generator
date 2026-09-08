@@ -30,7 +30,19 @@ export function CustomerPicker({ customers, onSelect }: CustomerPickerProps) {
   };
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      // IG-69: closes the dropdown only when focus actually leaves this whole picker, not on
+      // every blur - a plain input-level onBlur+setTimeout closed the list ~150ms after a
+      // keyboard Tab into one of its own buttons, unmounting the very button that had just
+      // received focus and dropping a keyboard user back to <body> with no way to select a
+      // customer at all. relatedTarget tells us where focus is actually going.
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setIsOpen(false);
+        }
+      }}
+    >
       <label htmlFor="customer-picker-search" className="text-sm font-medium text-slate-700">
         Search saved customers
       </label>
@@ -43,10 +55,6 @@ export function CustomerPicker({ customers, onSelect }: CustomerPickerProps) {
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        // A short delay so a click on a dropdown item (onMouseDown below) still registers before
-        // blur closes the list - onMouseDown fires first, but onBlur would otherwise unmount the
-        // button before its own click event completes.
-        onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         placeholder="Start typing a customer name…"
         className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
       />
@@ -60,10 +68,11 @@ export function CustomerPicker({ customers, onSelect }: CustomerPickerProps) {
                 <li key={customer.id}>
                   <button
                     type="button"
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      handleSelect(customer);
-                    }}
+                    // preventDefault on mousedown keeps the input from losing focus before the
+                    // click completes; the actual selection happens onClick so this also fires
+                    // for keyboard activation (Enter/Space), not just a mouse click.
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelect(customer)}
                     className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
                   >
                     <span className="font-medium text-slate-950">{customerDisplayName(customer)}</span>
