@@ -35,6 +35,8 @@ import {
   type InvoiceDetail as InvoiceDetailData,
 } from "../../../../lib/invoiceDetail";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { PaymentsSection } from "./PaymentsSection";
+import type { InvoicePaymentSummary } from "../../../../lib/payments";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -296,6 +298,10 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       setDialogError(error instanceof Error ? error.message : "Failed to delete this invoice.");
       setDialogPending(false);
     }
+  };
+
+  const handleInvoiceUpdated = (summary: InvoicePaymentSummary) => {
+    setDetail((current) => (current ? { ...current, ...summary } : current));
   };
 
   // FSD section 51: not destructive to the source invoice, so unlike Cancel/Delete this needs
@@ -567,6 +573,14 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             />
           </div>
         </fieldset>
+
+        <PaymentsSection
+          invoiceId={invoiceId}
+          currency={detail.currency}
+          status={detail.status}
+          amountDue={detail.amountDue}
+          onInvoiceUpdated={handleInvoiceUpdated}
+        />
       </div>
     </div>
   );

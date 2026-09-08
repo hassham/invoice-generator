@@ -29,6 +29,14 @@ vi.mock("../../../../invoice/create/lib/invoiceSave", async (importOriginal) => 
   updateInvoice: vi.fn(),
 }));
 
+// PaymentsSection (IG-11) fetches its own payment history on mount - stubbed to an empty list so
+// none of the tests below (which don't exercise Payments themselves) hit a real network call and
+// render a second, unrelated alert that would break their own findByRole("alert") assertions.
+vi.mock("../../../../lib/payments", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../../lib/payments")>()),
+  listPayments: vi.fn().mockResolvedValue([]),
+}));
+
 const mockedFetchTemplates = vi.mocked(fetchTemplates);
 const mockedGetInvoice = vi.mocked(getInvoice);
 const mockedUpdateInvoice = vi.mocked(updateInvoice);
