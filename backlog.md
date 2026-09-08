@@ -8,9 +8,9 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `b3ccb22`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `685af58`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` ("Use critical journeys across supported devices and browsers") is Done as of 2026-09-08 (see "Last Execution"); `IG-69`-`IG-72` are still To Do.
+**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` (browser/device compatibility) and `IG-69` (accessibility) are Done as of 2026-09-08 (see "Last Execution"); `IG-70`-`IG-72` are still To Do.
 
 **A new bug was found and filed during `IG-68`'s verification pass**: [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - the Invoice Detail Page has no Download PDF action at all, despite FSD section 49 explicitly requiring one; PDF/print functionality only exists on the anonymous creation flow (IG-43's scope). Confirmed by direct code inspection, not fixed yet (out of `IG-68`'s own scope - responsive/cross-browser layout, not feature completeness).
 
@@ -38,8 +38,8 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 `IG-12` is now the active Epic (user chose to start it over the regression-bug cleanup below). Two genuinely different kinds of work remain open:
 
-1. **Continue `IG-12`**: `IG-69` ("Use the product with accessible interactions", keyboard/assistive-technology support and WCAG 2.1 AA verification per FSD section 86) is the next unstarted Story in sequence, followed by `IG-70` (authz/input security), `IG-71` (uploads/rate limiting), `IG-72` (performance/regression evidence).
-2. **Fix/build the 4 issues found across regression/compatibility passes** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page missing its required Download PDF action). None are regressions from this work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
+1. **Continue `IG-12`**: `IG-70` ("Protect account and business data", authz/input security verification per FSD sections 87-88) is the next unstarted Story in sequence, followed by `IG-71` (uploads/rate limiting), `IG-72` (performance/regression evidence).
+2. **Fix/build the 4 issues found across regression/compatibility/accessibility passes** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page missing its required Download PDF action). None are regressions from this work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
 
 Direct links:
 
@@ -47,7 +47,7 @@ Direct links:
 - <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
 - <https://appitometechnologies.atlassian.net/browse/IG-197>
-- <https://appitometechnologies.atlassian.net/browse/IG-69>
+- <https://appitometechnologies.atlassian.net/browse/IG-70>
 
 ## Next Task
 
@@ -65,8 +65,38 @@ Whichever is chosen:
 8. **When testing in a real browser, remember the auth rate limiter is real** (10 requests/60s/IP on `/api/v1/auth/register` and `/login`) - confirmed genuinely firing during the 2026-09-07/08 regression pass under rapid automated testing. Space out repeated register/login calls in any future browser-driven verification script, or expect 429s.
 9. **Real Firefox and WebKit engines are now cached locally** (`ms-playwright/firefox-1543`, `ms-playwright/webkit-2359`, downloaded for `IG-68`) alongside the pre-existing pinned Chromium (`ms-playwright/chromium-1234`) - reuse these for any future cross-browser verification rather than re-downloading. **WebKit-specific Playwright quirk found**: `.fill()` doesn't reliably trigger this app's React `onChange` handlers under this WebKit build (the DOM value sets but React state doesn't update, so a submitted form sends stale/empty values) - use `.click()` then `.pressSequentially()` (real keystroke simulation) instead when driving WebKit. Chromium/Firefox aren't affected.
 10. **`SiteHeader`'s authenticated desktop nav now switches on at the `xl` breakpoint (1280px), not `md` (768px)** (fixed in `IG-68`, see commit `b3ccb22`) - if adding more authenticated nav items in the future, re-measure the required content width (was ~1104px for 8 links + account email + Log out) rather than assuming `xl` has unlimited headroom.
+11. **Any future modal must trap Tab/Shift+Tab within its own focusable elements** (fixed in `IG-69` for `ConfirmDialog`/`AccountGateModal`, see commit `685af58`) - the pattern (query focusable descendants, wrap at the first/last on Tab/Shift+Tab) is duplicated inline in both components rather than a shared hook, matching this codebase's existing convention of duplicating small per-component effect logic (e.g. each dialog's own Escape handler) rather than extracting one. Copy the same block into any new modal.
+12. **A custom dropdown/autocomplete must never close on blur without checking `event.relatedTarget`** (fixed in `IG-69` for `CustomerPicker`/`ItemPicker`) - a plain `onBlur` + `setTimeout` closes the list out from under a keyboard user the moment Tab moves focus onto one of its own option buttons. Check the list wrapper's own `contains(relatedTarget)` instead, and wire dropdown options to `onClick` (fires for both mouse and keyboard activation), not `onMouseDown` alone.
 
 ## Last Execution
+
+**Date:** 2026-09-08 (even later still)
+
+Completed: `IG-69` ("Use the product with accessible interactions", S57, both Subtasks `IG-185`/`IG-186`) — the second Story in Epic `IG-12`.
+
+- **Automated axe-core scan (WCAG 2.1 A/AA rules) across 13 critical pages** (landing, signup, login, onboarding, dashboard, invoice list/create/detail, customers list/new, items list, business settings; both anonymous and authenticated) — **0 violations**, both before and after the fixes below. Confirms labels, roles, color contrast and semantic structure were already solid, built in incrementally as each prior Story shipped.
+- **Automated scanning can't catch keyboard/focus-management gaps that don't show up in the accessibility tree**, so followed up with manual keyboard-driven Playwright scripts - this is what actually found 2 real bugs:
+  1. `ConfirmDialog`/`AccountGateModal` had no focus trap - Tab from the last button escaped past the dialog into page content hidden behind the overlay. Fixed with Tab/Shift+Tab cycling within each dialog's own focusable elements (verified both directions).
+  2. `CustomerPicker`/`ItemPicker` dropdowns were effectively mouse-only - their `onBlur` closed the list ~150ms after ANY blur, including a keyboard Tab onto one of the dropdown's own option buttons, unmounting it and dropping focus to `<body>` with the option gone. Fixed with a `relatedTarget` check on the wrapper (only close when focus actually leaves the whole picker); also added `onClick` to the option buttons (previously only `onMouseDown`), since Enter/Space on a focused button did nothing without it.
+- **Verified end-to-end after fixing**: Tab into a picker's dropdown, confirm it stays open, press Enter, confirm the field actually populates - for both CustomerPicker (Bill To) and ItemPicker (line item fields); Tab/Shift+Tab cycling confirmed on both dialogs; re-ran the full axe-core pass, still 0 violations.
+- **Not independently verified with a real screen reader** - no screen-reader automation available in this environment; relied on the ARIA roles/labels/live-region patterns already in place, which is the standard mechanism screen readers use, but actual AT output wasn't listened to directly. Documented as a limitation, not claimed as covered.
+
+Files changed or created (`IG-69`):
+
+- `frontend/app/documents/invoices/[id]/components/ConfirmDialog.tsx` (Tab/Shift+Tab focus trap added to the existing keydown handler)
+- `frontend/app/invoice/create/components/AccountGateModal.tsx` (same fix)
+- `frontend/app/invoice/create/components/CustomerPicker.tsx` (`relatedTarget`-based blur check on the wrapper; `onClick` added to option buttons)
+- `frontend/app/invoice/create/components/ItemPicker.tsx` (same fix)
+- `frontend/app/documents/invoices/[id]/components/ConfirmDialog.test.tsx`, `frontend/app/invoice/create/components/{AccountGateModal,CustomerPicker,ItemPicker}.test.tsx` (extended: 1 new test each, 4 total)
+- `backlog.md`
+
+Verification performed (`IG-69`):
+
+- Full backend suite: 299/299 passing (unaffected, no backend changes). Full frontend suite: 552/552 passing (up from 548 - 4 new); `npx eslint .` and `npm run build` both clean.
+- Real keyboard-driven Playwright verification (see Completed above) confirmed both bugs before fixing and both fixes after.
+- Committed locally only (`685af58`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-08 (later still)
 
