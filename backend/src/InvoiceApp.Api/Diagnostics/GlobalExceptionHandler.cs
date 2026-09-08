@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using InvoiceApp.Application.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,20 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     {
         var (statusCode, title, detail) = Map(exception);
 
+        // IG-70 / FSD section 88: a NotFoundException here is indistinguishable from a genuine
+        // "doesn't exist" case by design (the anti-enumeration precedent used throughout every
+        // *Service.FindOwnedAsync/LoadOwnedAsync) - the HTTP response must stay uninformative
+        // either way. This log entry isn't part of that response, though: recording which
+        // authenticated account triggered a 401/403/404 gives operators something to actually
+        // look at for abuse/compromise patterns, without weakening anti-enumeration on the wire.
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         logger.LogError(
             exception,
-            "Unhandled exception mapped to {StatusCode} for {RequestMethod} {RequestPath}",
+            "Unhandled exception mapped to {StatusCode} for {RequestMethod} {RequestPath} (UserId: {UserId})",
             statusCode,
             httpContext.Request.Method,
-            httpContext.Request.Path);
+            httpContext.Request.Path,
+            userId ?? "anonymous");
 
         httpContext.Response.StatusCode = statusCode;
 
