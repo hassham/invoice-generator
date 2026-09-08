@@ -57,7 +57,12 @@ export function SiteHeader() {
           Invoice App
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-8 md:flex">
+        {/* IG-68: the desktop nav + account block need ~1104px of content width when
+            authenticated (measured directly) - Tailwind's md (768px) and even lg (1024px)
+            breakpoints aren't wide enough and caused real page-level horizontal overflow on
+            every authenticated page at tablet width. xl (1280px) is the first breakpoint with
+            enough room; the hamburger/mobile-nav pattern below now covers tablet too. */}
+        <nav aria-label="Primary" className="hidden items-center gap-8 xl:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -88,7 +93,7 @@ export function SiteHeader() {
           ) : null}
         </nav>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-4 xl:flex">
           {account ? (
             <>
               <span className="text-sm font-medium text-slate-600">{account.name ?? account.email}</span>
@@ -121,7 +126,7 @@ export function SiteHeader() {
         <button
           ref={toggleRef}
           type="button"
-          className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950 md:hidden"
+          className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950 xl:hidden"
           aria-expanded={isMenuOpen}
           aria-controls="mobile-nav"
           onClick={() => setIsMenuOpen((open) => !open)}
@@ -131,7 +136,7 @@ export function SiteHeader() {
       </div>
 
       {isMenuOpen ? (
-        <div id="mobile-nav" className="border-t border-slate-200 md:hidden">
+        <div id="mobile-nav" className="border-t border-slate-200 xl:hidden">
           <nav aria-label="Mobile primary" className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-4">
             {navLinks.map((link) => (
               <Link

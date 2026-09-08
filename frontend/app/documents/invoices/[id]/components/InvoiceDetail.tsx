@@ -328,7 +328,9 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{detail.status}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* IG-68: wraps onto a second line rather than overflowing horizontally at mobile
+            widths (320px) - four buttons in a non-wrapping row didn't fit. */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void handleDuplicate()}
