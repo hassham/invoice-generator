@@ -8,9 +8,9 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `685af58`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `ae7d012`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` (browser/device compatibility) and `IG-69` (accessibility) are Done as of 2026-09-08 (see "Last Execution"); `IG-70`-`IG-72` are still To Do.
+**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` (browser/device compatibility), `IG-69` (accessibility) and `IG-70` (authorization/input security) are Done as of 2026-09-08 (see "Last Execution"); `IG-71`-`IG-72` are still To Do.
 
 **A new bug was found and filed during `IG-68`'s verification pass**: [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - the Invoice Detail Page has no Download PDF action at all, despite FSD section 49 explicitly requiring one; PDF/print functionality only exists on the anonymous creation flow (IG-43's scope). Confirmed by direct code inspection, not fixed yet (out of `IG-68`'s own scope - responsive/cross-browser layout, not feature completeness).
 
@@ -38,7 +38,7 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 `IG-12` is now the active Epic (user chose to start it over the regression-bug cleanup below). Two genuinely different kinds of work remain open:
 
-1. **Continue `IG-12`**: `IG-70` ("Protect account and business data", authz/input security verification per FSD sections 87-88) is the next unstarted Story in sequence, followed by `IG-71` (uploads/rate limiting), `IG-72` (performance/regression evidence).
+1. **Continue `IG-12`**: `IG-71` ("Protect uploads and expensive endpoints", rate limiting/file-upload verification per FSD section 87) is the next unstarted Story in sequence, followed by `IG-72` (performance/regression evidence) - the last Story in the entire MVP backlog.
 2. **Fix/build the 4 issues found across regression/compatibility/accessibility passes** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page missing its required Download PDF action). None are regressions from this work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
 
 Direct links:
@@ -47,7 +47,7 @@ Direct links:
 - <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
 - <https://appitometechnologies.atlassian.net/browse/IG-197>
-- <https://appitometechnologies.atlassian.net/browse/IG-70>
+- <https://appitometechnologies.atlassian.net/browse/IG-71>
 
 ## Next Task
 
@@ -67,8 +67,34 @@ Whichever is chosen:
 10. **`SiteHeader`'s authenticated desktop nav now switches on at the `xl` breakpoint (1280px), not `md` (768px)** (fixed in `IG-68`, see commit `b3ccb22`) - if adding more authenticated nav items in the future, re-measure the required content width (was ~1104px for 8 links + account email + Log out) rather than assuming `xl` has unlimited headroom.
 11. **Any future modal must trap Tab/Shift+Tab within its own focusable elements** (fixed in `IG-69` for `ConfirmDialog`/`AccountGateModal`, see commit `685af58`) - the pattern (query focusable descendants, wrap at the first/last on Tab/Shift+Tab) is duplicated inline in both components rather than a shared hook, matching this codebase's existing convention of duplicating small per-component effect logic (e.g. each dialog's own Escape handler) rather than extracting one. Copy the same block into any new modal.
 12. **A custom dropdown/autocomplete must never close on blur without checking `event.relatedTarget`** (fixed in `IG-69` for `CustomerPicker`/`ItemPicker`) - a plain `onBlur` + `setTimeout` closes the list out from under a keyboard user the moment Tab moves focus onto one of its own option buttons. Check the list wrapper's own `contains(relatedTarget)` instead, and wire dropdown options to `onClick` (fires for both mouse and keyboard activation), not `onMouseDown` alone.
+13. **Rate limiting currently covers only the 4 auth endpoints** (register/login/forgot-password/reset-password via `RateLimitingOptions.AuthPolicyName`, confirmed by `IG-70`'s audit) - `/api/v1/invoices/pdf` (anonymous, computationally expensive QuestPDF rendering, no auth to naturally throttle abuse) has none at all. Directly relevant scope for `IG-71`.
+14. **`GlobalExceptionHandler` now logs the acting user's id (or "anonymous") alongside every rejected request** (400/401/404/409, added in `IG-70`) - if adding a new exception type to its `Map` switch, no extra work is needed, the user-id logging wraps all of them uniformly.
 
 ## Last Execution
+
+**Date:** 2026-09-08 (later still again)
+
+Completed: `IG-70` ("Protect account and business data", S58, both Subtasks `IG-187`/`IG-188`) — the third Story in Epic `IG-12`.
+
+- **Authorization/ownership audit across every endpoint** (`grep` across all `Api/Endpoints/*.cs`, not spot-checked): every account-scoped route carries `.RequireAuthorization()`, and every service resolves the acting business from the authenticated `userId` internally rather than a caller-supplied id (the `ResolveBusinessIdAsync` pattern established since `IG-55`). The handful of routes without `.RequireAuthorization()` were all confirmed to be deliberately, documentedly public with no cross-account data surface (`/invoices/calculate`, `/invoices/pdf` - both stateless, render only what's posted; `/business/logo/{businessId}` GET - an invoice recipient needs it without a session; the auth/OAuth endpoints themselves). No gaps found.
+- **Cross-account test coverage audit**: every resource type already had dedicated "another account's X is invisible" tests written as part of its own originating Story (Invoices, Customers, Items, Payments) - confirmed by grep across `backend/tests`, not assumed. `InvoiceSaveEndpointsTests` even covers the subtler IDOR case of attaching *another account's customer id* to your own invoice, not just accessing another account's own primary resource.
+- **New: user-attributed rejection logging.** `GlobalExceptionHandler` now logs the acting authenticated user's id (or "anonymous") alongside every 400/401/404/409 it maps - verified live against a running server, not just read in code: an authenticated cross-account GET produced a log line reading `UserId: <the real guid>`. The HTTP response itself is unchanged (still a plain 404 - anti-enumeration is about what the *client* sees, this is a server-side-only addition for operators to review probing/compromise patterns).
+- **New: unsafe-input handling test coverage** (`UnsafeInputTests.cs`, 5 tests, none existed before this Story) - SQL-injection-style (`Robert'); DROP TABLE customer.customers;--`) and XSS-style (`<script>alert('xss')</script>...`) payloads through every major free-text field (customer, invoice, catalog item, business profile) round-trip verbatim with no crash/corruption, and the underlying table stays queryable afterward. Confirmed this holds structurally, not by luck: EF Core parameterizes every query (the one raw-SQL statement in the codebase, `BusinessService.GenerateNextInvoiceNumberAsync`, uses EF's interpolated-parameter syntax, not string concatenation), and there is no `dangerouslySetInnerHTML`/`.innerHTML =`/`document.write` anywhere in the frontend.
+- **Found, not fixed, out of this Story's own scope**: rate limiting only covers the 4 auth endpoints today - `/api/v1/invoices/pdf` (anonymous, computationally expensive, no auth to throttle abuse) has none. This is `IG-71`'s scope, not `IG-70`'s (authz/input safety vs. rate-limiting/uploads) - flagged for that Story rather than fixed here.
+
+Files changed or created (`IG-70`):
+
+- `backend/src/InvoiceApp.Api/Diagnostics/GlobalExceptionHandler.cs` (extended: user-id-attributed logging)
+- `backend/tests/InvoiceApp.Api.Tests/Security/UnsafeInputTests.cs` (new, 5 tests)
+- `backlog.md`
+
+Verification performed (`IG-70`):
+
+- Full backend suite: 304/304 passing (14 architecture + 133 infrastructure + 157 API, up from 299 - 5 new). Full frontend suite: 552/552 passing (unaffected, no frontend changes this Story); `npx eslint .` and `npm run build` both clean.
+- Live-verified the new logging behavior against a running server (registered account, cross-account GET, confirmed the log line's `UserId` matched the real account id; confirmed a no-session 401 - a routine case, not a probing signal - correctly produces no such log line since it's handled by the auth middleware itself, not a thrown exception).
+- Committed locally only (`ae7d012`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-08 (even later still)
 
