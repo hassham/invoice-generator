@@ -8,11 +8,11 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `c6db36d`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `b3ccb22`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-11` are all Done** (11 of 12) — `IG-11` (Payment Recording and Invoice Status) was completed 2026-09-08 with all 4 of its Stories (`IG-64`-`IG-67`, see "Last Execution"). **Every Story-level Epic in the original MVP scope except quality/security/ops is now delivered.**
+**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` ("Use critical journeys across supported devices and browsers") is Done as of 2026-09-08 (see "Last Execution"); `IG-69`-`IG-72` are still To Do.
 
-**Not started at all: `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under it is still To Do. This is the only Epic with any remaining Story-level work.
+**A new bug was found and filed during `IG-68`'s verification pass**: [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - the Invoice Detail Page has no Download PDF action at all, despite FSD section 49 explicitly requiring one; PDF/print functionality only exists on the anonymous creation flow (IG-43's scope). Confirmed by direct code inspection, not fixed yet (out of `IG-68`'s own scope - responsive/cross-browser layout, not feature completeness).
 
 **A full-depth regression pass was run 2026-09-07/08** across every built Epic (see `qa-reports/2026-09-07-regression.md`), on top of the existing automated suites. It found one real, reproducible bug and two pre-existing UI gaps, all filed in Jira: [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (Issue Date/Due Date silently cleared if a header field is edited before the page-load date-default effect commits — root-caused to a stale-closure race in `CreateInvoiceEditor.tsx`'s `handleHeaderChange`, not yet fixed), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) (no UI entry point for password reset, despite a fully working backend) and [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to). None of these are new regressions — all three were pre-existing, `IG-194` just never triggered by normal typing speed, `IG-195`/`IG-196` are gaps already flagged in the code's own comments as deliberate, undone follow-ups.
 
@@ -36,21 +36,22 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-No Story is claimed right now. There are two genuinely different kinds of work open, and which to pick is a call for whoever picks this file up next, not an automatic default:
+`IG-12` is now the active Epic (user chose to start it over the regression-bug cleanup below). Two genuinely different kinds of work remain open:
 
-1. **Fix/build the 3 issues the 2026-09-07/08 regression pass found** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work). None of these are regressions from today's work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
-2. **Start `IG-12`** (Product Quality, Security and Operational Readiness, `IG-68`-`IG-72`) — the only remaining unstarted Epic in the entire MVP backlog.
+1. **Continue `IG-12`**: `IG-69` ("Use the product with accessible interactions", keyboard/assistive-technology support and WCAG 2.1 AA verification per FSD section 86) is the next unstarted Story in sequence, followed by `IG-70` (authz/input security), `IG-71` (uploads/rate limiting), `IG-72` (performance/regression evidence).
+2. **Fix/build the 4 issues found across regression/compatibility passes** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page missing its required Download PDF action). None are regressions from this work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-194>
 - <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
-- <https://appitometechnologies.atlassian.net/browse/IG-12>
+- <https://appitometechnologies.atlassian.net/browse/IG-197>
+- <https://appitometechnologies.atlassian.net/browse/IG-69>
 
 ## Next Task
 
-**Ask the user which of the two directions above to take before starting anything** - this isn't a "check subtasks and proceed" situation like resuming an already-identified next Story; it's a genuine fork (bug/gap cleanup vs. new-Epic scope) that's the user's call, not a default to assume.
+**Ask the user which direction to take before starting anything new** - continuing `IG-12` Story-by-Story (recommended, matches the user's own most recent choice) vs. pausing to clean up the 4 filed bugs is the user's call, not a default to assume.
 
 Whichever is chosen:
 
@@ -62,8 +63,34 @@ Whichever is chosen:
 6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern if a future Story needs file storage again.
 7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if touching it at all** (directly relevant for `IG-194`'s fix) — the file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate. `IG-194`'s own fix is a single small change inside one existing handler - don't let it grow into anything larger.
 8. **When testing in a real browser, remember the auth rate limiter is real** (10 requests/60s/IP on `/api/v1/auth/register` and `/login`) - confirmed genuinely firing during the 2026-09-07/08 regression pass under rapid automated testing. Space out repeated register/login calls in any future browser-driven verification script, or expect 429s.
+9. **Real Firefox and WebKit engines are now cached locally** (`ms-playwright/firefox-1543`, `ms-playwright/webkit-2359`, downloaded for `IG-68`) alongside the pre-existing pinned Chromium (`ms-playwright/chromium-1234`) - reuse these for any future cross-browser verification rather than re-downloading. **WebKit-specific Playwright quirk found**: `.fill()` doesn't reliably trigger this app's React `onChange` handlers under this WebKit build (the DOM value sets but React state doesn't update, so a submitted form sends stale/empty values) - use `.click()` then `.pressSequentially()` (real keystroke simulation) instead when driving WebKit. Chromium/Firefox aren't affected.
+10. **`SiteHeader`'s authenticated desktop nav now switches on at the `xl` breakpoint (1280px), not `md` (768px)** (fixed in `IG-68`, see commit `b3ccb22`) - if adding more authenticated nav items in the future, re-measure the required content width (was ~1104px for 8 links + account email + Log out) rather than assuming `xl` has unlimited headroom.
 
 ## Last Execution
+
+**Date:** 2026-09-08 (later still)
+
+Completed: `IG-68` ("Use critical journeys across supported devices and browsers", S56, both Subtasks `IG-183`/`IG-184`) — the first Story in Epic `IG-12`.
+
+- **Real cross-engine, cross-viewport verification, not just Chromium at one size**: downloaded Firefox and WebKit via `playwright install` (WebKit as the closest available proxy for Safari - no real macOS/Safari reachable in this sandbox), then ran the critical journey (signup → onboarding → create/save invoice → invoice list → dashboard) across Chromium/Firefox/WebKit at the FSD's own three breakpoints (320px mobile, 768px tablet, 1440px desktop), measuring `document.documentElement.scrollWidth` vs `clientWidth` on every page rather than eyeballing screenshots.
+- **Found and fixed 2 real, reproducible responsive bugs** (not filed as separate issues - directly in this Story's own scope, so fixed here): `SiteHeader.tsx`'s desktop nav switched on at Tailwind's `md` breakpoint (768px), but the authenticated nav (8 links + account email + Log out) needs ~1104px of content width (measured directly via `getBoundingClientRect()`) - caused genuine page-level horizontal scroll on every authenticated page at exactly the FSD's mandated tablet width. Moved to `xl` (1280px). `InvoiceDetail.tsx`'s action-button row (Duplicate/Cancel Invoice/Delete/Save) didn't wrap at 320px mobile, overflowing horizontally - added `flex-wrap`.
+- **Found and diagnosed a Playwright/WebKit-specific automation quirk** (not an app bug, confirmed via isolated debugging): `.fill()` sets a form field's DOM value but doesn't reliably trigger this app's React `onChange` handlers under the cached WebKit build, so a submitted form silently sent stale/empty values. `.click()` + `.pressSequentially()` (real keystrokes) fixed it - documented for future cross-browser scripts.
+- **Found, but did not fix, a real out-of-scope gap**: the Invoice Detail Page has no Download PDF action at all, despite FSD section 49 explicitly listing it as a required action - PDF/print functionality only exists on the anonymous creation flow (IG-43's scope). Confirmed via direct code inspection. Filed as [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) against parent Epic `IG-7`, with the user's explicit approval before filing.
+- **Real device testing (Safari iOS, Chrome Android per FSD section 126) is not available in this environment** - documented as a known limitation of this pass rather than claimed as covered, per S56's own "compatibility failures have documented severity and release handling" AC.
+
+Files changed or created (`IG-68`):
+
+- `frontend/app/components/landing/SiteHeader.tsx` (breakpoint `md` → `xl` on 4 classes, with a comment documenting the measured minimum content width)
+- `frontend/app/documents/invoices/[id]/components/InvoiceDetail.tsx` (`flex-wrap` added to the action-button row)
+- `backlog.md`
+
+Verification performed (`IG-68`):
+
+- Full backend suite: 299/299 passing (unaffected, no backend changes - re-confirmed per the standing four-command gate). Full frontend suite: 548/548 passing (unaffected - these were pure CSS/className fixes, no new tests needed); `npx eslint .` and `npm run build` both clean.
+- Re-ran the full cross-engine/cross-viewport pass after both fixes: 0 horizontal-scroll failures remaining across Chromium/Firefox/WebKit at all three breakpoints (41/41 checks passed, plus 12/12 on a separate WebKit-specific pass once the `.fill()` quirk was worked around).
+- Committed locally only (`b3ccb22`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-08 (later same day)
 
