@@ -8,11 +8,11 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `633eeb9`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `c6db36d`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-10` are all Done** (10 of 12) — `IG-9` (Customer and Item Catalogue Management) was completed 2026-09-08 with `IG-59` ("Archive reusable records safely", verification-only, no new code — see "Last Execution"). **Every Story-level Epic in the original MVP scope except payments and quality/security/ops is now delivered.**
+**Epics `IG-1` through `IG-11` are all Done** (11 of 12) — `IG-11` (Payment Recording and Invoice Status) was completed 2026-09-08 with all 4 of its Stories (`IG-64`-`IG-67`, see "Last Execution"). **Every Story-level Epic in the original MVP scope except quality/security/ops is now delivered.**
 
-**Not started at all: `IG-11` (Payment Recording and Invoice Status, Stories `IG-64`-`IG-67`) and `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under both is still To Do. These are the only two Epics with any remaining Story-level work.
+**Not started at all: `IG-12` (Product Quality, Security and Operational Readiness, Stories `IG-68`-`IG-72`)** — every Story under it is still To Do. This is the only Epic with any remaining Story-level work.
 
 **A full-depth regression pass was run 2026-09-07/08** across every built Epic (see `qa-reports/2026-09-07-regression.md`), on top of the existing automated suites. It found one real, reproducible bug and two pre-existing UI gaps, all filed in Jira: [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (Issue Date/Due Date silently cleared if a header field is edited before the page-load date-default effect commits — root-caused to a stale-closure race in `CreateInvoiceEditor.tsx`'s `handleHeaderChange`, not yet fixed), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) (no UI entry point for password reset, despite a fully working backend) and [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to). None of these are new regressions — all three were pre-existing, `IG-194` just never triggered by normal typing speed, `IG-195`/`IG-196` are gaps already flagged in the code's own comments as deliberate, undone follow-ups.
 
@@ -39,14 +39,13 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 No Story is claimed right now. There are two genuinely different kinds of work open, and which to pick is a call for whoever picks this file up next, not an automatic default:
 
 1. **Fix/build the 3 issues the 2026-09-07/08 regression pass found** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work). None of these are regressions from today's work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
-2. **Start a new Epic**: `IG-11` (Payment Recording and Invoice Status, `IG-64`-`IG-67`) or `IG-12` (Product Quality, Security and Operational Readiness, `IG-68`-`IG-72`) — both entirely unstarted, genuinely new scope, not touched by any Story so far.
+2. **Start `IG-12`** (Product Quality, Security and Operational Readiness, `IG-68`-`IG-72`) — the only remaining unstarted Epic in the entire MVP backlog.
 
 Direct links:
 
 - <https://appitometechnologies.atlassian.net/browse/IG-194>
 - <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
-- <https://appitometechnologies.atlassian.net/browse/IG-11>
 - <https://appitometechnologies.atlassian.net/browse/IG-12>
 
 ## Next Task
@@ -65,6 +64,39 @@ Whichever is chosen:
 8. **When testing in a real browser, remember the auth rate limiter is real** (10 requests/60s/IP on `/api/v1/auth/register` and `/login`) - confirmed genuinely firing during the 2026-09-07/08 regression pass under rapid automated testing. Space out repeated register/login calls in any future browser-driven verification script, or expect 429s.
 
 ## Last Execution
+
+**Date:** 2026-09-08 (later same day)
+
+Completed: `IG-11` ("Payment Recording and Invoice Status", all 4 Stories `IG-64`-`IG-67`) — the last Epic in the MVP backlog with any pre-existing Story-level scope. **Epic `IG-11` closing means Epics `IG-1` through `IG-11` are all Done** - only `IG-12` (quality/security/ops) remains.
+
+- **Wired up the pre-scaffolded `Payment` domain model end-to-end** — `Payment`/`PaymentMethod`/`PaymentConfiguration` (table `payment.payments`) already existed but had never been wired to any service or endpoint, the same pattern `CatalogItem` was in before `IG-57`. Added `Application/Payments/{PaymentDto,PaymentRequest,IPaymentService}.cs`, `Infrastructure/Payments/{PaymentService,PaymentsServiceCollectionExtensions}.cs`, `Modules.Payments/PaymentRequestValidator.cs`, `Api/Endpoints/PaymentEndpoints.cs` (`GET`/`POST /api/v1/invoices/{id}/payments`, `DELETE /api/v1/invoices/{id}/payments/{paymentId}`) — mirroring `CustomerService`/`CatalogItemService`'s exact account-ownership pattern.
+- **Status derivation follows FSD section 71 exactly**: AmountPaid = 0 keeps the prior status (resolved to Draft specifically, since grep confirmed `Sent`/`Viewed`/`PartiallyPaid` are never actually assigned anywhere else in this codebase - documented as an assumption to revisit if those statuses are ever built), `0 < AmountPaid < Total` → PartiallyPaid, `AmountPaid = Total` → Paid. Overdue stays a separately-computed condition (`InvoiceStatusRules`), unaffected by payment status either way.
+- **Validation split between the endpoint-layer static validator and the service**, deliberately: `PaymentRequestValidator.Validate(request)` (called from `PaymentEndpoints`, same convention as every other validator) checks Amount > 0 and Reference's DB column length - pure request-shape, no DB access. The other half of FSD section 70 (amount can't exceed the outstanding balance) needs the loaded invoice's current `AmountDue`, so it lives inline in `PaymentService.RecordAsync` instead, alongside its other invoice-state business rules - same precedent as `InvoiceService.SaveAsync` checking invoice-number uniqueness inline rather than via a static validator.
+- **Cancelled-invoice rule resolved deliberately asymmetric, per FSD section 52**: recording a *new* payment against a Cancelled invoice is a hard 409 (no reactivation flow exists to build against), but *removing* an existing payment is still allowed regardless of status - it's a correction, not a new payment. Removal still recalculates AmountPaid/AmountDue (factual correction) but never overwrites an already-Cancelled stored Status.
+- **Frontend**: new `frontend/app/lib/payments.ts` client plus a `PaymentsSection` component added to the invoice detail page - payment history table (Date/Amount/Method/Reference/Remove) and a Record Payment form pre-filled with the invoice's current outstanding balance and today's date (both freely editable), hidden once the invoice is Cancelled or fully Paid.
+- **Real end-to-end browser verification** (Playwright, ad-hoc script, cleaned up afterward): registered an account, created a 100 AUD invoice, recorded a 40 partial payment (confirmed PartiallyPaid + 60 due), attempted a 61 overpayment (rejected inline, balance unchanged), paid the remaining 60 exactly (confirmed Paid, form hides), then removed both payments in sequence confirming the reverse transitions Paid → PartiallyPaid → Draft - 17/17 checks passed.
+
+Files changed or created (`IG-11`):
+
+- `backend/src/InvoiceApp.Application/Payments/{PaymentDto,PaymentRequest,IPaymentService}.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Payments/{PaymentService,PaymentsServiceCollectionExtensions}.cs` (new)
+- `backend/src/InvoiceApp.Modules.Payments/PaymentRequestValidator.cs` (new)
+- `backend/src/InvoiceApp.Api/Endpoints/PaymentEndpoints.cs` (new); `Program.cs` (extended: `AddInfrastructurePayments`, `MapPaymentEndpoints`)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Modules/Payments/PaymentRequestValidatorTests.cs` (new, 4 tests)
+- `backend/tests/InvoiceApp.Api.Tests/Payments/PaymentEndpointsTests.cs` (new, 21 tests)
+- `frontend/app/lib/payments.ts` (new)
+- `frontend/app/documents/invoices/[id]/components/{PaymentsSection,PaymentsSection.test}.tsx` (new, 9 tests)
+- `frontend/app/documents/invoices/[id]/components/InvoiceDetail.tsx` (extended: renders `PaymentsSection`, merges its invoice-summary updates into detail state)
+- `frontend/app/documents/invoices/[id]/components/InvoiceDetail.test.tsx` (extended: `listPayments` stubbed to `[]` so pre-existing tests aren't broken by the new section's own fetch/alert)
+- `backlog.md`
+
+Verification performed (`IG-11`):
+
+- Full backend suite: 299/299 passing (14 architecture + 133 infrastructure + 152 API, up from 277 - 25 new: 21 endpoint + 4 validator). Full frontend suite: 548/548 passing (up from 539 - 9 new); `npx eslint .` and `npm run build` both clean.
+- Real-browser verification via Playwright (see Completed above) - 17/17 checks passed.
+- Committed locally only (`c6db36d`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-08
 
