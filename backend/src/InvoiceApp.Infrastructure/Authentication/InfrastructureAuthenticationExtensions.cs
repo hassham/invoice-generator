@@ -19,6 +19,8 @@ public static class InfrastructureAuthenticationExtensions
     {
         var googleOptions = configuration.GetSection(GoogleAuthenticationOptions.SectionName).Get<GoogleAuthenticationOptions>()
             ?? new GoogleAuthenticationOptions();
+        var smtpOptions = configuration.GetSection(SmtpOptions.SectionName).Get<SmtpOptions>() ?? new SmtpOptions();
+        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
 
         // SignInManager<TUser> requires IHttpContextAccessor - without it, resolving it (and
         // therefore AuthSessionService) throws at request time, not at startup.
@@ -126,7 +128,18 @@ public static class InfrastructureAuthenticationExtensions
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
         services.AddScoped<IExternalLoginService, ExternalLoginService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
-        services.AddScoped<IPasswordResetEmailSender, LoggingPasswordResetEmailSender>();
+        // Real SMTP delivery only once actually configured (SmtpOptions.Host non-empty) - every
+        // environment without real credentials (local dev, CI, tests) keeps using the dev-only
+        // log stub unchanged, matching GoogleAuthenticationOptions' own "optional, blank by
+        // default" precedent.
+        if (!string.IsNullOrWhiteSpace(smtpOptions.Host))
+        {
+            services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
+        }
+        else
+        {
+            services.AddScoped<IPasswordResetEmailSender, LoggingPasswordResetEmailSender>();
+        }
 
         return services;
     }
