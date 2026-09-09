@@ -425,8 +425,16 @@ export function CreateInvoiceEditor() {
   // blur - first validation still only happens on blur, so a field isn't marked invalid before
   // the user has finished with it.
   const handleHeaderChange = (name: string, value: string) => {
-    const nextHeader: FieldValues = { ...draft.header, [name]: value };
-    setDraft((current) => ({ ...current, header: nextHeader }));
+    // IG-194: merges against `current` inside the functional updater, not the render-scope
+    // `draft` - the latter raced the mount effect that defaults Issue Date/Due Date to today,
+    // silently overwriting that default if a header field was edited before the effect's own
+    // update had been applied. `nextHeader` is still captured (React invokes this updater
+    // synchronously) so the immediate re-validation below sees the value that was actually merged.
+    let nextHeader: FieldValues = draft.header;
+    setDraft((current) => {
+      nextHeader = { ...current.header, [name]: value };
+      return { ...current, header: nextHeader };
+    });
     if (hasAnyError(headerErrors)) {
       setHeaderErrors(validateHeaderFields(nextHeader));
     }
