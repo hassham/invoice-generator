@@ -18,6 +18,8 @@ import { NOTES_FIELD, TERMS_FIELD } from "../../../../invoice/create/lib/support
 import { getDefaultCustomization, sanitizeTemplateCustomization, type TemplateCustomization } from "../../../../invoice/create/lib/templateCustomization";
 import { fetchTemplates, type Template } from "../../../../invoice/create/lib/templates";
 import { updateInvoice } from "../../../../invoice/create/lib/invoiceSave";
+import { downloadInvoicePdf } from "../../../../invoice/create/lib/invoicePdf";
+import { buildInvoicePdfPayloadFromEditable } from "../../../../lib/invoiceDetailPdf";
 import { InvoiceHeaderSection } from "../../../../invoice/create/components/InvoiceHeaderSection";
 import { LineItemsSection } from "../../../../invoice/create/components/LineItemsSection";
 import { InvoiceTotalsSection } from "../../../../invoice/create/components/InvoiceTotalsSection";
@@ -87,6 +89,8 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,6 +308,24 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     setDetail((current) => (current ? { ...current, ...summary } : current));
   };
 
+  // IG-197 / FSD section 49: reuses IG-43's stateless PDF endpoint and download logic - the saved
+  // invoice's current editable state is mapped into the same payload shape the anonymous creation
+  // flow already builds, rather than re-fetching by id (the endpoint takes a full payload, not a
+  // reference - it renders whatever it's given, so this is enough to reproduce the saved invoice
+  // exactly as last saved).
+  const handleDownloadPdf = async () => {
+    setPdfDownloading(true);
+    setPdfError(null);
+    try {
+      const payload = buildInvoicePdfPayloadFromEditable(editable, selectedTemplateCode);
+      await downloadInvoicePdf(payload);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : "Failed to generate the PDF.");
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
   // FSD section 51: not destructive to the source invoice, so unlike Cancel/Delete this needs
   // no confirmation - lands the user straight on the new draft.
   const handleDuplicate = async () => {
@@ -338,6 +360,14 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             {duplicating ? "Duplicating…" : "Duplicate"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleDownloadPdf()}
+            disabled={pdfDownloading}
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {pdfDownloading ? "Generating…" : "Download PDF"}
           </button>
           {detail.status !== "Cancelled" && detail.status !== "Paid" ? (
             <button
@@ -404,6 +434,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       {duplicateError ? (
         <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {duplicateError}
+        </p>
+      ) : null}
+
+      {pdfError ? (
+        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {pdfError}
         </p>
       ) : null}
 

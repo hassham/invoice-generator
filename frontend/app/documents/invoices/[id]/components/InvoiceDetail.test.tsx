@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchTemplates, type Template } from "../../../../invoice/create/lib/templates";
 import { updateInvoice } from "../../../../invoice/create/lib/invoiceSave";
+import { downloadInvoicePdf } from "../../../../invoice/create/lib/invoicePdf";
 import { cancelInvoice, deleteInvoice, duplicateInvoice, getInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
 import { InvoiceDetail } from "./InvoiceDetail";
 
@@ -29,6 +30,11 @@ vi.mock("../../../../invoice/create/lib/invoiceSave", async (importOriginal) => 
   updateInvoice: vi.fn(),
 }));
 
+vi.mock("../../../../invoice/create/lib/invoicePdf", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../../invoice/create/lib/invoicePdf")>()),
+  downloadInvoicePdf: vi.fn(),
+}));
+
 // PaymentsSection (IG-11) fetches its own payment history on mount - stubbed to an empty list so
 // none of the tests below (which don't exercise Payments themselves) hit a real network call and
 // render a second, unrelated alert that would break their own findByRole("alert") assertions.
@@ -43,6 +49,7 @@ const mockedUpdateInvoice = vi.mocked(updateInvoice);
 const mockedCancelInvoice = vi.mocked(cancelInvoice);
 const mockedDeleteInvoice = vi.mocked(deleteInvoice);
 const mockedDuplicateInvoice = vi.mocked(duplicateInvoice);
+const mockedDownloadInvoicePdf = vi.mocked(downloadInvoicePdf);
 
 const STUB_TEMPLATES: Template[] = [
   { id: "template-classic", name: "Classic", templateCode: "classic", previewImage: null, isPremium: false, sortOrder: 1 },
@@ -330,6 +337,38 @@ describe("InvoiceDetail", () => {
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Failed to duplicate this invoice.");
       expect(pushMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("download PDF (IG-197)", () => {
+    it("shows a Download PDF button that calls downloadInvoicePdf with the saved invoice's data", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedDownloadInvoicePdf.mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+      await waitFor(() =>
+        expect(mockedDownloadInvoicePdf).toHaveBeenCalledWith(
+          expect.objectContaining({ invoiceNumber: "INV-000001", seller: "Acme Pty Ltd", customer: "Jane's Cafe" }),
+        ),
+      );
+    });
+
+    it("shows a retryable error banner when PDF generation fails", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedDownloadInvoicePdf.mockRejectedValue(new Error("Failed to generate the PDF."));
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Download PDF" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Failed to generate the PDF.");
     });
   });
 });
