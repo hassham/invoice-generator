@@ -8,13 +8,11 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `7ecb03b`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `13c29e9`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**The entire MVP backlog is Done: Epics `IG-1` through `IG-12`, all 12 of 12, closed 2026-09-09** with `IG-72` ("Meet operational performance and release quality targets" - see "Last Execution"), the last Story in Epic `IG-12` (Product Quality, Security and Operational Readiness). Every FSD performance target was verified with 10-100x margin, and a full launch-readiness report was written (`qa-reports/2026-09-09-launch-readiness.md`). **There is no more unstarted Story-level scope left in Jira.** The only remaining tracked work is the 4 bugs below - fixing them (or deciding not to) is now the entire backlog.
+**The entire MVP backlog is Done: Epics `IG-1` through `IG-12`, all 12 of 12, closed 2026-09-09** with `IG-72` ("Meet operational performance and release quality targets"), the last Story in Epic `IG-12` (Product Quality, Security and Operational Readiness). Every FSD performance target was verified with 10-100x margin, and a full launch-readiness report was written (`qa-reports/2026-09-09-launch-readiness.md`). **There is no more unstarted Story-level scope left in Jira** - the only remaining tracked work is the 4 bugs found during regression/compatibility passes, 1 of which (`IG-194`) is now also fixed (see "Last Execution").
 
-**A new bug was found and filed during `IG-68`'s verification pass**: [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - the Invoice Detail Page has no Download PDF action at all, despite FSD section 49 explicitly requiring one; PDF/print functionality only exists on the anonymous creation flow (IG-43's scope). Confirmed by direct code inspection, not fixed yet (out of `IG-68`'s own scope - responsive/cross-browser layout, not feature completeness).
-
-**A full-depth regression pass was run 2026-09-07/08** across every built Epic (see `qa-reports/2026-09-07-regression.md`), on top of the existing automated suites. It found one real, reproducible bug and two pre-existing UI gaps, all filed in Jira: [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (Issue Date/Due Date silently cleared if a header field is edited before the page-load date-default effect commits — root-caused to a stale-closure race in `CreateInvoiceEditor.tsx`'s `handleHeaderChange`, not yet fixed), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) (no UI entry point for password reset, despite a fully working backend) and [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to). None of these are new regressions — all three were pre-existing, `IG-194` just never triggered by normal typing speed, `IG-195`/`IG-196` are gaps already flagged in the code's own comments as deliberate, undone follow-ups.
+**Open bugs remaining (3 of the original 4)**: [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) (no UI entry point for password reset, despite a fully working backend), [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page has no Download PDF action, despite FSD section 49 explicitly requiring one). None are regressions from this session's own work - `IG-195`/`IG-196` are gaps already flagged in the code's own comments as deliberate, undone follow-ups; `IG-197` was found during `IG-68`'s verification pass.
 
 **Jira reconciliation performed 2026-09-03**: an audit flagged that 38 Subtasks across all 19 then-Done Stories (spanning both this session's own work and earlier work done under the name "Codex") were still sitting at To Do despite their parent Stories being Done and their own summaries ("Implement X" / "Verify Y") describing work that was genuinely completed and verified as part of delivering those Stories. All 38 were confirmed against the actual Jira data and transitioned to Done — see git/Jira history around 2026-09-03 for the full list. No other Epic/Story/Subtask status inconsistency was found project-wide.
 
@@ -36,25 +34,23 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-**The MVP backlog is fully delivered.** The only open, tracked work project-wide is 4 bugs found during regression/compatibility/accessibility passes across earlier Epics - all real, user-facing gaps in already-"Done" Stories, none of them regressions from this session's own work, so there's no urgency pressure either way:
+**The MVP backlog is fully delivered; the user has chosen to work through the remaining bugs** (`IG-194` fixed 2026-09-09, see "Last Execution"). 3 remain, all real, user-facing gaps in already-"Done" Stories, none of them regressions from this session's own work:
 
-- [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) - Issue Date/Due Date silently cleared if a header field is edited before the page-load date-default effect commits (small, well-understood bug fix).
 - [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) - no UI entry point for password reset, despite a fully working backend.
 - [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) - no UI entry point for Google sign-in, and its callback has nowhere to redirect back to.
 - [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - Invoice Detail Page missing its FSD-required Download PDF action.
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-194>
 - <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
 - <https://appitometechnologies.atlassian.net/browse/IG-197>
 
 ## Next Task
 
-**Ask the user whether to fix any/all of the 4 open bugs, or whether the MVP is considered launch-ready as-is** - with no Story-level backlog left, this is now a product decision (ship with known gaps vs. close them first), not a "pick the next Story" default. See `qa-reports/2026-09-09-launch-readiness.md` for the full readiness picture (performance, monitoring, test coverage, residual risks) to inform that call.
+**Continue working through the remaining 3 bugs** (IG-195, IG-196, IG-197, in no particular required order - pick whichever next) unless the user redirects. See `qa-reports/2026-09-09-launch-readiness.md` for the full readiness picture if reconsidering priority.
 
-If bug-fixing is chosen:
+Whichever is picked up next:
 
 1. **Standing four-command verification gate, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed (fixed 2026-09-03); don't repeat that.
 2. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
@@ -62,7 +58,7 @@ If bug-fixing is chosen:
 4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Directly relevant if picking up `IG-195` - the request/token/reset backend flow itself doesn't need to change, only the UI.
 5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. Reuse this fixture rather than building a parallel one if a future Story needs real-database behavior the InMemory provider can't prove.
 6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern if a future Story needs file storage again.
-7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if touching it at all** (directly relevant for `IG-194`'s fix) — the file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate. `IG-194`'s own fix is a single small change inside one existing handler - don't let it grow into anything larger.
+7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if touching it at all** — the file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate. `IG-194`'s own fix (done) was a single small change inside one existing handler - the same discipline applies to any future change here.
 8. **When testing in a real browser, remember the auth rate limiter is real** (10 requests/60s/IP on `/api/v1/auth/register` and `/login`) - confirmed genuinely firing during the 2026-09-07/08 regression pass under rapid automated testing. Space out repeated register/login calls in any future browser-driven verification script, or expect 429s.
 9. **Real Firefox and WebKit engines are now cached locally** (`ms-playwright/firefox-1543`, `ms-playwright/webkit-2359`, downloaded for `IG-68`) alongside the pre-existing pinned Chromium (`ms-playwright/chromium-1234`) - reuse these for any future cross-browser verification rather than re-downloading. **WebKit-specific Playwright quirk found**: `.fill()` doesn't reliably trigger this app's React `onChange` handlers under this WebKit build (the DOM value sets but React state doesn't update, so a submitted form sends stale/empty values) - use `.click()` then `.pressSequentially()` (real keystroke simulation) instead when driving WebKit. Chromium/Firefox aren't affected.
 10. **`SiteHeader`'s authenticated desktop nav now switches on at the `xl` breakpoint (1280px), not `md` (768px)** (fixed in `IG-68`, see commit `b3ccb22`) - if adding more authenticated nav items in the future, re-measure the required content width (was ~1104px for 8 links + account email + Log out) rather than assuming `xl` has unlimited headroom.
@@ -75,6 +71,26 @@ If bug-fixing is chosen:
 17. **Every FSD performance target was verified with 10-100x margin** (`IG-72`) - API endpoints (<500ms target) even at 150 seeded invoices/30 customers, PDF generation (<3s), dashboard initial render against a **production** frontend build (<2s), invoice editor preview (near-instant). No performance remediation was needed anywhere. Full numbers in `qa-reports/2026-09-09-launch-readiness.md` - reuse that methodology (seed representative data, use a production frontend build, measure steady-state not just the first cold call) if performance is ever re-verified.
 
 ## Last Execution
+
+**Date:** 2026-09-09 (later still)
+
+Completed: `IG-194` (Issue Date/Due Date silently cleared by a stale-closure race) - the first of the 4 bugs found across earlier regression/compatibility passes, now that the MVP backlog itself is fully delivered.
+
+- **Fixed exactly as the issue's own description suggested**: `CreateInvoiceEditor.tsx`'s `handleHeaderChange` now merges the header entirely against `current` inside the functional `setDraft` updater, instead of building `nextHeader` from the render-scope `draft` closure (which raced the mount effect that defaults Issue Date/Due Date to today). `nextHeader` is still captured via an outer `let` (React invokes the updater synchronously) so the existing immediate re-validation branch keeps working unchanged.
+- **Verified against a real browser, not a unit test** - this class of cross-tick timing race can't naturally reproduce in jsdom/RTL, since `render()` fully flushes effects before returning control, which is also why the original regression pass needed a real browser to find it in the first place. Reverted the fix locally, confirmed the original code reproduces the bug **8/8** times with zero delay after page load, then restored the fix and confirmed **8/8** runs correctly keep both dates populated - proving both that the fix works and that the verification method would have caught the original bug.
+
+Files changed or created (`IG-194`):
+
+- `frontend/app/invoice/create/components/CreateInvoiceEditor.tsx` (`handleHeaderChange` rewritten to merge against `current`)
+- `backlog.md`
+
+Verification performed (`IG-194`):
+
+- Full backend suite: 306/306 passing (unaffected, no backend changes). Full frontend suite: 552/552 passing (unaffected - this bug's nature means no new unit test could exercise it, see above); `npx eslint .` and `npm run build` both clean.
+- Real-browser before/after verification (see Completed above) - 8/8 reproduced on the original code, 8/8 fixed afterward.
+- Committed locally only (`13c29e9`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-09 (later same day)
 
