@@ -8,11 +8,9 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `5565d27`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `d52fb60`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**The entire MVP backlog is Done: Epics `IG-1` through `IG-12`, all 12 of 12, closed 2026-09-09** with `IG-72` ("Meet operational performance and release quality targets"), the last Story in Epic `IG-12` (Product Quality, Security and Operational Readiness). Every FSD performance target was verified with 10-100x margin, and a full launch-readiness report was written (`qa-reports/2026-09-09-launch-readiness.md`). **There is no more unstarted Story-level scope left in Jira** - the only remaining tracked work is the 4 bugs found during regression/compatibility passes. 3 are now fixed (`IG-194`, `IG-195`, `IG-196` - see "Last Execution").
-
-**Open bug remaining (1 of the original 4)**: [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page has no Download PDF action, despite FSD section 49 explicitly requiring one) - found during `IG-68`'s own verification pass, not a regression from this session's own work.
+**The entire tracked backlog is Done, with zero known open defects, as of 2026-09-09.** Epics `IG-1` through `IG-12` (all 12) closed with `IG-72` ("Meet operational performance and release quality targets" - every FSD performance target verified with 10-100x margin, full launch-readiness report at `qa-reports/2026-09-09-launch-readiness.md`). The 4 bugs found during regression/compatibility passes after that (`IG-194`, `IG-195`, `IG-196`, `IG-197`) are now all fixed too (see "Last Execution" for the last of them). **There is no open Story or bug left in Jira project `IG`.** Anything from here is new scope the user hasn't asked for yet.
 
 **Jira reconciliation performed 2026-09-03**: an audit flagged that 38 Subtasks across all 19 then-Done Stories (spanning both this session's own work and earlier work done under the name "Codex") were still sitting at To Do despite their parent Stories being Done and their own summaries ("Implement X" / "Verify Y") describing work that was genuinely completed and verified as part of delivering those Stories. All 38 were confirmed against the actual Jira data and transitioned to Done — see git/Jira history around 2026-09-03 for the full list. No other Epic/Story/Subtask status inconsistency was found project-wide.
 
@@ -34,15 +32,11 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-**The MVP backlog is fully delivered; the user has chosen to work through the remaining bugs** (`IG-194`, `IG-195`, `IG-196` fixed 2026-09-09, see "Last Execution"). 1 remains, a real, user-facing gap in an already-"Done" Story, not a regression from this session's own work:
-
-- [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - Invoice Detail Page missing its FSD-required Download PDF action.
-
-Direct link: <https://appitometechnologies.atlassian.net/browse/IG-197>
+**Nothing is currently open.** The MVP backlog (all 12 Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done. Whoever picks this file up next needs a fresh instruction from the user - there is no default "next item" to assume, and re-starting any kind of audit/regression pass unprompted would be presumptuous given how thoroughly this session already covered that ground (see `qa-reports/` for both passes' full write-ups).
 
 ## Next Task
 
-**Fix `IG-197`, the last open bug project-wide** - once done, the MVP has zero known open defects and the full backlog (all 12 Epics plus every regression-found bug) is complete.
+**Ask the user what they want next** - new feature work, a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), or something else entirely. Don't assume.
 
 Standing notes that still apply:
 
@@ -65,8 +59,33 @@ Standing notes that still apply:
 17. **The frontend's own origin is now a backend config value** (`Frontend:BaseUrl` in `appsettings.json`, defaulting to `http://localhost:3000`, added in `IG-196` for the Google OAuth callback's redirect target) - CORS's own allowed-origins list in `Program.cs` is still a separate hardcoded string, not yet consolidated onto this same value (left alone to keep `IG-196`'s fix narrowly scoped) - worth unifying if a production frontend URL is ever configured, so the two can't drift apart.
 18. **A server-side OAuth redirect can never read the frontend's own localStorage** (confirmed while fixing `IG-196`) - `GoogleCallbackAsync`'s 302 redirect lands on a small frontend page (`/auth/google/callback`) that resolves the actual pending-gate-action destination client-side instead, mirroring `LoginForm`'s own post-login redirect logic. Any future server-initiated redirect that needs to honor localStorage-backed state will need the same two-hop pattern.
 19. **Every FSD performance target was verified with 10-100x margin** (`IG-72`) - API endpoints (<500ms target) even at 150 seeded invoices/30 customers, PDF generation (<3s), dashboard initial render against a **production** frontend build (<2s), invoice editor preview (near-instant). No performance remediation was needed anywhere. Full numbers in `qa-reports/2026-09-09-launch-readiness.md` - reuse that methodology (seed representative data, use a production frontend build, measure steady-state not just the first cold call) if performance is ever re-verified.
+20. **PDFs generated from the Invoice Detail Page never include the business's saved logo** (`logo: null` in `buildInvoicePdfPayloadFromEditable`, `IG-197`) - a deliberate scope boundary, not a bug: the anonymous creation flow's own PDF generation only ever includes a logo manually attached within that same session too, never an account's persisted logo (`BusinessProfileDto.LogoUrl`) automatically. Wiring that up (fetch the logo, convert to the base64 data-URL `InvoicePdfRequest.Logo` expects) would be a real, separate enhancement if ever wanted.
 
 ## Last Execution
+
+**Date:** 2026-09-09 (the last one today)
+
+Completed: `IG-197` (Invoice Detail Page missing its Download PDF action) - the fourth and final bug found across earlier regression/compatibility passes. **This closes the entire tracked backlog - every Epic and every found bug in Jira project `IG` is now Done.**
+
+- **Implemented per this issue's own suggested fix**: reused `IG-43`'s existing stateless PDF endpoint and download logic (`downloadInvoicePdf`) rather than building a new one. Added `buildInvoicePdfPayloadFromEditable` (`frontend/app/lib/invoiceDetailPdf.ts`) to map the detail page's own `EditableInvoice` state into the same request shape the creation flow already builds, since the endpoint takes a full payload rather than an invoice reference - the free-text Payment Instructions field rides in as `customInstructions` with the structured field left `null`, mirroring `buildInvoiceUpdatePayload`'s own precedent for the save flow. Added a "Download PDF" button to the action row (between Duplicate and Cancel Invoice, matching FSD section 49's own listed order).
+- **Verified end-to-end against a real backend**, not just the mapping in isolation: created and saved a real invoice, opened its detail page, clicked Download PDF, and confirmed a genuine ~48KB PDF downloaded with the correct filename matching the saved invoice number - 3/3 checks passed.
+- **Deliberately did not include the business's saved logo** on these PDFs (see item 20 above) - out of this bug's own suggested scope, and consistent with how the anonymous creation flow's PDF generation has always worked.
+
+Files changed or created (`IG-197`):
+
+- `frontend/app/lib/invoiceDetailPdf.ts` (new)
+- `frontend/app/lib/invoiceDetailPdf.test.ts` (new, 4 tests)
+- `frontend/app/documents/invoices/[id]/components/InvoiceDetail.tsx` (extended: Download PDF button + handler)
+- `frontend/app/documents/invoices/[id]/components/InvoiceDetail.test.tsx` (extended: 2 new tests)
+- `backlog.md`
+
+Verification performed (`IG-197`):
+
+- Full backend suite: 306/306 passing (unaffected, no backend changes). Full frontend suite: 558/558 passing (up from 552 - 6 new); `npx eslint .` and `npm run build` both clean.
+- Real end-to-end browser verification against a real running backend (see Completed above) - 3/3 checks passed.
+- Committed locally only (`d52fb60`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-09 (even later still again)
 
