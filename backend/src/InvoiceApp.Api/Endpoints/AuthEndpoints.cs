@@ -126,6 +126,7 @@ public static class AuthEndpoints
         HttpContext httpContext,
         SignInManager<ApplicationUser> signInManager,
         IExternalLoginService externalLoginService,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
         if (httpContext.Request.Query.ContainsKey("error"))
@@ -148,12 +149,17 @@ public static class AuthEndpoints
             externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Name),
             EmailVerified: bool.TryParse(emailVerifiedValue, out var verified) && verified);
 
-        var loggedIn = await externalLoginService.SignInOrRegisterAsync(request, cancellationToken);
+        await externalLoginService.SignInOrRegisterAsync(request, cancellationToken);
 
-        // No frontend page exists yet to redirect to (same gap as every other Epic IG-3
-        // endpoint) - returns the account directly, same shape as /login, rather than a 302 to a
-        // route that doesn't exist.
-        return Results.Ok(loggedIn);
+        // IG-196: the session cookie was just set above (SignInOrRegisterAsync ends in the same
+        // IAuthSessionService.SignInAsync every other login path uses) - this response only needs
+        // to land the browser back in the app, not carry the account in its body. Redirects to a
+        // small frontend page (not "/" directly) that itself resolves the pending-gate-action
+        // destination client-side, since a server-side redirect here has no way to read the
+        // frontend's own localStorage - same destination logic LoginForm's handleSubmit already
+        // applies after a normal password sign-in (IG-31/IG-32).
+        var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+        return Results.Redirect($"{frontendBaseUrl}/auth/google/callback");
     }
 }
 

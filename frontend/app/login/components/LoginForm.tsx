@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useSyncExternalStore, type FormEvent } from "react";
-import { login } from "../../lib/auth";
+import { googleLoginUrl, login } from "../../lib/auth";
 import { loadPendingGateAction } from "../../lib/pendingGateAction";
 
 function subscribeNever() {
@@ -18,11 +18,10 @@ function getSessionExpiredServerSnapshot(): boolean {
 }
 
 /**
- * FSD section 8 (Login). "Login with Google" is still an FSD-listed action this page doesn't
- * wire up yet (IG-196): Google's backend callback (AuthEndpoints.GoogleCallbackAsync) has no
- * frontend route to redirect back to and currently just returns raw JSON - a documented gap, not
- * an oversight, left for a follow-up once that destination exists rather than linking to a dead
- * end. "Forgot Password" (IG-195) now links to a real page.
+ * FSD section 8 (Login). Both "Forgot Password" (IG-195) and "Login with Google" (IG-196) now
+ * link to real destinations - the Google link is a plain <a href>, not a click handler, since
+ * GET /api/v1/auth/google/login must be a genuine full-page navigation to trigger its 302
+ * challenge redirect to Google's own consent screen.
  */
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -124,6 +123,19 @@ export function LoginForm() {
           {submitting ? "Logging in…" : "Log in"}
         </button>
       </form>
+
+      <div className="mt-4 flex items-center gap-3 text-xs text-slate-500">
+        <div className="h-px flex-1 bg-slate-200" />
+        or
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <a
+        href={googleLoginUrl()}
+        className="mt-4 flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+      >
+        Continue with Google
+      </a>
 
       <p className="mt-6 text-sm text-slate-600">
         Don&apos;t have an account?{" "}

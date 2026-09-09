@@ -35,6 +35,15 @@ function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
 
+/**
+ * IG-196: a real full-page navigation target (an <a href>, never a fetch call) - GET
+ * /api/v1/auth/google/login issues a 302 challenge redirect straight to Google's own consent
+ * screen, which only works as a genuine browser navigation.
+ */
+export function googleLoginUrl(): string {
+  return `${baseUrl()}/api/v1/auth/google/login`;
+}
+
 async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
   const problem = await response.json().catch(() => null);
   return problem?.detail ?? fallback;

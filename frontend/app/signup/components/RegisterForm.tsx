@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { registerAccount } from "../../lib/auth";
+import { googleLoginUrl, registerAccount } from "../../lib/auth";
 import { loadPendingGateAction } from "../../lib/pendingGateAction";
 
 /**
@@ -128,6 +128,21 @@ export function RegisterForm() {
           {submitting ? "Creating account…" : "Sign up"}
         </button>
       </form>
+
+      <div className="mt-4 flex items-center gap-3 text-xs text-slate-500">
+        <div className="h-px flex-1 bg-slate-200" />
+        or
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      {/* IG-196: a plain <a href>, not a click handler - GET /api/v1/auth/google/login must be a
+          genuine full-page navigation to trigger its 302 challenge redirect to Google. */}
+      <a
+        href={googleLoginUrl()}
+        className="mt-4 flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+      >
+        Continue with Google
+      </a>
 
       <p className="mt-6 text-sm text-slate-600">
         Already have an account?{" "}
