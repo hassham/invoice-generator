@@ -10,7 +10,19 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 **Synced 2026-09-09 (no new commit - this update is Jira-only).** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Every single issue in Jira project `IG` is Done as of 2026-09-09 - confirmed by a fresh `project = IG AND status != Done` query returning zero results.** Epics `IG-1` through `IG-12` (all 12) closed with `IG-72` ("Meet operational performance and release quality targets" - every FSD performance target verified with 10-100x margin, full launch-readiness report at `qa-reports/2026-09-09-launch-readiness.md`); the 4 regression-found bugs (`IG-194`-`IG-197`) are all fixed (see "Prior execution" below). **Everything from here (including the SMTP email work in "Last Execution" just below) is new scope beyond the tracked backlog - the user delegated "what to do next" rather than naming a specific Jira issue, so none of it has its own Jira issue yet.**
+**Every original tracked issue in Jira project `IG` is Done as of 2026-09-09 - confirmed by a `project = IG AND status != Done` query returning zero results before the new backlog described next was added.** Epics `IG-1` through `IG-12` (all 12) closed with `IG-72` ("Meet operational performance and release quality targets" - every FSD performance target verified with 10-100x margin, full launch-readiness report at `qa-reports/2026-09-09-launch-readiness.md`); the 4 regression-found bugs (`IG-194`-`IG-197`) are all fixed (see "Prior execution" below). The SMTP email work (see "Prior execution") was built as new, untracked scope and still has no Jira issue.
+
+**New backlog added 2026-09-09, at the user's explicit request - 7 issues, all To Do, not started:** the user listed 6 UI/UX items directly and asked they be filed in Jira, explicitly leaving epic placement to judgment ("i dont know whether we need to create new epics or put into existing ones"). Created a new Epic `IG-198` ("In-App Navigation and Layout UX Polish") for the 4 items that are navigation/scroll/layout concerns spanning the app rather than any one existing feature area, and placed the other 2 under their obvious existing-Epic matches instead of duplicating them:
+
+- `IG-198` (new Epic) "In-App Navigation and Layout UX Polish"
+  - `IG-199` Make the top navigation bar fixed across all app screens
+  - `IG-200` Add a back button and fix the invoice preview panel while scrolling on the Invoice Generator screen
+  - `IG-201` Keep action buttons fixed on the Invoice Generator screen
+  - `IG-202` Hide public marketing links from in-app navigation once inside the dashboard
+- `IG-203` (under existing `IG-8`, Business Profile and Onboarding) Add an option to set a default tax value from the Settings screen
+- `IG-204` (under existing `IG-6`, Templates, Live Preview, PDF and Print) Add a separate dedicated view for Templates
+
+All 7 confirmed at To Do via a follow-up query - **nothing has been started or scoped yet, this is backlog only.** No priority/assignee was set (left at Jira's default) since this batch isn't being picked up immediately, unlike the original bulk backlog build-out below which was deliberately set to Highest/Unassigned.
 
 **Second Jira reconciliation performed 2026-09-09** (the user spotted this directly via Jira's own List view, not found by an audit this time): 8 Subtasks under `IG-11`'s 4 Stories (`IG-175`-`IG-182`, under `IG-64`-`IG-67`) were still sitting at To Do despite their parent Stories (and the whole Epic) being Done - the same class of gap as the 2026-09-03 reconciliation below, just missed when `IG-11` itself was closed earlier this session. Confirmed each Subtask's own summary described work genuinely completed and verified as part of `IG-11` (cited the specific test/code evidence per-Subtask in Jira comments), got the user's explicit confirmation, then transitioned all 8 to Done. A project-wide re-query afterward confirmed zero non-Done issues remain anywhere in `IG`.
 
@@ -34,11 +46,11 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-**Nothing is currently open.** The tracked MVP backlog (all 12 Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done; real SMTP password-reset email delivery (untracked new scope, see "Last Execution") is also done, tested, and committed. Whoever picks this file up next needs a fresh instruction from the user - there is no default "next item" to assume.
+**7 new To Do issues are now sitting in the backlog (`IG-198`-`IG-204`, see "Current Project Status" above), explicitly not started - the user said "we will pick those later."** The tracked MVP backlog (all 12 Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done; real SMTP password-reset email delivery (untracked new scope, see "Prior execution") is also done, tested, and committed.
 
 ## Next Task
 
-**Ask the user what they want next** - new feature work, a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), filing a Jira issue retroactively for the SMTP email work, or something else entirely. Don't assume.
+**Wait for the user to say which of `IG-198`-`IG-204` to pick up** (or something else entirely) - they were deliberately filed as backlog, not claimed. When told to start one, follow the same claim-first convention as every other Story this session: transition it To Do → In Progress, propose scope if it's non-obvious, then implement. Other open options if asked: a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), or filing a Jira issue retroactively for the SMTP email work.
 
 Standing notes that still apply:
 
@@ -67,6 +79,12 @@ Standing notes that still apply:
 ## Last Execution
 
 **Date:** 2026-09-09 (the latest one)
+
+Completed: filed 7 new backlog issues at the user's explicit request - **Jira-only, no code change.** See "Current Project Status" above (`IG-198` new Epic + `IG-199`-`IG-202` under it, `IG-203` under existing `IG-8`, `IG-204` under existing `IG-6`) for the full list and placement rationale. All 7 confirmed at To Do via a follow-up JQL query; nothing implemented or scoped further - the user said "we will pick those later."
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
+
+**Date:** 2026-09-09 (the one before that)
 
 Completed: real SMTP password-reset email delivery - **new scope, not a tracked Jira issue.** With the entire tracked backlog Done, the user was asked "what do you think should be the next steps?", pushed back with "tell me what to do then?" (twice) when offered options instead of a decision, so this was chosen and built directly: `LoggingPasswordResetEmailSender` only ever logs the reset token to the console, meaning password reset has never actually been usable by a real end user outside this dev environment.
 
