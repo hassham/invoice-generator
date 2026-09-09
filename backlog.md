@@ -73,7 +73,7 @@ Completed: real SMTP password-reset email delivery - **new scope, not a tracked 
 - **Added `SmtpPasswordResetEmailSender`** (MailKit 4.17.0, `backend/src/InvoiceApp.Infrastructure/Authentication/`), sending both a plain-text and HTML reset email over standard SMTP (STARTTLS on 587 by default, implicit TLS on 465 via `Email:UseStartTls = false`). Its own `BuildMessageContent` is a pure static method, tested without a real SMTP connection.
 - **`AddInfrastructureAuthentication` now conditionally registers it** in place of `LoggingPasswordResetEmailSender`, only when `Email:Host` is actually configured (blank/whitespace still falls back to the log stub) - every environment without real credentials (local dev, CI, tests) keeps working completely unchanged, matching `GoogleAuthenticationOptions`' own established "optional, blank by default" precedent.
 - **Config section deliberately named `Email`, not `Smtp`**: `docs/SAD.md` section 67 already anticipates an `Email__Provider` config path for this exact concern, and `InvoiceApp.Infrastructure.Tests.Configuration.SecretsHygieneTests` already has an automated, enforced check against `appsettings.json` ever committing a section named `Email` - naming it this way gets that guard for free instead of needing a new one. Kept the existing narrow `IPasswordResetEmailSender` interface as-is rather than building out `docs/SAD.md` section 48's broader multi-provider `IEmailSender`/`EmailMessage` abstraction - that's a real but much larger, never-requested undertaking for a future "Email Architecture" epic, not something this ask called for.
-- **Documented the new config keys** in `backend/README.md`'s Secrets section (`Email:Host`/`Port`/`Username`/`Password`/`FromAddress`/`FromName`/`UseStartTls`), same style as the existing Secrets guidance.
+- **Config is read from a `.env` file, not `dotnet user-secrets`** - the user explicitly asked for this after the first cut of the work landed. Added the `DotNetEnv` package to `InvoiceApp.Api` and a `File.Exists(".env")`-guarded `DotNetEnv.Env.Load()` call at the very top of `Program.cs` (before `WebApplication.CreateBuilder`), loading `backend/src/InvoiceApp.Api/.env` (gitignored - `.gitignore` already had a dedicated "Environment files" section anticipating exactly this, just never used until now) into process environment variables using ASP.NET Core's standard `__` nesting (`Email__Host` -> config key `Email:Host`) - the same convention `docs/SAD.md` section 67 already anticipated. A committed `.env.example` template lives alongside it. No `.env` present (CI, tests, any environment that hasn't opted in) is a silent no-op - `LoggingPasswordResetEmailSender` keeps being used exactly as before. **Verified live, not just by reading the code**: temporarily added a one-line startup probe to `Program.cs`, ran the API with a real throwaway `.env` (`Email__Host=smtp.verify.local`), confirmed it resolved `SmtpPasswordResetEmailSender` via DI and read back the correct host, then reverted the probe line and deleted the throwaway file before committing.
 
 Files changed or created:
 
@@ -83,14 +83,18 @@ Files changed or created:
 - `backend/src/InvoiceApp.Infrastructure/Authentication/InfrastructureAuthenticationExtensions.cs` (conditional registration)
 - `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/SmtpPasswordResetEmailSenderTests.cs` (new, 4 tests)
 - `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/PasswordResetEmailSenderRegistrationTests.cs` (new, 3 tests)
+- `backend/src/InvoiceApp.Api/InvoiceApp.Api.csproj` (DotNetEnv package reference)
+- `backend/src/InvoiceApp.Api/Program.cs` (`.env` loading)
+- `backend/src/InvoiceApp.Api/.env.example` (new)
 - `backend/README.md` (Secrets section)
 - `backlog.md`
 
 Verification performed:
 
 - Full backend suite: 313/313 passing (140 in `InvoiceApp.Infrastructure.Tests`, up from 133 - 7 new). Full frontend suite unaffected: 558/558 passing; `npx eslint .` and `npm run build` both clean (backend-only change, ran the full four-command gate anyway per standing practice).
-- **Not live-tested against a real SMTP provider** - the user hasn't supplied real credentials yet. `backend/README.md` now documents exactly what to `dotnet user-secrets set` to enable it; until then, every environment keeps using the unchanged `LoggingPasswordResetEmailSender` stub.
-- Committed locally only (`070c4f1`) - not pushed by default (standing workflow).
+- Real DI-resolution proof against an actual `.env` file (see above) - not just unit tests against a simulated `IConfiguration`.
+- **Not live-tested against a real SMTP provider** - the user hasn't supplied real credentials yet. `backend/README.md` now documents copying `.env.example` to `.env` and filling in real values to enable it; until then, every environment keeps using the unchanged `LoggingPasswordResetEmailSender` stub.
+- Committed locally only (`070c4f1`, `548c666`, `82656a1`) - not pushed by default (standing workflow).
 - **No Jira issue exists for this work** - it's new scope the user delegated ("tell me what to do") rather than named specifically. Worth asking whether to retroactively file one.
 
 Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
