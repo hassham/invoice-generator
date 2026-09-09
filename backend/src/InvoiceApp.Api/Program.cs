@@ -21,6 +21,17 @@ using Microsoft.AspNetCore.HttpLogging;
 // organizations under $1M USD annual gross revenue - worth revisiting if that changes.
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
+// Loads backend/src/InvoiceApp.Api/.env (gitignored - see .gitignore's existing "Environment
+// files" section and .env.example for the template) into process environment variables, before
+// WebApplication.CreateBuilder's own AddEnvironmentVariables() source reads them. Keys use ASP.NET
+// Core's standard "__" nesting (e.g. Email__Host -> configuration key "Email:Host") - the same
+// convention docs/SAD.md section 67 already anticipated. Silently a no-op with no .env present, so
+// deployed environments (real env vars/secrets manager) and this app's own CI/tests are unaffected.
+if (File.Exists(".env"))
+{
+    DotNetEnv.Env.Load();
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Structured logging (docs/SAD.md section 76): scopes must be rendered for the correlation ID

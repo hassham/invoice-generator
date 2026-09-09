@@ -56,13 +56,17 @@ must never define a secret-shaped section (`ConnectionStrings`, `Authentication`
 this automatically. Deployed environments must supply real secrets through hosting-environment
 configuration (docs/SAD.md section 73), not a committed file.
 
-Password-reset email delivery (`SmtpPasswordResetEmailSender`) reads its SMTP credentials from the
-`Email` section - e.g. `dotnet user-secrets set "Email:Host" "smtp.example.com"`, plus `Email:Port`
-(default `587`), `Email:Username`, `Email:Password`, `Email:FromAddress`, `Email:FromName` (default
-`"Invoice App"`) and `Email:UseStartTls` (default `true`; set `false` only for implicit-TLS providers
-on port 465). Leaving `Email:Host` unset is fully supported and expected outside of a real
-deployment - `AddInfrastructureAuthentication` falls back to `LoggingPasswordResetEmailSender`, which
-logs the reset link instead of sending it, so local dev/CI/tests never need real credentials.
+Password-reset email delivery (`SmtpPasswordResetEmailSender`) reads its SMTP credentials from a
+`.env` file in `backend/src/InvoiceApp.Api` instead of user-secrets - copy `.env.example` to `.env`
+in that folder and fill in real values (`Email__Host`, `Email__Port` default `587`,
+`Email__Username`, `Email__Password`, `Email__FromAddress`, `Email__FromName` default
+`"Invoice App"`, `Email__UseStartTls` default `true`; set `false` only for implicit-TLS providers on
+port 465 - `__` is ASP.NET Core's standard nesting separator, so `Email__Host` binds to the same
+`Email:Host` configuration key). `.env` is gitignored, never committed, and loaded automatically at
+startup (`Program.cs`, via the `DotNetEnv` package) only when present - leaving it absent, or
+`Email__Host` blank, is fully supported and expected outside of a real deployment:
+`AddInfrastructureAuthentication` falls back to `LoggingPasswordResetEmailSender`, which logs the
+reset link instead of sending it, so local dev/CI/tests never need real credentials.
 
 ## Database
 
