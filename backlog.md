@@ -24,6 +24,18 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 All 7 confirmed at To Do via a follow-up query - **nothing has been started or scoped yet, this is backlog only.** No priority/assignee was set (left at Jira's default) since this batch isn't being picked up immediately, unlike the original bulk backlog build-out below which was deliberately set to Highest/Unassigned.
 
+**PRD Phase 2+ roadmap Epics created 2026-09-09, at the user's explicit request - 7 new Epics (`IG-205`-`IG-211`), all To Do, Epic shells only (no Stories yet):** the user asked what "Phase 2" (per `docs/PRD.md` §34's release strategy) still contains. Finding: PRD §34's own "Phase 2 — SaaS" (Accounts, Customers, Items, Saved invoices, Dashboard, Payment status) is already 100% built - that's exactly `IG-3`/`IG-7`/`IG-8`/`IG-9`/`IG-10`/`IG-11`. What's actually next is PRD §34's "Phase 3 — Getting Paid" plus the adjacent P1/P2 items from §31, which `docs/EPICS.md` §3 ("Post-MVP Roadmap Epics") already had fully scoped as `EPIC-13` through `EPIC-19`, deliberately never published to Jira before now. Created all 7 as Jira Epics, priority mirroring each one's `docs/EPICS.md` P1/P2 label (High for P1, Medium for P2 - the first time this project's Epics have used a differentiated priority rather than the original bulk-creation's flat Highest):
+
+- `IG-205` Email Delivery and Hosted Invoice Experience (P1/High) - PRD §11, §19
+- `IG-206` Online Payments (P1/High) - PRD §13, Stripe; depends on `IG-205`'s hosted page
+- `IG-207` Estimates and Estimate Conversion (P1/High) - PRD §10
+- `IG-208` Reporting and Data Export (P1/High) - PRD §17
+- `IG-209` Recurring Invoices and Payment Reminders (P2/Medium) - PRD §14, §15
+- `IG-210` Expanded Billing Documents (P2/Medium) - PRD §9 (credit notes, receipts, quotes, purchase orders)
+- `IG-211` Multi-Business, Teams and International Growth (P2/Medium) - PRD §16, §22
+
+**Recommended starting point (not yet actioned): `IG-205`**, since `IG-206` (Stripe) structurally depends on its hosted invoice page, and it directly serves the PRD's own "Create it. Send it. Get paid." positioning (§35). No Stories have been decomposed under any of these 7 yet - that's the natural next step once the user picks one to start.
+
 **Second Jira reconciliation performed 2026-09-09** (the user spotted this directly via Jira's own List view, not found by an audit this time): 8 Subtasks under `IG-11`'s 4 Stories (`IG-175`-`IG-182`, under `IG-64`-`IG-67`) were still sitting at To Do despite their parent Stories (and the whole Epic) being Done - the same class of gap as the 2026-09-03 reconciliation below, just missed when `IG-11` itself was closed earlier this session. Confirmed each Subtask's own summary described work genuinely completed and verified as part of `IG-11` (cited the specific test/code evidence per-Subtask in Jira comments), got the user's explicit confirmation, then transitioned all 8 to Done. A project-wide re-query afterward confirmed zero non-Done issues remain anywhere in `IG`.
 
 **First Jira reconciliation performed 2026-09-03**: an audit flagged that 38 Subtasks across all 19 then-Done Stories (spanning both this session's own work and earlier work done under the name "Codex") were still sitting at To Do despite their parent Stories being Done and their own summaries ("Implement X" / "Verify Y") describing work that was genuinely completed and verified as part of delivering those Stories. All 38 were confirmed against the actual Jira data and transitioned to Done — see git/Jira history around 2026-09-03 for the full list.
@@ -46,11 +58,15 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-**7 new To Do issues are now sitting in the backlog (`IG-198`-`IG-204`, see "Current Project Status" above), explicitly not started - the user said "we will pick those later."** The tracked MVP backlog (all 12 Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done; real SMTP password-reset email delivery (untracked new scope, see "Prior execution") is also done, tested, and committed.
+**14 new To Do issues are now sitting in the backlog, all explicitly not started:** the UI/UX batch (`IG-198`-`IG-204`, "we will pick those later") and the PRD Phase 2+ roadmap Epics (`IG-205`-`IG-211`, Epic shells only, no Stories decomposed yet) - see "Current Project Status" above for both. The tracked MVP backlog (all 12 original Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done; real SMTP password-reset email delivery (untracked new scope, see "Prior execution") is also done, tested, and committed.
 
 ## Next Task
 
-**Wait for the user to say which of `IG-198`-`IG-204` to pick up** (or something else entirely) - they were deliberately filed as backlog, not claimed. When told to start one, follow the same claim-first convention as every other Story this session: transition it To Do → In Progress, propose scope if it's non-obvious, then implement. Other open options if asked: a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), or filing a Jira issue retroactively for the SMTP email work.
+**Wait for the user to say what to pick up next** - none of `IG-198`-`IG-204` or `IG-205`-`IG-211` were claimed; they're deliberately sitting as backlog. When told to start one:
+- A `IG-198`-`IG-204` UI/UX item: follow the same claim-first convention as every other Story this session - transition it To Do → In Progress, propose scope if non-obvious, then implement.
+- One of the new roadmap Epics (`IG-205`-`IG-211`): these are Epic shells only, not yet decomposed into Stories - propose the Story breakdown first (mirroring how the original `IG-1`-`IG-12` Epics were decomposed into `IG-13`-`IG-72` Stories), get a yes, then create the Stories before implementing. `IG-205` (Email Delivery and Hosted Invoice Experience) is the recommended starting point since `IG-206` (Stripe) depends on it.
+
+Other open options if asked: a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), or filing a Jira issue retroactively for the SMTP email work.
 
 Standing notes that still apply:
 
@@ -79,6 +95,12 @@ Standing notes that still apply:
 ## Last Execution
 
 **Date:** 2026-09-09 (the latest one)
+
+Completed: created 7 PRD Phase 2+ roadmap Epics (`IG-205`-`IG-211`) at the user's explicit request - **Jira-only, no code change, Epic shells only.** User asked "what can we do in phase 2" - read `docs/PRD.md` in full, found its own "Phase 2 — SaaS" (§34) already 100% delivered by the original `IG-1`-`IG-12` backlog, and that `docs/EPICS.md` §3 already had the genuinely-next phase ("Phase 3 — Getting Paid" + adjacent P1/P2 items) fully scoped as `EPIC-13`-`EPIC-19`, deliberately withheld from Jira until now. Presented this as a plan (via plan mode), user rejected the plan-review dialog but immediately followed with a direct instruction to create the Epics, so proceeded without a second confirmation round. Created all 7 as Jira Epics with priority mirroring each one's documented P1/P2 (High/Medium) - see "Current Project Status" above for the full list, PRD/EPICS.md cross-references and the recommended starting point (`IG-205`). All 7 confirmed at To Do via a follow-up JQL query. No Stories decomposed yet under any of them - that's the natural next step once one is chosen to start.
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
+
+**Date:** 2026-09-09 (the one before that)
 
 Completed: filed 7 new backlog issues at the user's explicit request - **Jira-only, no code change.** See "Current Project Status" above (`IG-198` new Epic + `IG-199`-`IG-202` under it, `IG-203` under existing `IG-8`, `IG-204` under existing `IG-6`) for the full list and placement rationale. All 7 confirmed at To Do via a follow-up JQL query; nothing implemented or scoped further - the user said "we will pick those later."
 
