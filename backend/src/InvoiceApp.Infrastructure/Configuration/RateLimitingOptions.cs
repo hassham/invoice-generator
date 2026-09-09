@@ -2,10 +2,11 @@ namespace InvoiceApp.Infrastructure.Configuration;
 
 /// <summary>
 /// Governs the rate limiter applied to docs/SAD.md section 112's "higher priority" authentication
-/// endpoints (currently register and login; password reset and PDF generation will join once
-/// built). Thresholds aren't specified anywhere in docs, so these are a deliberately conservative
-/// default rather than a silently chosen one - override via the "RateLimiting" configuration
-/// section if they prove too strict or too loose in practice.
+/// endpoints (register, login, password reset) plus - since IG-71 - the anonymous, computationally
+/// expensive PDF-generation endpoint (FSD section 87's "sensitive or expensive endpoints" rate
+/// limiting requirement). Thresholds aren't specified anywhere in docs, so these are a
+/// deliberately conservative default rather than a silently chosen one - override via the
+/// "RateLimiting" configuration section if they prove too strict or too loose in practice.
 /// </summary>
 public sealed class RateLimitingOptions
 {
