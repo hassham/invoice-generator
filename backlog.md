@@ -8,11 +8,11 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `13c29e9`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `f2cca07`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**The entire MVP backlog is Done: Epics `IG-1` through `IG-12`, all 12 of 12, closed 2026-09-09** with `IG-72` ("Meet operational performance and release quality targets"), the last Story in Epic `IG-12` (Product Quality, Security and Operational Readiness). Every FSD performance target was verified with 10-100x margin, and a full launch-readiness report was written (`qa-reports/2026-09-09-launch-readiness.md`). **There is no more unstarted Story-level scope left in Jira** - the only remaining tracked work is the 4 bugs found during regression/compatibility passes, 1 of which (`IG-194`) is now also fixed (see "Last Execution").
+**The entire MVP backlog is Done: Epics `IG-1` through `IG-12`, all 12 of 12, closed 2026-09-09** with `IG-72` ("Meet operational performance and release quality targets"), the last Story in Epic `IG-12` (Product Quality, Security and Operational Readiness). Every FSD performance target was verified with 10-100x margin, and a full launch-readiness report was written (`qa-reports/2026-09-09-launch-readiness.md`). **There is no more unstarted Story-level scope left in Jira** - the only remaining tracked work is the 4 bugs found during regression/compatibility passes. 2 are now fixed (`IG-194`, `IG-195` - see "Last Execution").
 
-**Open bugs remaining (3 of the original 4)**: [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) (no UI entry point for password reset, despite a fully working backend), [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page has no Download PDF action, despite FSD section 49 explicitly requiring one). None are regressions from this session's own work - `IG-195`/`IG-196` are gaps already flagged in the code's own comments as deliberate, undone follow-ups; `IG-197` was found during `IG-68`'s verification pass.
+**Open bugs remaining (2 of the original 4)**: [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (no UI entry point for Google sign-in, and its callback has nowhere to redirect back to), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page has no Download PDF action, despite FSD section 49 explicitly requiring one). Neither is a regression from this session's own work - both are gaps already flagged (or, for `IG-197`, found during `IG-68`'s own verification pass).
 
 **Jira reconciliation performed 2026-09-03**: an audit flagged that 38 Subtasks across all 19 then-Done Stories (spanning both this session's own work and earlier work done under the name "Codex") were still sitting at To Do despite their parent Stories being Done and their own summaries ("Implement X" / "Verify Y") describing work that was genuinely completed and verified as part of delivering those Stories. All 38 were confirmed against the actual Jira data and transitioned to Done — see git/Jira history around 2026-09-03 for the full list. No other Epic/Story/Subtask status inconsistency was found project-wide.
 
@@ -34,28 +34,26 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-**The MVP backlog is fully delivered; the user has chosen to work through the remaining bugs** (`IG-194` fixed 2026-09-09, see "Last Execution"). 3 remain, all real, user-facing gaps in already-"Done" Stories, none of them regressions from this session's own work:
+**The MVP backlog is fully delivered; the user has chosen to work through the remaining bugs** (`IG-194`, `IG-195` fixed 2026-09-09, see "Last Execution"). 2 remain, both real, user-facing gaps in already-"Done" Stories, neither a regression from this session's own work:
 
-- [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195) - no UI entry point for password reset, despite a fully working backend.
 - [IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) - no UI entry point for Google sign-in, and its callback has nowhere to redirect back to.
 - [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - Invoice Detail Page missing its FSD-required Download PDF action.
 
 Direct links:
 
-- <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
 - <https://appitometechnologies.atlassian.net/browse/IG-197>
 
 ## Next Task
 
-**Continue working through the remaining 3 bugs** (IG-195, IG-196, IG-197, in no particular required order - pick whichever next) unless the user redirects. See `qa-reports/2026-09-09-launch-readiness.md` for the full readiness picture if reconsidering priority.
+**Continue working through the remaining 2 bugs** (IG-196, IG-197, in no particular required order - pick whichever next) unless the user redirects. See `qa-reports/2026-09-09-launch-readiness.md` for the full readiness picture if reconsidering priority.
 
 Whichever is picked up next:
 
 1. **Standing four-command verification gate, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed (fixed 2026-09-03); don't repeat that.
 2. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
 3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section). Directly relevant if picking up `IG-196`.
-4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. Directly relevant if picking up `IG-195` - the request/token/reset backend flow itself doesn't need to change, only the UI.
+4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. `IG-195`'s new `/reset-password` page reads `email`/`token` from the URL query string but keeps both editable for exactly this reason (the stub logs only the raw token, not a full link) - if a real email provider is ever wired in, sending a link that carries both would let that page's fields go from editable-with-defaults to normally just prefilled/hidden, but changing that isn't required by anything today.
 5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. Reuse this fixture rather than building a parallel one if a future Story needs real-database behavior the InMemory provider can't prove.
 6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern if a future Story needs file storage again.
 7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if touching it at all** — the file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate. `IG-194`'s own fix (done) was a single small change inside one existing handler - the same discipline applies to any future change here.
@@ -71,6 +69,30 @@ Whichever is picked up next:
 17. **Every FSD performance target was verified with 10-100x margin** (`IG-72`) - API endpoints (<500ms target) even at 150 seeded invoices/30 customers, PDF generation (<3s), dashboard initial render against a **production** frontend build (<2s), invoice editor preview (near-instant). No performance remediation was needed anywhere. Full numbers in `qa-reports/2026-09-09-launch-readiness.md` - reuse that methodology (seed representative data, use a production frontend build, measure steady-state not just the first cold call) if performance is ever re-verified.
 
 ## Last Execution
+
+**Date:** 2026-09-09 (even later still)
+
+Completed: `IG-195` (no discoverable UI for password reset) - the second of the 4 bugs found across earlier regression/compatibility passes.
+
+- **Implemented exactly the scope the issue itself suggested**: a `/forgot-password` page (email input, always the same generic confirmation regardless of whether the account exists - matching the backend's own anti-enumeration behavior) and a `/reset-password` page (reads `email`/`token` from the URL query string, both still editable since the dev-only email stub only logs the raw token rather than a full link; new-password + confirm fields), plus a "Forgot password?" link added to `LoginForm.tsx`.
+- **Verified end-to-end against a real running backend**, not just the UI in isolation: registered a fresh account, requested a reset through the new UI, extracted the real token from the backend's own console log output, submitted it through the new reset page, confirmed the old password is then rejected and the new one logs in successfully - 8/8 checks passed.
+- No backend changes were needed - `IG-25`'s backend flow was already genuinely complete, confirmed again by this pass; only the missing frontend needed building.
+
+Files changed or created (`IG-195`):
+
+- `frontend/app/lib/auth.ts` (extended: `requestPasswordReset`, `resetPassword`, `ResetPasswordRequest`)
+- `frontend/app/forgot-password/{page.tsx,components/ForgotPasswordForm.tsx}` (new)
+- `frontend/app/reset-password/{page.tsx,components/ResetPasswordForm.tsx}` (new - `page.tsx` wraps the form in a `Suspense` boundary since it reads the URL query string via `useSearchParams`, same requirement `InvoiceListView`/`ResetPasswordForm`'s own new page already follow)
+- `frontend/app/login/components/LoginForm.tsx` (extended: "Forgot password?" link; doc comment updated to note only the Google-sign-in gap remains, `IG-196`)
+- `backlog.md`
+
+Verification performed (`IG-195`):
+
+- Full backend suite: 306/306 passing (unaffected, no backend changes). Full frontend suite: 552/552 passing (unaffected - no dedicated unit test was added for either new form, matching the sibling `LoginForm`/`RegisterForm` components' own precedent of relying on real-browser verification rather than a unit test for this class of auth-flow page); both new routes build cleanly; `npx eslint .` and `npm run build` both clean.
+- Real end-to-end browser verification (see Completed above) - 8/8 checks passed.
+- Committed locally only (`f2cca07`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-09 (later still)
 
