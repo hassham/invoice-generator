@@ -15,6 +15,7 @@ using InvoiceApp.Infrastructure.Payments;
 using InvoiceApp.Infrastructure.Persistence;
 using InvoiceApp.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpLogging;
 
 // IG-43: required once at startup or QuestPDF throws on first use. Community is free for
 // organizations under $1M USD annual gross revenue - worth revisiting if that changes.
@@ -60,6 +61,20 @@ builder.Services.AddCors(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// IG-72 / FSD section 124 (Monitoring): GlobalExceptionHandler already logs every *failed*
+// request with full detail, but nothing previously logged successful requests at all - meaning
+// "login success/failure trends" and "PDF generation success" (both explicitly named in the FSD)
+// had no success side to compare failures against. Fields are deliberately minimal - method, path,
+// status, duration only - explicitly excluding headers/request-response bodies/cookies, which
+// ASP.NET Core's HttpLogging defaults would otherwise include and which would leak the session
+// cookie and register/login's own password fields straight into the log (FSD section 123: "Do not
+// log: Passwords ... sensitive credentials").
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = HttpLoggingFields.RequestMethod | HttpLoggingFields.RequestPath
+        | HttpLoggingFields.ResponseStatusCode | HttpLoggingFields.Duration;
+});
+
 // Serializes enums (e.g. DiscountType, TaxCalculationMethod on the invoice calculation endpoint)
 // as their string name rather than the default numeric ordinal - readable JSON, and a reordered
 // enum can't silently change what a client sends/receives.
@@ -74,6 +89,7 @@ var app = builder.Build();
 // unwound past that scope and been disposed - otherwise GlobalExceptionHandler's own log entry
 // would be missing the CorrelationId enrichment that every other log statement gets.
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseHttpLogging();
 app.UseExceptionHandler();
 
 app.UseCors(FrontendCorsPolicy);
