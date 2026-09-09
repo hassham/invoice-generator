@@ -24,6 +24,13 @@ export interface LoginRequest {
   rememberMe: boolean;
 }
 
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
@@ -70,6 +77,35 @@ export async function login(request: LoginRequest): Promise<LoggedInAccount> {
 
 export async function logout(): Promise<void> {
   await fetch(`${baseUrl()}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
+}
+
+/**
+ * IG-25 / FSD section 9: always resolves successfully regardless of whether the email matched an
+ * account - the backend itself is what silently no-ops for an unknown address (anti-enumeration),
+ * so this never throws for "email not found", only for a genuinely malformed request.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const response = await fetch(`${baseUrl()}/api/v1/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to request a password reset."));
+  }
+}
+
+export async function resetPassword(request: ResetPasswordRequest): Promise<void> {
+  const response = await fetch(`${baseUrl()}/api/v1/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to reset your password."));
+  }
 }
 
 /**

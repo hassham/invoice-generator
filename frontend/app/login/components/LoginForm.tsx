@@ -18,11 +18,11 @@ function getSessionExpiredServerSnapshot(): boolean {
 }
 
 /**
- * FSD section 8 (Login). "Login with Google" and "Forgot Password" are FSD-listed actions this
- * page doesn't wire up yet: Google's backend callback (AuthEndpoints.GoogleCallbackAsync) has no
- * frontend route to redirect back to and currently just returns raw JSON, and no
- * /forgot-password page exists - both documented gaps, not oversights, left for a follow-up
- * once those destinations exist rather than linking to a dead end.
+ * FSD section 8 (Login). "Login with Google" is still an FSD-listed action this page doesn't
+ * wire up yet (IG-196): Google's backend callback (AuthEndpoints.GoogleCallbackAsync) has no
+ * frontend route to redirect back to and currently just returns raw JSON - a documented gap, not
+ * an oversight, left for a follow-up once that destination exists rather than linking to a dead
+ * end. "Forgot Password" (IG-195) now links to a real page.
  */
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -102,6 +102,9 @@ export function LoginForm() {
             onChange={(event) => setPassword(event.target.value)}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
           />
+          <Link href="/forgot-password" className="self-end text-xs font-medium text-slate-600 hover:underline">
+            Forgot password?
+          </Link>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-slate-700">
