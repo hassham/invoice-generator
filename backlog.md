@@ -8,9 +8,9 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 ## Current Project Status
 
-**Synced to commit `ae7d012`, 2026-09-08.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
+**Synced to commit `8125484`, 2026-09-09.** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` (browser/device compatibility), `IG-69` (accessibility) and `IG-70` (authorization/input security) are Done as of 2026-09-08 (see "Last Execution"); `IG-71`-`IG-72` are still To Do.
+**Epics `IG-1` through `IG-11` are all Done** (11 of 12). **`IG-12` (Product Quality, Security and Operational Readiness) is in progress**: `IG-68` (browser/device compatibility), `IG-69` (accessibility), `IG-70` (authorization/input security) and `IG-71` (uploads/rate limiting) are Done (see "Last Execution"); only `IG-72` (performance/regression evidence) remains - the last Story in the entire MVP backlog.
 
 **A new bug was found and filed during `IG-68`'s verification pass**: [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) - the Invoice Detail Page has no Download PDF action at all, despite FSD section 49 explicitly requiring one; PDF/print functionality only exists on the anonymous creation flow (IG-43's scope). Confirmed by direct code inspection, not fixed yet (out of `IG-68`'s own scope - responsive/cross-browser layout, not feature completeness).
 
@@ -38,7 +38,7 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 `IG-12` is now the active Epic (user chose to start it over the regression-bug cleanup below). Two genuinely different kinds of work remain open:
 
-1. **Continue `IG-12`**: `IG-71` ("Protect uploads and expensive endpoints", rate limiting/file-upload verification per FSD section 87) is the next unstarted Story in sequence, followed by `IG-72` (performance/regression evidence) - the last Story in the entire MVP backlog.
+1. **Finish `IG-12`**: `IG-72` ("Meet operational performance and release quality targets", performance targets + launch-readiness evidence per FSD section 125) is the last unstarted Story in the entire MVP backlog - completing it closes Epic `IG-12` and the whole backlog.
 2. **Fix/build the 4 issues found across regression/compatibility/accessibility passes** — [IG-194](https://appitometechnologies.atlassian.net/browse/IG-194) (small, well-understood bug fix), [IG-195](https://appitometechnologies.atlassian.net/browse/IG-195)/[IG-196](https://appitometechnologies.atlassian.net/browse/IG-196) (wiring up UI for two backends that already work), [IG-197](https://appitometechnologies.atlassian.net/browse/IG-197) (Invoice Detail Page missing its required Download PDF action). None are regressions from this work, so there's no urgency pressure - but they're real, user-facing gaps in already-"Done" Stories.
 
 Direct links:
@@ -47,7 +47,7 @@ Direct links:
 - <https://appitometechnologies.atlassian.net/browse/IG-195>
 - <https://appitometechnologies.atlassian.net/browse/IG-196>
 - <https://appitometechnologies.atlassian.net/browse/IG-197>
-- <https://appitometechnologies.atlassian.net/browse/IG-71>
+- <https://appitometechnologies.atlassian.net/browse/IG-72>
 
 ## Next Task
 
@@ -67,10 +67,33 @@ Whichever is chosen:
 10. **`SiteHeader`'s authenticated desktop nav now switches on at the `xl` breakpoint (1280px), not `md` (768px)** (fixed in `IG-68`, see commit `b3ccb22`) - if adding more authenticated nav items in the future, re-measure the required content width (was ~1104px for 8 links + account email + Log out) rather than assuming `xl` has unlimited headroom.
 11. **Any future modal must trap Tab/Shift+Tab within its own focusable elements** (fixed in `IG-69` for `ConfirmDialog`/`AccountGateModal`, see commit `685af58`) - the pattern (query focusable descendants, wrap at the first/last on Tab/Shift+Tab) is duplicated inline in both components rather than a shared hook, matching this codebase's existing convention of duplicating small per-component effect logic (e.g. each dialog's own Escape handler) rather than extracting one. Copy the same block into any new modal.
 12. **A custom dropdown/autocomplete must never close on blur without checking `event.relatedTarget`** (fixed in `IG-69` for `CustomerPicker`/`ItemPicker`) - a plain `onBlur` + `setTimeout` closes the list out from under a keyboard user the moment Tab moves focus onto one of its own option buttons. Check the list wrapper's own `contains(relatedTarget)` instead, and wire dropdown options to `onClick` (fires for both mouse and keyboard activation), not `onMouseDown` alone.
-13. **Rate limiting currently covers only the 4 auth endpoints** (register/login/forgot-password/reset-password via `RateLimitingOptions.AuthPolicyName`, confirmed by `IG-70`'s audit) - `/api/v1/invoices/pdf` (anonymous, computationally expensive QuestPDF rendering, no auth to naturally throttle abuse) has none at all. Directly relevant scope for `IG-71`.
+13. **Rate limiting now covers the 4 auth endpoints plus PDF generation**, all sharing `RateLimitingOptions.AuthPolicyName` (fixed in `IG-71`, see commit `8125484`) - the policy is partitioned by IP only, not by endpoint, so a client's auth attempts and PDF-generation attempts share one combined budget per IP. This was a deliberate, pre-existing design choice (the options class's own doc comment anticipated exactly this), not something introduced casually - keep it in mind if a future endpoint's traffic pattern makes that sharing too aggressive.
 14. **`GlobalExceptionHandler` now logs the acting user's id (or "anonymous") alongside every rejected request** (400/401/404/409, added in `IG-70`) - if adding a new exception type to its `Map` switch, no extra work is needed, the user-id logging wraps all of them uniformly.
+15. **File-upload security (business logo) was audited in `IG-71` and found already fully compliant** with FSD section 87/89 (MIME whitelist, magic-byte signature check, server-generated filename, no static-file middleware anywhere in the app, Guid-constrained safe URL) - no changes were needed. If a future Story adds a second upload surface, mirror `BusinessLogoValidator`/`BusinessLogoStorage`'s exact approach rather than inventing a new one.
 
 ## Last Execution
+
+**Date:** 2026-09-09
+
+Completed: `IG-71` ("Protect uploads and expensive endpoints", S59, both Subtasks `IG-189`/`IG-190`) — the fourth Story in Epic `IG-12`.
+
+- **File-upload security audited, found already fully compliant, no changes made**: checked the existing business-logo upload path (`IG-52`) against FSD section 87/89's checklist point by point - MIME whitelist + magic-byte signature verification (`BusinessLogoValidator`), server-generated filename (`{businessId}.{ext}`, never the client's own - no path-traversal surface at all), no `UseStaticFiles()` middleware anywhere in the app (confirmed by grep - `App_Data` is never directly web-accessible regardless of location), and a `{businessId:guid}`-constrained safe URL with no path/filename exposed. `BusinessLogoEndpointsTests.cs` already had 10 tests covering this, including a renamed-executable-style rejection test. Nothing to fix here.
+- **Found and fixed the one real gap** (flagged during `IG-70`'s own audit): rate limiting covered only the 4 auth endpoints - `/api/v1/invoices/pdf` (anonymous, computationally expensive QuestPDF rendering, no session to naturally throttle abuse) had none. `RateLimitingOptions`' own doc comment had already anticipated this exact endpoint joining the policy "once built" - wired it up rather than inventing a new policy/config section for one endpoint.
+- **New tests**: `PdfRateLimitingTests.cs` (2 tests, mirroring `AuthRateLimitingTests`' exact pattern) - confirmed requests within the configured limit succeed and requests beyond it get a real 429 at the HTTP pipeline level.
+
+Files changed or created (`IG-71`):
+
+- `backend/src/InvoiceApp.Api/Endpoints/DocumentEndpoints.cs` (`.RequireRateLimiting(RateLimitingOptions.AuthPolicyName)` added to the PDF endpoint)
+- `backend/src/InvoiceApp.Infrastructure/Configuration/RateLimitingOptions.cs` (doc comment updated to reflect PDF generation has now joined)
+- `backend/tests/InvoiceApp.Api.Tests/RateLimiting/PdfRateLimitingTests.cs` (new, 2 tests)
+- `backlog.md`
+
+Verification performed (`IG-71`):
+
+- Full backend suite: 306/306 passing (14 architecture + 133 infrastructure + 159 API, up from 304 - 2 new). Full frontend suite: 552/552 passing (unaffected, no frontend changes this Story); `npx eslint .` and `npm run build` both clean.
+- Committed locally only (`8125484`) - not pushed by default (standing workflow).
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
 
 **Date:** 2026-09-08 (later still again)
 
