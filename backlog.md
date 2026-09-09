@@ -10,7 +10,7 @@ Requirements and architecture are authoritative under `docs/` as described in `A
 
 **Synced 2026-09-09 (no new commit - this update is Jira-only).** This section (and "Current Focus"/"Next Task" below) is kept current against Jira as work lands — prior versions of this doc had drifted roughly 26 commits and 5 Epics behind actual `HEAD` as of 2026-09-03; treat everything below as authoritative, not the older narrative it replaced (still preserved in "Last Execution" history further down).
 
-**Every single issue in Jira project `IG` is Done as of 2026-09-09 - confirmed by a fresh `project = IG AND status != Done` query returning zero results.** Epics `IG-1` through `IG-12` (all 12) closed with `IG-72` ("Meet operational performance and release quality targets" - every FSD performance target verified with 10-100x margin, full launch-readiness report at `qa-reports/2026-09-09-launch-readiness.md`); the 4 regression-found bugs (`IG-194`-`IG-197`) are all fixed (see "Last Execution"). **Anything from here is new scope the user hasn't asked for yet.**
+**Every single issue in Jira project `IG` is Done as of 2026-09-09 - confirmed by a fresh `project = IG AND status != Done` query returning zero results.** Epics `IG-1` through `IG-12` (all 12) closed with `IG-72` ("Meet operational performance and release quality targets" - every FSD performance target verified with 10-100x margin, full launch-readiness report at `qa-reports/2026-09-09-launch-readiness.md`); the 4 regression-found bugs (`IG-194`-`IG-197`) are all fixed (see "Prior execution" below). **Everything from here (including the SMTP email work in "Last Execution" just below) is new scope beyond the tracked backlog - the user delegated "what to do next" rather than naming a specific Jira issue, so none of it has its own Jira issue yet.**
 
 **Second Jira reconciliation performed 2026-09-09** (the user spotted this directly via Jira's own List view, not found by an audit this time): 8 Subtasks under `IG-11`'s 4 Stories (`IG-175`-`IG-182`, under `IG-64`-`IG-67`) were still sitting at To Do despite their parent Stories (and the whole Epic) being Done - the same class of gap as the 2026-09-03 reconciliation below, just missed when `IG-11` itself was closed earlier this session. Confirmed each Subtask's own summary described work genuinely completed and verified as part of `IG-11` (cited the specific test/code evidence per-Subtask in Jira comments), got the user's explicit confirmation, then transitioned all 8 to Done. A project-wide re-query afterward confirmed zero non-Done issues remain anywhere in `IG`.
 
@@ -34,18 +34,18 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus
 
-**Nothing is currently open.** The MVP backlog (all 12 Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done. Whoever picks this file up next needs a fresh instruction from the user - there is no default "next item" to assume, and re-starting any kind of audit/regression pass unprompted would be presumptuous given how thoroughly this session already covered that ground (see `qa-reports/` for both passes' full write-ups).
+**Nothing is currently open.** The tracked MVP backlog (all 12 Epics) and every bug found across this session's regression/compatibility/accessibility passes are Done; real SMTP password-reset email delivery (untracked new scope, see "Last Execution") is also done, tested, and committed. Whoever picks this file up next needs a fresh instruction from the user - there is no default "next item" to assume.
 
 ## Next Task
 
-**Ask the user what they want next** - new feature work, a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), or something else entirely. Don't assume.
+**Ask the user what they want next** - new feature work, a fresh regression/audit pass, addressing something in `qa-reports/2026-09-09-launch-readiness.md`'s "accepted residual risks" section (real mobile/Safari device testing, screen-reader verification, load/concurrency testing), filing a Jira issue retroactively for the SMTP email work, or something else entirely. Don't assume.
 
 Standing notes that still apply:
 
 1. **Standing four-command verification gate, use before every push**: `cd backend && dotnet test`, `cd frontend && npx eslint .`, `npm test -- --run`, `npm run build`. All four must be clean — `next build` was skipped for several prior Stories and let a real production-build failure ship unnoticed (fixed 2026-09-03); don't repeat that.
 2. **Local-commit-only workflow, unchanged**: commit but do not push to GitHub — the user pushes manually. Verification evidence in Jira comments should cite the local commit hash, not a CI run URL, unless a push just happened.
 3. **Google OAuth credentials are configured locally** (`dotnet user-secrets`, `Authentication:Google:ClientId`/`ClientSecret`, in `InvoiceApp.Api`'s user-secrets store, ID `1bb70798-d419-459c-9213-a684a846ba1a`) — not committed, never will be (see `backend/README.md`'s Secrets section). Used to verify `IG-196`'s fix (the real `client_id` shows up in the live redirect).
-4. **Password-reset email delivery is a dev-only log stub** (`IPasswordResetEmailSender` → `LoggingPasswordResetEmailSender`) — the user explicitly chose this over SMTP/a transactional API for now. `IG-195`'s new `/reset-password` page reads `email`/`token` from the URL query string but keeps both editable for exactly this reason (the stub logs only the raw token, not a full link) - if a real email provider is ever wired in, sending a link that carries both would let that page's fields go from editable-with-defaults to normally just prefilled/hidden, but changing that isn't required by anything today.
+4. **Password-reset email delivery now supports real SMTP** (`SmtpPasswordResetEmailSender`, added this execution) alongside the original dev-only `LoggingPasswordResetEmailSender` stub - `AddInfrastructureAuthentication` picks whichever based on whether `Email:Host` is configured, so every environment without real credentials keeps behaving exactly as before. `IG-195`'s `/reset-password` page still keeps `email`/`token` editable rather than fully hidden - now that a real link is sent, this is a deliberate defensive default (a user who edits/loses the link, or copies just the token from an email client that mangles the URL, can still complete the flow) rather than a gap to close.
 5. **A real Postgres-backed test path exists** (`backend/tests/InvoiceApp.Infrastructure.Tests/Businesses/PostgresAvailabilityFixture.cs`, added for `IG-46`), reusing the existing `invoiceapp-postgres` docker container (port 5433) rather than Testcontainers. Reuse this fixture rather than building a parallel one if a future Story needs real-database behavior the InMemory provider can't prove.
 6. **Real server-side file storage exists** (`IBusinessLogoStorage`/`BusinessLogoStorage`, local disk under `App_Data/business-logos`, added for `IG-52`) - the first (and so far only) file storage in this app. Reuse the same pattern if a future Story needs file storage again.
 7. **Keep `CreateInvoiceEditor.tsx` changes narrowly scoped if touching it at all** — the file is already 1,000+ lines with 16 extracted components and 15 extracted lib modules and its own comments explicitly reject a bigger rewrite as disproportionate. `IG-194`'s own fix (done) was a single small change inside one existing handler - the same discipline applies to any future change here.
@@ -66,9 +66,38 @@ Standing notes that still apply:
 
 ## Last Execution
 
-**Date:** 2026-09-09 (the last one today)
+**Date:** 2026-09-09 (the latest one)
 
-Completed: `IG-197` (Invoice Detail Page missing its Download PDF action) - the fourth and final bug found across earlier regression/compatibility passes. **This closes the entire tracked backlog - every Epic and every found bug in Jira project `IG` is now Done.**
+Completed: real SMTP password-reset email delivery - **new scope, not a tracked Jira issue.** With the entire tracked backlog Done, the user was asked "what do you think should be the next steps?", pushed back with "tell me what to do then?" (twice) when offered options instead of a decision, so this was chosen and built directly: `LoggingPasswordResetEmailSender` only ever logs the reset token to the console, meaning password reset has never actually been usable by a real end user outside this dev environment.
+
+- **Added `SmtpPasswordResetEmailSender`** (MailKit 4.17.0, `backend/src/InvoiceApp.Infrastructure/Authentication/`), sending both a plain-text and HTML reset email over standard SMTP (STARTTLS on 587 by default, implicit TLS on 465 via `Email:UseStartTls = false`). Its own `BuildMessageContent` is a pure static method, tested without a real SMTP connection.
+- **`AddInfrastructureAuthentication` now conditionally registers it** in place of `LoggingPasswordResetEmailSender`, only when `Email:Host` is actually configured (blank/whitespace still falls back to the log stub) - every environment without real credentials (local dev, CI, tests) keeps working completely unchanged, matching `GoogleAuthenticationOptions`' own established "optional, blank by default" precedent.
+- **Config section deliberately named `Email`, not `Smtp`**: `docs/SAD.md` section 67 already anticipates an `Email__Provider` config path for this exact concern, and `InvoiceApp.Infrastructure.Tests.Configuration.SecretsHygieneTests` already has an automated, enforced check against `appsettings.json` ever committing a section named `Email` - naming it this way gets that guard for free instead of needing a new one. Kept the existing narrow `IPasswordResetEmailSender` interface as-is rather than building out `docs/SAD.md` section 48's broader multi-provider `IEmailSender`/`EmailMessage` abstraction - that's a real but much larger, never-requested undertaking for a future "Email Architecture" epic, not something this ask called for.
+- **Documented the new config keys** in `backend/README.md`'s Secrets section (`Email:Host`/`Port`/`Username`/`Password`/`FromAddress`/`FromName`/`UseStartTls`), same style as the existing Secrets guidance.
+
+Files changed or created:
+
+- `backend/src/InvoiceApp.Infrastructure/InvoiceApp.Infrastructure.csproj` (MailKit 4.17.0 package reference)
+- `backend/src/InvoiceApp.Infrastructure/Configuration/SmtpOptions.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Authentication/SmtpPasswordResetEmailSender.cs` (new)
+- `backend/src/InvoiceApp.Infrastructure/Authentication/InfrastructureAuthenticationExtensions.cs` (conditional registration)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/SmtpPasswordResetEmailSenderTests.cs` (new, 4 tests)
+- `backend/tests/InvoiceApp.Infrastructure.Tests/Authentication/PasswordResetEmailSenderRegistrationTests.cs` (new, 3 tests)
+- `backend/README.md` (Secrets section)
+- `backlog.md`
+
+Verification performed:
+
+- Full backend suite: 313/313 passing (140 in `InvoiceApp.Infrastructure.Tests`, up from 133 - 7 new). Full frontend suite unaffected: 558/558 passing; `npx eslint .` and `npm run build` both clean (backend-only change, ran the full four-command gate anyway per standing practice).
+- **Not live-tested against a real SMTP provider** - the user hasn't supplied real credentials yet. `backend/README.md` now documents exactly what to `dotnet user-secrets set` to enable it; until then, every environment keeps using the unchanged `LoggingPasswordResetEmailSender` stub.
+- Committed locally only (`070c4f1`) - not pushed by default (standing workflow).
+- **No Jira issue exists for this work** - it's new scope the user delegated ("tell me what to do") rather than named specifically. Worth asking whether to retroactively file one.
+
+Prior execution, still relevant context (superseded by the "Current Project Status"/"Current Focus"/"Next Task" sections above, kept here as project history only):
+
+**Date:** 2026-09-09 (the last one that day)
+
+Completed: `IG-197` (Invoice Detail Page missing its Download PDF action) - the fourth and final bug found across earlier regression/compatibility passes. **This closed the entire tracked backlog - every Epic and every found bug in Jira project `IG` was Done as of this point.**
 
 - **Implemented per this issue's own suggested fix**: reused `IG-43`'s existing stateless PDF endpoint and download logic (`downloadInvoicePdf`) rather than building a new one. Added `buildInvoicePdfPayloadFromEditable` (`frontend/app/lib/invoiceDetailPdf.ts`) to map the detail page's own `EditableInvoice` state into the same request shape the creation flow already builds, since the endpoint takes a full payload rather than an invoice reference - the free-text Payment Instructions field rides in as `customInstructions` with the structured field left `null`, mirroring `buildInvoiceUpdatePayload`'s own precedent for the save flow. Added a "Download PDF" button to the action row (between Duplicate and Cancel Invoice, matching FSD section 49's own listed order).
 - **Verified end-to-end against a real backend**, not just the mapping in isolation: created and saved a real invoice, opened its detail page, clicked Download PDF, and confirmed a genuine ~48KB PDF downloaded with the correct filename matching the saved invoice number - 3/3 checks passed.
