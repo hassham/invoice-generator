@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type KeyboardEvent, type ReactNode } from "react";
 
 type EditorTab = "edit" | "preview";
@@ -9,6 +10,8 @@ interface InvoiceEditorLayoutProps {
   preview: ReactNode;
   editorLabel?: string;
   previewLabel?: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
 const TABS: EditorTab[] = ["edit", "preview"];
@@ -33,6 +36,8 @@ export function InvoiceEditorLayout({
   preview,
   editorLabel = "Edit",
   previewLabel = "Preview",
+  backHref,
+  backLabel = "Back",
 }: InvoiceEditorLayoutProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>("edit");
   const labels: Record<EditorTab, string> = { edit: editorLabel, preview: previewLabel };
@@ -57,6 +62,15 @@ export function InvoiceEditorLayout({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 print:max-w-none print:p-0">
+      {backHref ? (
+        <Link
+          href={backHref}
+          className="mb-4 inline-block text-sm font-medium text-slate-600 hover:underline print:hidden"
+        >
+          ← {backLabel}
+        </Link>
+      ) : null}
+
       <div role="tablist" aria-label="Invoice editor mode" className="mb-4 flex gap-2 md:hidden print:hidden">
         {TABS.map((tab) => {
           const selected = activeTab === tab;
@@ -93,9 +107,7 @@ export function InvoiceEditorLayout({
             className={
               tab === "edit"
                 ? `${activeTab === tab ? "block" : "hidden md:block"} print:hidden`
-                : activeTab === tab
-                  ? "block"
-                  : "hidden md:block"
+                : `${activeTab === tab ? "block" : "hidden md:block"} md:sticky md:top-6 md:self-start print:static`
             }
           >
             {tab === "edit" ? editor : preview}

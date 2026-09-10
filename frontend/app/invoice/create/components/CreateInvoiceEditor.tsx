@@ -954,6 +954,8 @@ export function CreateInvoiceEditor() {
 
   return (
     <InvoiceEditorLayout
+      backHref={isAuthenticated ? "/dashboard" : "/"}
+      backLabel={isAuthenticated ? "Back to Dashboard" : "Back to Home"}
       editor={
         <div className="rounded-lg border border-slate-200 p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

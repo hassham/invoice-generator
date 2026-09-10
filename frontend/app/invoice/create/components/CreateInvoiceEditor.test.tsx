@@ -166,6 +166,23 @@ describe("CreateInvoiceEditor", () => {
     vi.useRealTimers();
   });
 
+  describe("IG-200: back navigation", () => {
+    it("links back to Home for an anonymous visitor", async () => {
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      expect(screen.getByRole("link", { name: "← Back to Home" })).toHaveAttribute("href", "/");
+    });
+
+    it("links back to Dashboard for an authenticated visitor", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
+
+      expect(screen.getByRole("link", { name: "← Back to Dashboard" })).toHaveAttribute("href", "/dashboard");
+    });
+  });
+
   it("reflects the From and Bill To text in the live preview as it's typed", async () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
