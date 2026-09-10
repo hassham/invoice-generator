@@ -958,7 +958,7 @@ export function CreateInvoiceEditor() {
       backLabel={isAuthenticated ? "Back to Dashboard" : "Back to Home"}
       editor={
         <div className="rounded-lg border border-slate-200 p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-t-lg border-b border-slate-200 bg-white px-6 py-4">
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
             <div className="flex flex-wrap gap-3">
               <button
