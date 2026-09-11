@@ -63,15 +63,21 @@ export function SiteHeader() {
             every authenticated page at tablet width. xl (1280px) is the first breakpoint with
             enough room; the hamburger/mobile-nav pattern below now covers tablet too. */}
         <nav aria-label="Primary" className="hidden items-center gap-8 xl:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {/* IG-202: public/marketing links (landing-page anchors + the anonymous Invoice
+              Generator entry point) only make sense when signed out - once authenticated, the
+              app-specific links below cover the same ground and these anchors don't even resolve
+              to anything outside the landing page. */}
+          {!account
+            ? navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
+                >
+                  {link.label}
+                </Link>
+              ))
+            : null}
           {account ? (
             <>
               <Link href="/dashboard" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
@@ -138,16 +144,18 @@ export function SiteHeader() {
       {isMenuOpen ? (
         <div id="mobile-nav" className="border-t border-slate-200 xl:hidden">
           <nav aria-label="Mobile primary" className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {!account
+              ? navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))
+              : null}
             {account ? (
               <>
                 <Link

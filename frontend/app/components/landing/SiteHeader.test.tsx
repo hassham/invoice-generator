@@ -126,6 +126,24 @@ describe("SiteHeader", () => {
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
   });
 
+  it("hides public/marketing links (Invoice Generator, Templates, Pricing), in both navs, once a session is found (IG-202)", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await screen.findByRole("button", { name: "Log out" });
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).queryByRole("link", { name: "Invoice Generator" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Templates" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
+    expect(within(mobileNav).queryByRole("link", { name: "Invoice Generator" })).not.toBeInTheDocument();
+    expect(within(mobileNav).queryByRole("link", { name: "Templates" })).not.toBeInTheDocument();
+    expect(within(mobileNav).queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
+  });
+
   it("shows a Customers link, in both navs, once a session is found (IG-55)", async () => {
     stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
     render(<SiteHeader />);
