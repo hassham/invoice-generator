@@ -126,21 +126,24 @@ describe("SiteHeader", () => {
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
   });
 
-  it("hides public/marketing links (Invoice Generator, Templates, Pricing), in both navs, once a session is found (IG-202)", async () => {
+  it("hides public/marketing links (Invoice Generator, the #templates anchor, Pricing), in both navs, once a session is found (IG-202)", async () => {
     stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
     const user = userEvent.setup();
     render(<SiteHeader />);
     await screen.findByRole("button", { name: "Log out" });
 
+    // "Templates" itself now legitimately appears once authenticated too (IG-204's dedicated
+    // /templates page) - what IG-202 actually guarantees is that the marketing landing-page
+    // anchor (#templates) specifically doesn't leak in, not that no link is ever named "Templates".
     const nav = screen.getByRole("navigation", { name: "Primary" });
     expect(within(nav).queryByRole("link", { name: "Invoice Generator" })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole("link", { name: "Templates" })).not.toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Templates" })).not.toHaveAttribute("href", "#templates");
     expect(within(nav).queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Open menu" }));
     const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
     expect(within(mobileNav).queryByRole("link", { name: "Invoice Generator" })).not.toBeInTheDocument();
-    expect(within(mobileNav).queryByRole("link", { name: "Templates" })).not.toBeInTheDocument();
+    expect(within(mobileNav).getByRole("link", { name: "Templates" })).not.toHaveAttribute("href", "#templates");
     expect(within(mobileNav).queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
   });
 
@@ -198,6 +201,20 @@ describe("SiteHeader", () => {
     await user.click(screen.getByRole("button", { name: "Open menu" }));
     const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
     expect(within(mobileNav).getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+  });
+
+  it("shows a Templates link, in both navs, once a session is found (IG-204)", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    render(<SiteHeader />);
+    await screen.findByRole("button", { name: "Log out" });
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Templates" })).toHaveAttribute("href", "/templates");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const mobileNav = screen.getByRole("navigation", { name: "Mobile primary" });
+    expect(within(mobileNav).getByRole("link", { name: "Templates" })).toHaveAttribute("href", "/templates");
   });
 
   it("shows a Settings link, in both navs, once a session is found (IG-53)", async () => {

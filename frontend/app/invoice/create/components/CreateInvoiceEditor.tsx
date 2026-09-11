@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../lib/fields";
 import {
@@ -62,6 +63,11 @@ import { TextAreaField } from "./TextAreaField";
 import { CustomerPicker } from "./CustomerPicker";
 
 export function CreateInvoiceEditor() {
+  // IG-204: an optional ?template=<templateCode> from the Templates gallery's "Use Template"
+  // action - read once via the ref below rather than kept reactive, since this only ever matters
+  // for the initial template-selection effect (a query param changing after mount shouldn't
+  // retroactively swap an already-chosen template out from under the visitor).
+  const requestedTemplateCode = useSearchParams().get("template");
   const [draft, setDraft] = useState(createEmptyDraft);
   const [headerErrors, setHeaderErrors] = useState<FieldErrors>({});
   const [advancedVisible, setAdvancedVisible] = useState(false);
@@ -216,9 +222,15 @@ export function CreateInvoiceEditor() {
           return;
         }
         setTemplates(loaded);
-        const [firstTemplate] = [...loaded].sort((a, b) => a.sortOrder - b.sortOrder);
-        if (firstTemplate) {
-          const defaultCustomization = getDefaultCustomization(firstTemplate.templateCode);
+        const [firstBySortOrder] = [...loaded].sort((a, b) => a.sortOrder - b.sortOrder);
+        // IG-204: a template requested via ?template=<templateCode> (from the Templates gallery's
+        // "Use Template" action) wins over the sort-order default - falls back to it silently
+        // (rather than erroring) if the code doesn't match any loaded template, same "convenience,
+        // not a hard requirement" reasoning as every other pre-fill in this component.
+        const requested = requestedTemplateCode ? loaded.find((template) => template.templateCode === requestedTemplateCode) : undefined;
+        const chosenTemplate = requested ?? firstBySortOrder;
+        if (chosenTemplate) {
+          const defaultCustomization = getDefaultCustomization(chosenTemplate.templateCode);
           setDraft((current) => {
             if (current.templateId) {
               return current;
@@ -226,11 +238,11 @@ export function CreateInvoiceEditor() {
             if (pristineDraftRef.current) {
               pristineDraftRef.current = {
                 ...pristineDraftRef.current,
-                templateId: firstTemplate.id,
+                templateId: chosenTemplate.id,
                 templateCustomization: defaultCustomization,
               };
             }
-            return { ...current, templateId: firstTemplate.id, templateCustomization: defaultCustomization };
+            return { ...current, templateId: chosenTemplate.id, templateCustomization: defaultCustomization };
           });
         }
       })
@@ -247,6 +259,9 @@ export function CreateInvoiceEditor() {
     return () => {
       cancelled = true;
     };
+    // requestedTemplateCode is deliberately read once (see the field's own comment above) - this
+    // effect must stay mount-only regardless.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

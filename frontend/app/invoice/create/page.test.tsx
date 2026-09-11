@@ -12,6 +12,13 @@ vi.mock("../../lib/auth", () => ({
   getCurrentSession: vi.fn(() => Promise.resolve(null)),
 }));
 
+// IG-204: the editor reads an optional ?template=<templateCode> via useSearchParams
+// (next/navigation), which throws outside a real Next.js App Router - stubbed here, same as
+// CreateInvoiceEditor.test.tsx/InvoiceListView.test.tsx.
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 describe("Create invoice page", () => {
   it("renders the invoice header, From and Bill To sections", () => {
     render(<CreateInvoicePage />);

@@ -24,6 +24,14 @@ const STUB_TEMPLATES: Template[] = [
   { id: "template-modern", name: "Modern", templateCode: "modern", previewImage: null, isPremium: false, sortOrder: 2 },
 ];
 
+// IG-204: reads an optional ?template=<templateCode> - defaults to no query params (matching the
+// pre-IG-204 behavior of every test in this file that doesn't care about it); tests that
+// specifically exercise it override this per-test. Same mock shape as InvoiceListView.test.tsx.
+let currentSearchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => currentSearchParams,
+}));
+
 // Every test mounts the real editor, which fetches templates on mount (IG-39) - stubbed here so
 // the whole suite stays deterministic and doesn't depend on a running backend.
 vi.mock("../lib/templates", () => ({
@@ -155,6 +163,7 @@ describe("CreateInvoiceEditor", () => {
     mockedCreateInvoice.mockReset();
     mockedUpdateInvoice.mockReset();
     mockedGetBusinessProfile.mockRejectedValue(new Error("not mocked"));
+    currentSearchParams = new URLSearchParams();
   });
 
   afterEach(() => {
@@ -467,6 +476,25 @@ describe("CreateInvoiceEditor", () => {
   });
 
   it("auto-selects the first template once the template fetch resolves", async () => {
+    render(<CreateInvoiceEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true");
+    });
+  });
+
+  it("selects the template requested via ?template=<templateCode> (IG-204) instead of the sort-order default", async () => {
+    currentSearchParams = new URLSearchParams({ template: "modern" });
+    render(<CreateInvoiceEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Modern/ })).toHaveAttribute("aria-pressed", "true");
+    });
+    expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("falls back to the sort-order default when ?template= doesn't match any loaded template", async () => {
+    currentSearchParams = new URLSearchParams({ template: "does-not-exist" });
     render(<CreateInvoiceEditor />);
 
     await waitFor(() => {
