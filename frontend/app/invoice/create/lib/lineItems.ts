@@ -5,8 +5,22 @@ export const UNIT_OPTIONS = ["Item", "Hour", "Day", "Week", "Month", "Project", 
 export const TAX_RATE_PRESETS = ["0", "5", "10", "15", "20", "custom"] as const;
 export type TaxRatePreset = (typeof TAX_RATE_PRESETS)[number];
 
-/** FSD section 22: "Australian default: 10% GST" - no business-settings mechanism exists yet to override this. */
+/** FSD section 22: "Australian default: 10% GST" - the fallback used for anonymous visitors and
+ * before a business profile's own default (IG-203) has loaded. */
 export const DEFAULT_TAX_RATE_PRESET: TaxRatePreset = "10";
+
+/**
+ * IG-203: resolves a business profile's `defaultTaxRate` (an arbitrary decimal) to one of the
+ * fixed presets when it matches exactly, otherwise falls back to "custom" with the rate carried
+ * as the free-entry value - the presets are a fixed UI list, not every valid tax rate.
+ */
+export function resolveTaxRateDefault(rate: number): Pick<LineItem, "taxRatePreset" | "customTaxRate"> {
+  const preset = TAX_RATE_PRESETS.find((candidate) => candidate !== "custom" && Number.parseFloat(candidate) === rate);
+  if (preset) {
+    return { taxRatePreset: preset, customTaxRate: "" };
+  }
+  return { taxRatePreset: "custom", customTaxRate: String(rate) };
+}
 
 export interface LineItem {
   /** Stable React list key / reorder target - not a persisted id, this form has no backend yet. */

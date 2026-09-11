@@ -117,7 +117,7 @@ export function buildInvoiceSavePayload(input: {
     }),
     invoiceDiscountType,
     invoiceDiscountValue: Number.isFinite(parsedDiscountValue) ? parsedDiscountValue : null,
-    taxCalculationMethod: "Exclusive",
+    taxCalculationMethod: draft.taxCalculationMethod,
     notes: nullIfEmpty(supportingContent.notes),
     terms: nullIfEmpty(supportingContent.terms),
     customInstructions: nullIfEmpty(supportingContent.customInstructions),

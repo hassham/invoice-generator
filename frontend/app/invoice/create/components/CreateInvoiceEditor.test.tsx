@@ -1030,6 +1030,21 @@ describe("CreateInvoiceEditor", () => {
       expect(mockedUpdateInvoice).not.toHaveBeenCalled();
     });
 
+    it("saves using the business profile's Tax Calculation default, not the Exclusive fallback (IG-203)", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedGetBusinessProfile.mockResolvedValue({ ...SAMPLE_BUSINESS_PROFILE, taxCalculationMethod: "Inclusive" });
+      mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      await waitFor(() => expect(mockedGetBusinessProfile).toHaveResolvedTimes(1));
+      await fillValidInvoice(user);
+
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
+      expect(mockedCreateInvoice).toHaveBeenCalledWith(expect.objectContaining({ taxCalculationMethod: "Inclusive" }));
+    });
+
     it("shows a link to the saved invoice's detail page once saved (IG-47)", async () => {
       mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
       mockedCreateInvoice.mockResolvedValue(SAVED_INVOICE);
@@ -1360,6 +1375,29 @@ describe("CreateInvoiceEditor", () => {
       expect(screen.getByLabelText(/Due Date/)).toHaveValue(expectedDueDateIso);
       expect(screen.getByLabelText("Notes", { exact: false })).toHaveValue("Thanks for your business");
       expect(screen.getByLabelText("Terms and Conditions", { exact: false })).toHaveValue("Payment due within terms");
+    });
+
+    it("pre-fills the first line item's Tax Rate from the business profile's default (IG-203)", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedGetBusinessProfile.mockResolvedValue({ ...SAMPLE_BUSINESS_PROFILE, defaultTaxRate: 0 });
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(mockedGetBusinessProfile).toHaveResolvedTimes(1));
+
+      // The hardcoded fallback is "10" (fields.ts's DEFAULT_TAX_RATE_PRESET) - "0" only appears
+      // once the business profile's own default has actually been applied.
+      await waitFor(() => expect(screen.getByLabelText("Tax Rate")).toHaveValue("0"));
+    });
+
+    it("falls back to Custom with the exact rate when the profile's default tax rate isn't one of the fixed presets (IG-203)", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedGetBusinessProfile.mockResolvedValue({ ...SAMPLE_BUSINESS_PROFILE, defaultTaxRate: 12.5 });
+      render(<CreateInvoiceEditor />);
+
+      await waitFor(() => expect(mockedGetBusinessProfile).toHaveResolvedTimes(1));
+
+      await waitFor(() => expect(screen.getByLabelText("Tax Rate")).toHaveValue("custom"));
+      expect(screen.getByLabelText(/Custom Tax Rate/)).toHaveValue(12.5);
     });
 
     it("does not fetch or apply the profile when a localStorage draft was restored instead", async () => {

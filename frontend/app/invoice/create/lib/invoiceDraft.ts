@@ -1,4 +1,5 @@
 import { HEADER_FIELDS, validateField, type FieldConfig } from "./fields";
+import type { TaxCalculationMethod } from "./invoiceTotals";
 import { getDefaultCustomization, type TemplateCustomization } from "./templateCustomization";
 
 export type FieldValues = Record<string, string>;
@@ -15,6 +16,10 @@ export interface InvoiceDraft {
   templateCustomization: TemplateCustomization;
   /** IG-42: a resized data URL, or null until one is uploaded - client-only for now, see lib/logoUpload.ts. */
   logo: string | null;
+  /** IG-203: the business profile's Tax Calculation default (Exclusive/Inclusive), sourced once
+   * authenticated (see CreateInvoiceEditor's business-profile pre-fill effect); "Exclusive" is the
+   * schema-aligned fallback for anonymous visitors and before that fetch resolves. */
+  taxCalculationMethod: TaxCalculationMethod;
 }
 
 function emptyValues(fields: FieldConfig[]): FieldValues {
@@ -40,6 +45,7 @@ export function createEmptyDraft(): InvoiceDraft {
     templateId: "",
     templateCustomization: getDefaultCustomization("classic"),
     logo: null,
+    taxCalculationMethod: "Exclusive",
   };
 }
 

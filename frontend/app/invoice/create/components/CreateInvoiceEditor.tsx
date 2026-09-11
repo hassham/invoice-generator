@@ -22,6 +22,7 @@ import {
   cloneLineItem,
   createEmptyLineItem,
   hasAnyLineItemError,
+  resolveTaxRateDefault,
   toCalculationInput,
   validateLineItems,
   type LineItem,
@@ -339,6 +340,7 @@ export function CreateInvoiceEditor() {
             ...current,
             seller: formatBusinessProfileForSeller(profile),
             currency: profile.defaultCurrency,
+            taxCalculationMethod: profile.taxCalculationMethod,
             header: current.header.issueDate ? { ...current.header, dueDate: addDaysIso(current.header.issueDate, termDays) } : current.header,
           };
           pristineDraftRef.current = next;
@@ -351,6 +353,15 @@ export function CreateInvoiceEditor() {
             terms: profile.defaultTermsAndConditions ?? current.terms,
           };
           pristineSupportingContentRef.current = next;
+          return next;
+        });
+        // IG-203: same "only while still pristine" guarantee as the draft/supportingContent
+        // defaults above - at this point (dirty === false) every line item is still exactly what
+        // createEmptyLineItem() produced, so this only ever overrides the hardcoded 10% GST
+        // fallback, never a rate the visitor already chose.
+        setLineItems((current) => {
+          const next = current.map((item) => ({ ...item, ...resolveTaxRateDefault(profile.defaultTaxRate) }));
+          pristineLineItemsRef.current = next;
           return next;
         });
 
@@ -931,9 +942,9 @@ export function CreateInvoiceEditor() {
     [headerErrors, sellerError, customerError, shipToError, lineItemErrors, invoiceDiscountError, supportingContentErrors],
   );
 
-  // Tax-inclusive/exclusive (FSD section 29) is a business setting with no settings page to
-  // source a real value from yet (Epic IG-8) - always calculated exclusive here, matching the
-  // domain default (docs/DATABASE_SCHEMA.md's businesses.tax_calculation_method).
+  // IG-203: Tax-inclusive/exclusive (FSD section 29) now comes from the business profile's own
+  // default (see the pre-fill effect above), falling back to the domain default ("Exclusive",
+  // docs/DATABASE_SCHEMA.md's businesses.tax_calculation_method) for anonymous visitors.
   //
   // Memoized so typing in fields that don't affect totals (Notes, Terms, header/party details)
   // doesn't re-run this on every keystroke - CreateInvoiceEditor holds all state at the top level,
@@ -947,9 +958,9 @@ export function CreateInvoiceEditor() {
         lineItems.map(toCalculationInput),
         invoiceDiscountType,
         Number.isFinite(parsedDiscountValue) ? parsedDiscountValue : null,
-        "Exclusive",
+        draft.taxCalculationMethod,
       ),
-    [lineItems, invoiceDiscountType, parsedDiscountValue],
+    [lineItems, invoiceDiscountType, parsedDiscountValue, draft.taxCalculationMethod],
   );
 
   return (

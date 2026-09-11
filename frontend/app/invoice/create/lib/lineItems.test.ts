@@ -3,6 +3,7 @@ import {
   computeLineTotals,
   createEmptyLineItem,
   hasAnyLineItemError,
+  resolveTaxRateDefault,
   sumLineTotals,
   validateLineItem,
   validateLineItems,
@@ -29,6 +30,18 @@ describe("createEmptyLineItem", () => {
     const b = createEmptyLineItem();
 
     expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe("resolveTaxRateDefault", () => {
+  it("resolves a rate matching a fixed preset to that preset, with no custom rate", () => {
+    expect(resolveTaxRateDefault(0)).toEqual({ taxRatePreset: "0", customTaxRate: "" });
+    expect(resolveTaxRateDefault(10)).toEqual({ taxRatePreset: "10", customTaxRate: "" });
+    expect(resolveTaxRateDefault(20)).toEqual({ taxRatePreset: "20", customTaxRate: "" });
+  });
+
+  it("falls back to custom, carrying the exact rate, when it doesn't match any preset", () => {
+    expect(resolveTaxRateDefault(12.5)).toEqual({ taxRatePreset: "custom", customTaxRate: "12.5" });
   });
 });
 
