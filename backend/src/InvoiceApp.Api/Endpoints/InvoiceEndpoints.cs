@@ -34,6 +34,8 @@ public static class InvoiceEndpoints
         // established, since an authenticated account could otherwise be used to relay spam to
         // arbitrary recipients at volume.
         app.MapPost("/api/v1/invoices/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        // IG-213: a plain read, no rate limiting needed beyond what authentication already implies.
+        app.MapGet("/api/v1/invoices/{id:guid}/email-history", GetEmailHistoryAsync).RequireAuthorization();
         return app;
     }
 
@@ -131,7 +133,10 @@ public static class InvoiceEndpoints
 
     /// <summary>IG-212: orchestrates what InvoiceService deliberately stays agnostic of - QuestPDF
     /// rendering (same layering as PublicInvoiceEndpoints.GetPdfAsync; InvoiceApp.Infrastructure
-    /// has no reference to InvoiceApp.Modules.Documents) and SMTP delivery.</summary>
+    /// has no reference to InvoiceApp.Modules.Documents) and SMTP delivery. IG-213: records the
+    /// attempt either way - a failed send is still something the account owner needs visibility
+    /// into (RecordEmailSentAsync's own doc comment), so this deliberately doesn't let a delivery
+    /// failure skip logging on its way to the global exception handler.</summary>
     private static async Task<IResult> SendEmailAsync(
         Guid id,
         InvoiceEmailRequest request,
@@ -143,16 +148,36 @@ public static class InvoiceEndpoints
     {
         InvoiceEmailRequestValidator.Validate(request);
 
-        var context = await invoiceService.PrepareInvoiceEmailAsync(UserId(user), id, cancellationToken);
+        var userId = UserId(user);
+        var context = await invoiceService.PrepareInvoiceEmailAsync(userId, id, cancellationToken);
         var pdfBytes = new InvoicePdfDocument(context.PdfRequest).GeneratePdf();
         var pdfFileName = InvoiceFilenameGenerator.Generate(context.PdfRequest.InvoiceNumber);
         var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
         var hostedLink = $"{frontendBaseUrl}/i/{context.PublicToken}";
-
         var message = InvoiceEmailMessageBuilder.Build(request, hostedLink, pdfBytes, pdfFileName, context.BusinessEmail);
-        await emailSender.SendAsync(message, cancellationToken);
 
+        try
+        {
+            await emailSender.SendAsync(message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await invoiceService.RecordEmailSentAsync(userId, id, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
+            throw;
+        }
+
+        await invoiceService.RecordEmailSentAsync(userId, id, request, InvoiceEmailStatus.Sent, null, cancellationToken);
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> GetEmailHistoryAsync(
+        Guid id,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        var history = await invoiceService.GetEmailHistoryAsync(UserId(user), id, cancellationToken);
+        return Results.Ok(history);
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

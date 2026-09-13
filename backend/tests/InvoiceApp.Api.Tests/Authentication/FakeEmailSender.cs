@@ -12,8 +12,18 @@ public sealed class FakeEmailSender : IEmailSender
 {
     public List<EmailMessage> SentMessages { get; } = [];
 
+    /// <summary>IG-213: settable per-test so a send-failure path (and the InvoiceEmailLog it
+    /// should still produce) can be exercised without a real SMTP server to actually fail
+    /// against.</summary>
+    public Exception? ThrowOnSend { get; set; }
+
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
     {
+        if (ThrowOnSend is { } exception)
+        {
+            throw exception;
+        }
+
         SentMessages.Add(message);
         return Task.CompletedTask;
     }

@@ -5,6 +5,19 @@ export interface InvoiceEmailRequest {
   message: string;
 }
 
+/** IG-213: "delivery status" scoped to what a generic SMTP send can actually report - see the
+ * backend's InvoiceEmailStatus for why there's no third "Delivered"/"Bounced" value here. */
+export type InvoiceEmailStatus = "Sent" | "Failed";
+
+export interface InvoiceEmailLog {
+  id: string;
+  sentAt: string;
+  to: string[];
+  cc: string[];
+  subject: string;
+  status: InvoiceEmailStatus;
+}
+
 /** Splits a comma/newline-separated block of addresses into a clean list - lets the compose form
  * use one free-text field per Recipient/CC instead of a chip-input widget, matching this app's
  * general preference for plain text fields over bespoke input controls. */
@@ -38,4 +51,16 @@ export async function sendInvoiceEmail(invoiceId: string, request: InvoiceEmailR
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to send this invoice."));
   }
+}
+
+/** IG-213: account-owned, same credentials:"include" convention as every other authenticated
+ * lib/*.ts fetch wrapper. Newest first (the backend's own ordering). */
+export async function getInvoiceEmailHistory(invoiceId: string): Promise<InvoiceEmailLog[]> {
+  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}/email-history`, { credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load the email history for this invoice."));
+  }
+
+  return response.json();
 }

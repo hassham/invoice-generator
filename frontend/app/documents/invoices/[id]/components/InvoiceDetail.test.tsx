@@ -50,6 +50,14 @@ vi.mock("../../../../lib/customers", () => ({
   getCustomer: vi.fn().mockRejectedValue(new Error("not mocked")),
 }));
 
+// InvoiceEmailHistorySection (IG-213) fetches its own email history on mount, unconditionally on
+// every render of InvoiceDetail - stubbed to an empty list so none of the tests below (which
+// don't exercise it themselves) hit a real network call.
+vi.mock("../../../../lib/invoiceEmail", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../../lib/invoiceEmail")>()),
+  getInvoiceEmailHistory: vi.fn().mockResolvedValue([]),
+}));
+
 const mockedFetchTemplates = vi.mocked(fetchTemplates);
 const mockedGetInvoice = vi.mocked(getInvoice);
 const mockedUpdateInvoice = vi.mocked(updateInvoice);

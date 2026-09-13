@@ -25,6 +25,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
 
+    public DbSet<InvoiceEmailLog> InvoiceEmailLogs => Set<InvoiceEmailLog>();
+
     public DbSet<Payment> Payments => Set<Payment>();
 
     public DbSet<Template> Templates => Set<Template>();

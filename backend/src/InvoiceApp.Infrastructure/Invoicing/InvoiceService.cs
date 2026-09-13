@@ -199,6 +199,63 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return new InvoiceEmailContext(pdfRequest, invoice.PublicToken, business.Email);
     }
 
+    public async Task RecordEmailSentAsync(Guid userId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        // Confirms ownership without loading Items - RecordEmailSentAsync has no use for them,
+        // same "just enough of LoadOwnedAsync's check" reasoning as any other narrow write.
+        var owned = await dbContext.Invoices.AnyAsync(invoice => invoice.Id == invoiceId && invoice.BusinessId == businessId && !invoice.IsDeleted, cancellationToken);
+        if (!owned)
+        {
+            throw new NotFoundException("Invoice not found.");
+        }
+
+        dbContext.InvoiceEmailLogs.Add(new InvoiceEmailLog
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = invoiceId,
+            SentAt = DateTimeOffset.UtcNow,
+            To = JsonSerializer.Serialize(request.To),
+            Cc = JsonSerializer.Serialize(request.Cc),
+            Subject = request.Subject,
+            Status = status,
+            ErrorMessage = errorMessage,
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<InvoiceEmailLogDto>> GetEmailHistoryAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        // Same ownership check as RecordEmailSentAsync - an invoice belonging to someone else
+        // 404s, it never returns an empty history (which would be indistinguishable from "yours,
+        // just never emailed" and leak nothing extra either way, but consistency with every other
+        // method's anti-enumeration precedent matters more than the difference is observable).
+        var owned = await dbContext.Invoices.AnyAsync(invoice => invoice.Id == invoiceId && invoice.BusinessId == businessId && !invoice.IsDeleted, cancellationToken);
+        if (!owned)
+        {
+            throw new NotFoundException("Invoice not found.");
+        }
+
+        // Materialized first, then mapped in memory - JsonSerializer.Deserialize can't be
+        // translated into SQL by the Npgsql provider, unlike the simple column reads every other
+        // ToDto/ToDetailDto-style projection in this class gets away with inline.
+        var logs = await dbContext.InvoiceEmailLogs
+            .Where(log => log.InvoiceId == invoiceId)
+            .OrderByDescending(log => log.SentAt)
+            .ToListAsync(cancellationToken);
+
+        return logs
+            .Select(log => new InvoiceEmailLogDto(
+                log.Id,
+                log.SentAt,
+                JsonSerializer.Deserialize<List<string>>(log.To) ?? [],
+                JsonSerializer.Deserialize<List<string>>(log.Cc) ?? [],
+                log.Subject,
+                log.Status))
+            .ToList();
+    }
+
     public async Task<InvoiceDto> CancelAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
     {
         var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);

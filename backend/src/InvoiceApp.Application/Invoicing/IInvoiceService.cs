@@ -1,4 +1,5 @@
 using InvoiceApp.Application.Documents;
+using InvoiceApp.Domain.Invoicing;
 
 namespace InvoiceApp.Application.Invoicing;
 
@@ -48,4 +49,12 @@ public interface IInvoiceService
     /// both endpoint-layer concerns (see InvoiceEndpoints.SendEmailAsync), matching how
     /// BuildHostedInvoicePdfRequestAsync already keeps this service QuestPDF-agnostic.</summary>
     Task<InvoiceEmailContext> PrepareInvoiceEmailAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
+
+    /// <summary>IG-213: records one send attempt, successful or not - called by
+    /// InvoiceEndpoints.SendEmailAsync after it actually attempts delivery via IEmailSender, since
+    /// only that layer knows whether the attempt succeeded.</summary>
+    Task RecordEmailSentAsync(Guid userId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken);
+
+    /// <summary>IG-213: newest first, account-owned.</summary>
+    Task<IReadOnlyList<InvoiceEmailLogDto>> GetEmailHistoryAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
 }

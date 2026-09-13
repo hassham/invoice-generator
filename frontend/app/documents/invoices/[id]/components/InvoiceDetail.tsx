@@ -37,6 +37,7 @@ import {
   type InvoiceDetail as InvoiceDetailData,
 } from "../../../../lib/invoiceDetail";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { InvoiceEmailHistorySection } from "./InvoiceEmailHistorySection";
 import { PaymentsSection } from "./PaymentsSection";
 import { SendInvoiceEmailDialog } from "./SendInvoiceEmailDialog";
 import type { InvoicePaymentSummary } from "../../../../lib/payments";
@@ -94,6 +95,10 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  // Bumped on every successful send so <InvoiceEmailHistorySection key={emailHistoryRefreshKey}>
+  // remounts and refetches - the section owns its own fetch-on-mount effect, so a fresh key is a
+  // simpler way to trigger that than threading a refetch callback down into it.
+  const [emailHistoryRefreshKey, setEmailHistoryRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -443,6 +448,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           onSent={() => {
             setEmailDialogOpen(false);
             setEmailSent(true);
+            setEmailHistoryRefreshKey((key) => key + 1);
           }}
         />
       ) : null}
@@ -651,6 +657,8 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           amountDue={detail.amountDue}
           onInvoiceUpdated={handleInvoiceUpdated}
         />
+
+        <InvoiceEmailHistorySection key={emailHistoryRefreshKey} invoiceId={invoiceId} />
       </div>
     </div>
   );
