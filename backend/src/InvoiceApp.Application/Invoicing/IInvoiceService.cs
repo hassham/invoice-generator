@@ -39,4 +39,13 @@ public interface IInvoiceService
     /// <summary>IG-214's "Download PDF" action - same anonymous, token-keyed access as
     /// GetHostedInvoiceAsync.</summary>
     Task<InvoicePdfRequest> BuildHostedInvoicePdfRequestAsync(string token, CancellationToken cancellationToken);
+
+    /// <summary>IG-212: account-owned (same LoadOwnedAsync ownership check as every other
+    /// authenticated method here) - assembles everything needed to send the invoice by email,
+    /// generating its public token now if it somehow doesn't have one yet (an invoice saved before
+    /// this feature existed - see Invoice.PublicToken's own doc comment on why that's possible).
+    /// Does not itself render the PDF or send the email - QuestPDF rendering and SMTP delivery are
+    /// both endpoint-layer concerns (see InvoiceEndpoints.SendEmailAsync), matching how
+    /// BuildHostedInvoicePdfRequestAsync already keeps this service QuestPDF-agnostic.</summary>
+    Task<InvoiceEmailContext> PrepareInvoiceEmailAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
 }

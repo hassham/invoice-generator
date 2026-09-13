@@ -43,6 +43,13 @@ vi.mock("../../../../lib/payments", async (importOriginal) => ({
   listPayments: vi.fn().mockResolvedValue([]),
 }));
 
+// SendInvoiceEmailDialog (IG-212) fetches the linked customer on mount to pre-fill Recipient -
+// stubbed to reject so none of the tests below that don't specifically exercise the dialog hit a
+// real network call.
+vi.mock("../../../../lib/customers", () => ({
+  getCustomer: vi.fn().mockRejectedValue(new Error("not mocked")),
+}));
+
 const mockedFetchTemplates = vi.mocked(fetchTemplates);
 const mockedGetInvoice = vi.mocked(getInvoice);
 const mockedUpdateInvoice = vi.mocked(updateInvoice);
@@ -369,6 +376,24 @@ describe("InvoiceDetail", () => {
       await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Failed to generate the PDF.");
+    });
+  });
+
+  describe("send by email (IG-212)", () => {
+    it("opens the send-email dialog, and shows a confirmation once sent", async () => {
+      mockedGetInvoice.mockResolvedValue(sampleDetail);
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Send by Email" }));
+
+      const dialog = await screen.findByRole("dialog", { name: "Send invoice by email" });
+      expect(dialog).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 });

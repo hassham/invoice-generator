@@ -182,6 +182,23 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return await BuildPdfRequestAsync(invoice, cancellationToken);
     }
 
+    public async Task<InvoiceEmailContext> PrepareInvoiceEmailAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
+
+        if (invoice.PublicToken is null)
+        {
+            invoice.PublicToken = await GenerateUniquePublicTokenAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == businessId, cancellationToken);
+        var pdfRequest = await BuildPdfRequestAsync(invoice, cancellationToken);
+
+        return new InvoiceEmailContext(pdfRequest, invoice.PublicToken, business.Email);
+    }
+
     public async Task<InvoiceDto> CancelAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
     {
         var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);

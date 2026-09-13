@@ -1,7 +1,11 @@
 using System.Security.Claims;
+using InvoiceApp.Application.Email;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Configuration;
+using InvoiceApp.Modules.Documents.Pdf;
 using InvoiceApp.Modules.Invoicing;
+using QuestPDF.Fluent;
 
 namespace InvoiceApp.Api.Endpoints;
 
@@ -24,6 +28,12 @@ public static class InvoiceEndpoints
         app.MapPost("/api/v1/invoices/{id:guid}/cancel", CancelAsync).RequireAuthorization();
         app.MapDelete("/api/v1/invoices/{id:guid}", DeleteAsync).RequireAuthorization();
         app.MapPost("/api/v1/invoices/{id:guid}/duplicate", DuplicateAsync).RequireAuthorization();
+        // IG-212: authenticated (unlike the anonymous PDF endpoint) since it has a real external
+        // side effect - an actual email sent to a caller-supplied address - and rate-limited on
+        // top of that for the same "sensitive/expensive endpoint" reasoning IG-71 already
+        // established, since an authenticated account could otherwise be used to relay spam to
+        // arbitrary recipients at volume.
+        app.MapPost("/api/v1/invoices/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         return app;
     }
 
@@ -117,6 +127,32 @@ public static class InvoiceEndpoints
     {
         var invoice = await invoiceService.DuplicateAsync(UserId(user), id, cancellationToken);
         return Results.Created($"/api/v1/invoices/{invoice.Id}", invoice);
+    }
+
+    /// <summary>IG-212: orchestrates what InvoiceService deliberately stays agnostic of - QuestPDF
+    /// rendering (same layering as PublicInvoiceEndpoints.GetPdfAsync; InvoiceApp.Infrastructure
+    /// has no reference to InvoiceApp.Modules.Documents) and SMTP delivery.</summary>
+    private static async Task<IResult> SendEmailAsync(
+        Guid id,
+        InvoiceEmailRequest request,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        IEmailSender emailSender,
+        IConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        InvoiceEmailRequestValidator.Validate(request);
+
+        var context = await invoiceService.PrepareInvoiceEmailAsync(UserId(user), id, cancellationToken);
+        var pdfBytes = new InvoicePdfDocument(context.PdfRequest).GeneratePdf();
+        var pdfFileName = InvoiceFilenameGenerator.Generate(context.PdfRequest.InvoiceNumber);
+        var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+        var hostedLink = $"{frontendBaseUrl}/i/{context.PublicToken}";
+
+        var message = InvoiceEmailMessageBuilder.Build(request, hostedLink, pdfBytes, pdfFileName, context.BusinessEmail);
+        await emailSender.SendAsync(message, cancellationToken);
+
+        return Results.NoContent();
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

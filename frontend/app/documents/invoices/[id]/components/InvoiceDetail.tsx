@@ -38,6 +38,7 @@ import {
 } from "../../../../lib/invoiceDetail";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { PaymentsSection } from "./PaymentsSection";
+import { SendInvoiceEmailDialog } from "./SendInvoiceEmailDialog";
 import type { InvoicePaymentSummary } from "../../../../lib/payments";
 
 type LoadState = "loading" | "loaded" | "error";
@@ -91,6 +92,8 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -369,6 +372,16 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           >
             {pdfDownloading ? "Generating…" : "Download PDF"}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmailSent(false);
+              setEmailDialogOpen(true);
+            }}
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Send by Email
+          </button>
           {detail.status !== "Cancelled" && detail.status !== "Paid" ? (
             <button
               type="button"
@@ -421,6 +434,19 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
         />
       ) : null}
 
+      {emailDialogOpen ? (
+        <SendInvoiceEmailDialog
+          invoiceId={invoiceId}
+          invoiceNumber={detail.invoiceNumber}
+          customerId={detail.customerId}
+          onClose={() => setEmailDialogOpen(false)}
+          onSent={() => {
+            setEmailDialogOpen(false);
+            setEmailSent(true);
+          }}
+        />
+      ) : null}
+
       <p className="mt-2 text-xs text-slate-500">
         Created {formatDateTime(detail.createdAt)} · Last updated {formatDateTime(detail.updatedAt)}
       </p>
@@ -440,6 +466,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       {pdfError ? (
         <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {pdfError}
+        </p>
+      ) : null}
+
+      {emailSent ? (
+        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          Invoice sent.
         </p>
       ) : null}
 

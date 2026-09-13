@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Email;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Persistence;
@@ -43,6 +44,9 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
     // need the generated token back to POST it to /reset-password, which a log line can't hand
     // back.
     public FakePasswordResetEmailSender EmailSender { get; } = new();
+
+    // Same reasoning as EmailSender above, for IG-212's generic invoice-sending emails.
+    public FakeEmailSender InvoiceEmailSender { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -106,6 +110,9 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
 
             services.RemoveAll<IPasswordResetEmailSender>();
             services.AddSingleton<IPasswordResetEmailSender>(EmailSender);
+
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(InvoiceEmailSender);
         });
     }
 }
