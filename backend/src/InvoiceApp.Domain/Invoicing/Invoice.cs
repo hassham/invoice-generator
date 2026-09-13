@@ -50,6 +50,13 @@ public sealed class Invoice
 
     public string? TemplateSettings { get; set; }
 
+    /// <summary>IG-215: a non-sequential, cryptographically random identifier for the hosted
+    /// invoice page (IG-214) - deliberately never `Id` itself, since a database primary key isn't
+    /// meant to double as a public capability token. Generated once, at creation (see
+    /// InvoiceService.SaveAsync), for every invoice going forward; invoices created before this
+    /// existed simply have none.</summary>
+    public string? PublicToken { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTimeOffset? DeletedAt { get; set; }

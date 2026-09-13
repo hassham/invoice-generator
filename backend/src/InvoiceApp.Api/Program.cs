@@ -111,6 +111,7 @@ app.UseRateLimiter();
 
 app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
+app.MapPublicInvoiceEndpoints();
 app.MapTemplateEndpoints();
 app.MapDocumentEndpoints();
 app.MapCustomerEndpoints();

@@ -1,3 +1,5 @@
+using InvoiceApp.Application.Documents;
+
 namespace InvoiceApp.Application.Invoicing;
 
 /// <summary>
@@ -28,4 +30,13 @@ public interface IInvoiceService
     /// <summary>FSD section 51: creates a new Draft invoice copying Customer/Items/Tax
     /// settings/Notes/Terms/Template - never Invoice Number, Reference, Payments, or Status.</summary>
     Task<InvoiceDto> DuplicateAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken);
+
+    /// <summary>IG-214: anonymous, keyed by the invoice's public token rather than a userId/session
+    /// - see HostedInvoiceDto's own doc comment for why this is a narrower projection than
+    /// InvoiceDetailDto.</summary>
+    Task<HostedInvoiceDto> GetHostedInvoiceAsync(string token, CancellationToken cancellationToken);
+
+    /// <summary>IG-214's "Download PDF" action - same anonymous, token-keyed access as
+    /// GetHostedInvoiceAsync.</summary>
+    Task<InvoicePdfRequest> BuildHostedInvoicePdfRequestAsync(string token, CancellationToken cancellationToken);
 }

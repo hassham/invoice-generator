@@ -1,7 +1,9 @@
 using System.Text.Json;
 using InvoiceApp.Application.Audit;
+using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Invoicing;
+using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Customers;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
@@ -17,7 +19,16 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
 
         var invoice = invoiceId is { } id
             ? await LoadOwnedAsync(businessId, id, cancellationToken)
-            : new Invoice { Id = Guid.NewGuid(), BusinessId = businessId, Status = InvoiceStatus.Draft, CreatedAt = DateTimeOffset.UtcNow };
+            : new Invoice
+            {
+                Id = Guid.NewGuid(),
+                BusinessId = businessId,
+                Status = InvoiceStatus.Draft,
+                CreatedAt = DateTimeOffset.UtcNow,
+                // IG-215: generated once, at creation, for every invoice going forward - never
+                // regenerated on later updates (Invoice.PublicToken's own doc comment).
+                PublicToken = await GenerateUniquePublicTokenAsync(cancellationToken),
+            };
 
         if (invoiceId is null)
         {
@@ -136,6 +147,39 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
         var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
         return ToDetailDto(invoice);
+    }
+
+    /// <summary>IG-214: anonymous - the token itself is the authorization, there's no userId/
+    /// session involved. IG-215: an unknown/invalid/soft-deleted token 404s with the exact same
+    /// generic message as "belongs to someone else" everywhere else in this class - never
+    /// distinguishable from the caller's side.</summary>
+    public async Task<HostedInvoiceDto> GetHostedInvoiceAsync(string token, CancellationToken cancellationToken)
+    {
+        var invoice = await LoadByPublicTokenAsync(token, cancellationToken);
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == invoice.BusinessId, cancellationToken);
+
+        return new HostedInvoiceDto(
+            business.BusinessName,
+            business.LogoUrl,
+            invoice.InvoiceNumber,
+            EffectiveStatus(invoice),
+            invoice.IssueDate,
+            invoice.DueDate,
+            invoice.Currency,
+            invoice.TotalAmount,
+            invoice.AmountDue);
+    }
+
+    /// <summary>IG-214's "Download PDF" action. Builds the same InvoicePdfRequest shape the
+    /// stateless /api/v1/invoices/pdf endpoint accepts from the frontend (see
+    /// frontend/app/lib/invoiceDetailPdf.ts's buildInvoicePdfPayloadFromEditable for the client-side
+    /// equivalent of this exact mapping), but from a saved Invoice loaded server-side by token
+    /// rather than a payload the caller supplies - there was no prior server-side "Invoice -> PDF"
+    /// path to reuse.</summary>
+    public async Task<InvoicePdfRequest> BuildHostedInvoicePdfRequestAsync(string token, CancellationToken cancellationToken)
+    {
+        var invoice = await LoadByPublicTokenAsync(token, cancellationToken);
+        return await BuildPdfRequestAsync(invoice, cancellationToken);
     }
 
     public async Task<InvoiceDto> CancelAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
@@ -397,6 +441,94 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         // Not found and "belongs to someone else" return the same 404 - same anti-enumeration
         // precedent used by CustomerService.
         return invoice ?? throw new NotFoundException("Invoice not found.");
+    }
+
+    /// <summary>IG-215: an empty/unrecognized/soft-deleted token all 404 identically - see
+    /// GetHostedInvoiceAsync's own doc comment.</summary>
+    private async Task<Invoice> LoadByPublicTokenAsync(string token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new NotFoundException("Invoice not found.");
+        }
+
+        var invoice = await dbContext.Invoices
+            .Include(i => i.Items)
+            .SingleOrDefaultAsync(i => i.PublicToken == token && !i.IsDeleted, cancellationToken);
+
+        return invoice ?? throw new NotFoundException("Invoice not found.");
+    }
+
+    /// <summary>Collision odds are astronomically low at 93 bits of entropy (see
+    /// PublicInvoiceTokenGenerator's own doc comment) - this loop exists purely as defense in
+    /// depth, matching GenerateDuplicateInvoiceNumberAsync's own "generate, check, retry"
+    /// precedent elsewhere in this class, not because a collision is expected in practice.</summary>
+    private async Task<string> GenerateUniquePublicTokenAsync(CancellationToken cancellationToken)
+    {
+        string candidate;
+        do
+        {
+            candidate = PublicInvoiceTokenGenerator.Generate();
+        }
+        while (await dbContext.Invoices.AnyAsync(invoice => invoice.PublicToken == candidate, cancellationToken));
+
+        return candidate;
+    }
+
+    private async Task<InvoicePdfRequest> BuildPdfRequestAsync(Invoice invoice, CancellationToken cancellationToken)
+    {
+        var seller = JsonSerializer.Deserialize<SellerSnapshotPayload>(invoice.SellerSnapshot);
+        var customer = JsonSerializer.Deserialize<CustomerSnapshotPayload>(invoice.CustomerSnapshot);
+
+        string? templateCode = null;
+        if (invoice.TemplateId is { } templateId)
+        {
+            templateCode = await dbContext.Templates
+                .Where(template => template.Id == templateId)
+                .Select(template => template.TemplateCode)
+                .SingleOrDefaultAsync(cancellationToken);
+        }
+
+        InvoiceTemplateCustomization? templateCustomization = null;
+        if (invoice.TemplateSettings is not null)
+        {
+            var saved = JsonSerializer.Deserialize<InvoiceSaveTemplateCustomization>(invoice.TemplateSettings);
+            templateCustomization = saved is null
+                ? null
+                : new InvoiceTemplateCustomization(saved.PrimaryColor, saved.AccentColor, saved.Font, saved.HeaderStyle);
+        }
+
+        return new InvoicePdfRequest(
+            invoice.InvoiceNumber,
+            invoice.IssueDate,
+            invoice.DueDate,
+            invoice.Reference,
+            invoice.Currency,
+            seller?.Text ?? string.Empty,
+            customer?.Text ?? string.Empty,
+            customer?.ShipTo,
+            invoice.Items
+                .OrderBy(item => item.SortOrder)
+                .Select(item => new InvoicePdfLineItem(item.Description, item.Quantity, item.Unit, item.UnitPrice, item.TaxRate, item.Discount))
+                .ToList(),
+            invoice.DiscountType,
+            invoice.DiscountValue,
+            // No per-invoice tax-calculation-method column exists (IG-46's own documented gap) -
+            // same "Exclusive" fallback InvoiceCalculator itself already assumes for a saved
+            // invoice's totals.
+            TaxCalculationMethod.Exclusive,
+            invoice.Notes,
+            invoice.Terms,
+            // Same "flat column rides in as CustomInstructions, no structured fields" mapping
+            // frontend/app/lib/invoiceDetailPdf.ts's buildInvoicePdfPayloadFromEditable already
+            // uses for a saved invoice.
+            invoice.PaymentInstructions,
+            null,
+            templateCode,
+            templateCustomization,
+            // Not included - client-resized data URL, no server-side equivalent exists yet
+            // (matches buildInvoicePdfPayloadFromEditable's own documented gap, not a new one).
+            null);
     }
 
     /// <summary>

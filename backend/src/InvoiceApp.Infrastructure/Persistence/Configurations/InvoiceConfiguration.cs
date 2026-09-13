@@ -30,11 +30,16 @@ public sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(invoice => invoice.AmountPaid).HasColumnType("decimal(19,4)").IsRequired();
         builder.Property(invoice => invoice.AmountDue).HasColumnType("decimal(19,4)").IsRequired();
         builder.Property(invoice => invoice.TemplateSettings).HasColumnType("jsonb");
+        builder.Property(invoice => invoice.PublicToken).HasMaxLength(32);
         builder.Property(invoice => invoice.IsDeleted).IsRequired();
         builder.Property(invoice => invoice.CreatedAt).IsRequired();
         builder.Property(invoice => invoice.UpdatedAt).IsRequired();
 
         builder.HasIndex(invoice => new { invoice.BusinessId, invoice.InvoiceNumber }).IsUnique();
+        // Postgres treats each NULL as distinct for uniqueness purposes, so pre-IG-215 invoices
+        // with no token (never backfilled - see Invoice.PublicToken's own doc comment) don't
+        // conflict with each other or with anything else.
+        builder.HasIndex(invoice => invoice.PublicToken).IsUnique();
         builder.HasIndex(invoice => invoice.BusinessId);
         builder.HasIndex(invoice => invoice.CustomerId);
         builder.HasIndex(invoice => invoice.Status);
