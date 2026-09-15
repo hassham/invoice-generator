@@ -30,6 +30,7 @@ function makeProfile(overrides: Partial<BusinessProfile> = {}): BusinessProfile 
     nextInvoiceNumber: 1001,
     invoiceNumberPadding: 4,
     logoUrl: null,
+    stripeAccountId: null,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,

@@ -36,5 +36,9 @@ public sealed record BusinessProfileDto(
     int InvoiceNumberPadding,
     // IG-52 / FSD section 14.
     string? LogoUrl,
+    // IG-219: null means no Stripe account connected - the frontend uses this (not a separate
+    // boolean) both to render Connect-vs-Connected state and, per IG-219's own AC, to decide
+    // whether the hosted invoice page's Pay Now button is shown at all.
+    string? StripeAccountId,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

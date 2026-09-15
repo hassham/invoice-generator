@@ -20,4 +20,13 @@ public interface IBusinessService
     Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Stream content, string contentType, CancellationToken cancellationToken);
 
     Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>IG-219: persists the connected account id (already exchanged/verified by
+    /// IStripeConnectService before this is called - same "parse-then-delegate" split as
+    /// ExternalLoginService/IExternalLoginService).</summary>
+    Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, string stripeAccountId, CancellationToken cancellationToken);
+
+    /// <summary>IG-219: caller (InvoiceApp.Api) is responsible for calling
+    /// IStripeConnectService.DeauthorizeAsync first - this only ever forgets the id locally.</summary>
+    Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, CancellationToken cancellationToken);
 }

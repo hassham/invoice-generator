@@ -152,6 +152,7 @@ const SAMPLE_BUSINESS_PROFILE: BusinessProfile = {
   nextInvoiceNumber: 1,
   invoiceNumberPadding: 4,
   logoUrl: null,
+  stripeAccountId: null,
   createdAt: "2026-08-01T00:00:00Z",
   updatedAt: "2026-08-01T00:00:00Z",
 };

@@ -1,5 +1,6 @@
 using InvoiceApp.Application.Email;
 using InvoiceApp.Application.Identity;
+using InvoiceApp.Application.Payments;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -47,6 +48,10 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
 
     // Same reasoning as EmailSender above, for IG-212's generic invoice-sending emails.
     public FakeEmailSender InvoiceEmailSender { get; } = new();
+
+    // Same reasoning as EmailSender above, for IG-219's Stripe Connect OAuth exchange - the real
+    // implementation would otherwise call Stripe's live API.
+    public FakeStripeConnectService StripeConnectService { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -113,6 +118,9 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
 
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(InvoiceEmailSender);
+
+            services.RemoveAll<IStripeConnectService>();
+            services.AddSingleton<IStripeConnectService>(StripeConnectService);
         });
     }
 }

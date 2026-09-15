@@ -56,6 +56,15 @@ public sealed class Business
 
     public string? LogoUrl { get; set; }
 
+    /// <summary>IG-219: the connected Stripe account (acct_...) that this business's own
+    /// customers pay directly, via OAuth's Standard Connect flow - never a payment
+    /// method/card detail, this app never handles those (IG-216's own AC). Null means this
+    /// business has no Stripe account connected, which IG-219's AC ties directly to hiding the
+    /// hosted invoice page's Pay Now button.</summary>
+    public string? StripeAccountId { get; set; }
+
+    public DateTimeOffset? StripeConnectedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }

@@ -49,7 +49,7 @@ builder.Services.AddInfrastructureCustomers();
 builder.Services.AddInfrastructureCatalog();
 builder.Services.AddInfrastructureInvoicing();
 builder.Services.AddInfrastructureEmail(builder.Configuration);
-builder.Services.AddInfrastructurePayments();
+builder.Services.AddInfrastructurePayments(builder.Configuration);
 builder.Services.AddInfrastructureDashboard();
 builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructureHealthChecks();

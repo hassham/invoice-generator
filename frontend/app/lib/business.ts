@@ -55,6 +55,9 @@ export interface BusinessProfile {
   nextInvoiceNumber: number;
   invoiceNumberPadding: number;
   logoUrl: string | null;
+  /** IG-219: null means no Stripe account is connected - also what IG-216's hosted-invoice Pay
+   * Now button will key off of. */
+  stripeAccountId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -180,4 +183,25 @@ export async function removeBusinessLogo(): Promise<BusinessProfile> {
  * own base URL, the same convention every other request in this module already uses. */
 export function resolveLogoUrl(logoUrl: string): string {
   return `${baseUrl()}${logoUrl}`;
+}
+
+/**
+ * IG-219: a real full-page navigation target (an <a href>, never a fetch call) - same reasoning
+ * lib/auth.ts's googleLoginUrl() documents for the same shape of endpoint: GET
+ * /api/v1/business/stripe/connect issues a 302 redirect straight to Stripe's own consent screen,
+ * which only works as a genuine browser navigation (it also needs to set a same-origin cookie
+ * that a fetch response wouldn't get the browser to carry through the redirect the same way).
+ */
+export function stripeConnectUrl(): string {
+  return `${baseUrl()}/api/v1/business/stripe/connect`;
+}
+
+export async function disconnectStripe(): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/business/stripe/disconnect`, { method: "POST", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to disconnect Stripe."));
+  }
+
+  return response.json();
 }

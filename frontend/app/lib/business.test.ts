@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatInvoiceNumberPreview, generateNextInvoiceNumber, getBusinessProfile, updateBusinessProfile } from "./business";
+import { disconnectStripe, formatInvoiceNumberPreview, generateNextInvoiceNumber, getBusinessProfile, stripeConnectUrl, updateBusinessProfile } from "./business";
 
 const sampleProfile = {
   id: "biz-1",
@@ -141,5 +141,32 @@ describe("formatInvoiceNumberPreview", () => {
   it("falls back to safe defaults for invalid input rather than throwing", () => {
     expect(formatInvoiceNumberPreview("INV-", Number.NaN, Number.NaN)).toBe("INV-0");
     expect(formatInvoiceNumberPreview("INV-", -5, 0)).toBe("INV-0");
+  });
+});
+
+describe("stripeConnectUrl", () => {
+  it("points at the backend's Stripe connect endpoint", () => {
+    expect(stripeConnectUrl()).toBe("http://localhost:5094/api/v1/business/stripe/connect");
+  });
+});
+
+describe("disconnectStripe", () => {
+  it("posts with credentials included and returns the updated profile", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ ...sampleProfile, stripeAccountId: null }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await disconnectStripe();
+
+    expect(result.stripeAccountId).toBeNull();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain("/api/v1/business/stripe/disconnect");
+    expect(init.method).toBe("POST");
+    expect(init.credentials).toBe("include");
+  });
+
+  it("throws the server's error detail on failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve({ detail: "Failed to disconnect Stripe." }) }));
+
+    await expect(disconnectStripe()).rejects.toThrow("Failed to disconnect Stripe.");
   });
 });

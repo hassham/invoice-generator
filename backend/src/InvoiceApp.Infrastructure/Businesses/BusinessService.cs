@@ -126,6 +126,32 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return ToDto(business);
     }
 
+    public async Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, string stripeAccountId, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, cancellationToken);
+
+        business.StripeAccountId = stripeAccountId;
+        business.StripeConnectedAt = DateTimeOffset.UtcNow;
+        business.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(business);
+    }
+
+    public async Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, cancellationToken);
+
+        business.StripeAccountId = null;
+        business.StripeConnectedAt = null;
+        business.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(business);
+    }
+
     private async Task<Business> FindOwnedAsync(Guid userId, CancellationToken cancellationToken) =>
         await dbContext.Businesses.SingleAsync(business => business.UserId == userId, cancellationToken);
 
@@ -163,6 +189,7 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         business.NextInvoiceNumber,
         business.InvoiceNumberPadding,
         business.LogoUrl,
+        business.StripeAccountId,
         business.CreatedAt,
         business.UpdatedAt);
 }
