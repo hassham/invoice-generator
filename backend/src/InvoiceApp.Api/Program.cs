@@ -63,13 +63,33 @@ builder.Services.AddInfrastructureHealthChecks();
 // IG-26: AllowCredentials() is required now that the frontend login/signup pages send
 // credentials: "include" - without it the browser strips the Set-Cookie response header on
 // cross-origin auth calls and the session cookie never persists, even though the login call
-// itself still returns 200. Only compatible with an explicit WithOrigins() list (already the
-// case here), never AllowAnyOrigin().
+// itself still returns 200. Only compatible with an explicit allow-list of origins, never
+// AllowAnyOrigin().
+// IG-305: a single hardcoded "http://localhost:3000" broke every fetch whenever the frontend dev
+// server landed on a different port (Next.js auto-increments past 3000 when it's already taken).
+// In Development, allow any localhost/127.0.0.1 origin regardless of port instead of guessing a
+// fixed port list - still safe with AllowCredentials() because SetIsOriginAllowed reflects back
+// only the specific requesting origin, never a wildcard. Non-Development environments keep an
+// explicit configured allow-list (Cors:AllowedOrigins, falling back to Frontend:BaseUrl).
 const string FrontendCorsPolicy = "Frontend";
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:3000" };
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
-        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithExposedHeaders("Content-Disposition"));
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin =>
+                Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Host is "localhost" or "127.0.0.1");
+        }
+        else
+        {
+            policy.WithOrigins(configuredOrigins);
+        }
+
+        policy.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithExposedHeaders("Content-Disposition");
+    });
 });
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
