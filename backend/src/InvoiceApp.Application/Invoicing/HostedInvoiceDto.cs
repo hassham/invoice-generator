@@ -17,4 +17,8 @@ public sealed record HostedInvoiceDto(
     DateOnly DueDate,
     string Currency,
     decimal TotalAmount,
-    decimal AmountDue);
+    decimal AmountDue,
+    // IG-216: Business.StripeAccountId's own doc comment ties a null value directly to hiding the
+    // hosted invoice page's Pay Now button - this is the field that lets the anonymous frontend
+    // know whether to show it, without exposing the account id itself.
+    bool HasStripeAccount);

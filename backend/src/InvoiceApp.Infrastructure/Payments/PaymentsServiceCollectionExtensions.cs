@@ -15,6 +15,12 @@ public static class PaymentsServiceCollectionExtensions
         services.Configure<StripeOptions>(configuration.GetSection(StripeOptions.SectionName));
         services.AddScoped<IStripeConnectService, StripeConnectService>();
 
+        // IG-216: Checkout-session creation/verification (Stripe-facing) and the anonymous
+        // token-keyed orchestration around it are deliberately separate services - see
+        // IStripeCheckoutService/IHostedCheckoutService's own doc comments.
+        services.AddScoped<IStripeCheckoutService, StripeCheckoutService>();
+        services.AddScoped<IHostedCheckoutService, HostedCheckoutService>();
+
         return services;
     }
 }

@@ -167,7 +167,8 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
             invoice.DueDate,
             invoice.Currency,
             invoice.TotalAmount,
-            invoice.AmountDue);
+            invoice.AmountDue,
+            business.StripeAccountId is not null);
     }
 
     /// <summary>IG-214's "Download PDF" action. Builds the same InvoicePdfRequest shape the

@@ -1,14 +1,29 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { getHostedInvoice, hostedInvoicePdfUrl } from "../../lib/hostedInvoice";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { confirmCheckoutSession, createCheckoutSession, getHostedInvoice, hostedInvoicePdfUrl } from "../../lib/hostedInvoice";
 import { HostedInvoiceView } from "./HostedInvoiceView";
+
+const replaceMock = vi.fn();
+// IG-216: reads ?session_id=/?checkout= via useSearchParams and cleans the URL via
+// useRouter().replace() - defaults to no query params; tests exercising the Checkout redirect
+// override currentSearchParams per-test. Same mock shape as BusinessProfileSettings.test.tsx.
+let currentSearchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: replaceMock }),
+  useSearchParams: () => currentSearchParams,
+}));
 
 vi.mock("../../lib/hostedInvoice", () => ({
   getHostedInvoice: vi.fn(),
   hostedInvoicePdfUrl: vi.fn((token: string) => `http://localhost:5094/api/v1/public/invoices/${token}/pdf`),
+  createCheckoutSession: vi.fn(),
+  confirmCheckoutSession: vi.fn(),
 }));
 
 const mockedGetHostedInvoice = vi.mocked(getHostedInvoice);
+const mockedCreateCheckoutSession = vi.mocked(createCheckoutSession);
+const mockedConfirmCheckoutSession = vi.mocked(confirmCheckoutSession);
 
 const SAMPLE = {
   businessName: "Acme Pty Ltd",
@@ -20,9 +35,18 @@ const SAMPLE = {
   currency: "AUD",
   totalAmount: 220,
   amountDue: 220,
+  hasStripeAccount: true,
 };
 
 describe("HostedInvoiceView", () => {
+  const originalLocation = window.location;
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    currentSearchParams = new URLSearchParams();
+    Object.defineProperty(window, "location", { configurable: true, writable: true, value: originalLocation });
+  });
+
   it("shows a loading state before the fetch resolves", () => {
     mockedGetHostedInvoice.mockReturnValue(new Promise(() => {}));
     render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
@@ -62,5 +86,82 @@ describe("HostedInvoiceView", () => {
 
     await screen.findByText("Acme Pty Ltd");
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("shows a Pay Now button when the business has Stripe connected and the invoice is unpaid", async () => {
+    mockedGetHostedInvoice.mockResolvedValue(SAMPLE);
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    expect(await screen.findByRole("button", { name: "Pay Now" })).toBeInTheDocument();
+  });
+
+  it("hides Pay Now when the business has no Stripe account connected", async () => {
+    mockedGetHostedInvoice.mockResolvedValue({ ...SAMPLE, hasStripeAccount: false });
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    await screen.findByText("Acme Pty Ltd");
+    expect(screen.queryByRole("button", { name: "Pay Now" })).not.toBeInTheDocument();
+  });
+
+  it("hides Pay Now once the invoice is already paid", async () => {
+    mockedGetHostedInvoice.mockResolvedValue({ ...SAMPLE, status: "Paid", amountDue: 0 });
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    await screen.findByText("Acme Pty Ltd");
+    expect(screen.queryByRole("button", { name: "Pay Now" })).not.toBeInTheDocument();
+  });
+
+  it("redirects to the Stripe Checkout URL when Pay Now is clicked", async () => {
+    mockedGetHostedInvoice.mockResolvedValue(SAMPLE);
+    mockedCreateCheckoutSession.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_1" });
+    const navigations: string[] = [];
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      writable: true,
+      value: { ...originalLocation, set href(value: string) { navigations.push(value); } },
+    });
+    const user = userEvent.setup();
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    await user.click(await screen.findByRole("button", { name: "Pay Now" }));
+
+    await waitFor(() => expect(navigations).toEqual(["https://checkout.stripe.com/c/pay/cs_test_1"]));
+  });
+
+  it("shows an error and re-enables Pay Now when session creation fails", async () => {
+    mockedGetHostedInvoice.mockResolvedValue(SAMPLE);
+    mockedCreateCheckoutSession.mockRejectedValue(new Error("This invoice can't be paid online right now."));
+    const user = userEvent.setup();
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    await user.click(await screen.findByRole("button", { name: "Pay Now" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/can't be paid online/);
+    expect(screen.getByRole("button", { name: "Pay Now" })).not.toBeDisabled();
+  });
+
+  it("confirms the session and shows a payment-received banner after a successful Checkout redirect", async () => {
+    currentSearchParams = new URLSearchParams({ session_id: "cs_test_1" });
+    const paidInvoice = { ...SAMPLE, status: "Paid", amountDue: 0 };
+    mockedGetHostedInvoice.mockResolvedValue(SAMPLE);
+    mockedConfirmCheckoutSession.mockResolvedValue({ paid: true, invoice: paidInvoice });
+
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/Payment received/);
+    expect(mockedConfirmCheckoutSession).toHaveBeenCalledWith("qk6XMgWUVz9KbfJP", "cs_test_1");
+    expect(screen.getByText("Paid")).toBeInTheDocument();
+    expect(replaceMock).toHaveBeenCalledWith("/i/qk6XMgWUVz9KbfJP");
+  });
+
+  it("shows a cancelled notice, without confirming anything, after a cancelled Checkout redirect", async () => {
+    currentSearchParams = new URLSearchParams({ checkout: "cancelled" });
+    mockedGetHostedInvoice.mockResolvedValue(SAMPLE);
+
+    render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/cancelled/);
+    expect(mockedConfirmCheckoutSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Pay Now" })).toBeInTheDocument();
   });
 });

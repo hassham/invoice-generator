@@ -8,6 +8,16 @@ export interface HostedInvoice {
   currency: string;
   totalAmount: number;
   amountDue: number;
+  hasStripeAccount: boolean;
+}
+
+export interface CheckoutSession {
+  url: string;
+}
+
+export interface CheckoutConfirmation {
+  paid: boolean;
+  invoice: HostedInvoice;
 }
 
 function baseUrl(): string {
@@ -33,4 +43,31 @@ export async function getHostedInvoice(token: string): Promise<HostedInvoice> {
  * JS-read response would be (unlike the authenticated invoice detail page's download flow). */
 export function hostedInvoicePdfUrl(token: string): string {
   return `${baseUrl()}/api/v1/public/invoices/${encodeURIComponent(token)}/pdf`;
+}
+
+/** IG-216: opens a Stripe Checkout Session for this invoice's exact outstanding amount. Anonymous,
+ * same precedent as getHostedInvoice - any failure (already paid, cancelled, no Stripe account
+ * connected) surfaces as one generic message, since the caller can't act differently on the
+ * specifics anyway. */
+export async function createCheckoutSession(token: string): Promise<CheckoutSession> {
+  const response = await fetch(`${baseUrl()}/api/v1/public/invoices/${encodeURIComponent(token)}/checkout-session`, { method: "POST" });
+
+  if (!response.ok) {
+    throw new Error("This invoice can't be paid online right now. Please contact the business directly.");
+  }
+
+  return response.json();
+}
+
+/** IG-216: verifies a Checkout Session's outcome server-side (never trusts the redirect-back URL
+ * alone) and returns the invoice's post-payment state. Safe to call more than once for the same
+ * sessionId - the backend records the underlying payment at most once. */
+export async function confirmCheckoutSession(token: string, sessionId: string): Promise<CheckoutConfirmation> {
+  const response = await fetch(`${baseUrl()}/api/v1/public/invoices/${encodeURIComponent(token)}/checkout-session/${encodeURIComponent(sessionId)}`);
+
+  if (!response.ok) {
+    throw new Error("We couldn't confirm your payment. Please contact the business directly.");
+  }
+
+  return response.json();
 }

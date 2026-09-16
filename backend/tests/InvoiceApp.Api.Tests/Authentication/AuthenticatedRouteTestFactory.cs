@@ -1,3 +1,4 @@
+using InvoiceApp.Api.Tests.Payments;
 using InvoiceApp.Application.Email;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Application.Payments;
@@ -52,6 +53,10 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
     // Same reasoning as EmailSender above, for IG-219's Stripe Connect OAuth exchange - the real
     // implementation would otherwise call Stripe's live API.
     public FakeStripeConnectService StripeConnectService { get; } = new();
+
+    // Same reasoning as StripeConnectService above, for IG-216's Checkout session creation/
+    // verification - the real implementation would otherwise call Stripe's live API.
+    public FakeStripeCheckoutService StripeCheckoutService { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -121,6 +126,9 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
 
             services.RemoveAll<IStripeConnectService>();
             services.AddSingleton<IStripeConnectService>(StripeConnectService);
+
+            services.RemoveAll<IStripeCheckoutService>();
+            services.AddSingleton<IStripeCheckoutService>(StripeCheckoutService);
         });
     }
 }

@@ -94,6 +94,9 @@ public class PublicInvoiceEndpointsTests
         Assert.Equal("INV-HOSTED-1", hosted!.InvoiceNumber);
         Assert.Equal("AUD", hosted.Currency);
         Assert.True(hosted.AmountDue > 0);
+        // IG-216: no Stripe account connected by default - the hosted page's Pay Now button
+        // depends on this being false (HostedInvoiceDto's own doc comment).
+        Assert.False(hosted.HasStripeAccount);
     }
 
     [Fact]
