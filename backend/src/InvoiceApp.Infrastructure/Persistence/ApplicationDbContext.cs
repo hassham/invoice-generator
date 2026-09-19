@@ -3,6 +3,7 @@ using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Catalog;
 using InvoiceApp.Domain.Customers;
 using InvoiceApp.Domain.Documents;
+using InvoiceApp.Domain.Estimates;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Payments;
 using InvoiceApp.Infrastructure.Identity;
@@ -26,6 +27,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
 
     public DbSet<InvoiceEmailLog> InvoiceEmailLogs => Set<InvoiceEmailLog>();
+
+    public DbSet<Estimate> Estimates => Set<Estimate>();
+
+    public DbSet<EstimateItem> EstimateItems => Set<EstimateItem>();
 
     public DbSet<Payment> Payments => Set<Payment>();
 

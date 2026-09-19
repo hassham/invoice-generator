@@ -63,7 +63,12 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
                     });
                     row.ConstantItem(180).Column(invoiceColumn =>
                     {
-                        invoiceColumn.Item().AlignRight().Text(string.IsNullOrWhiteSpace(request.InvoiceNumber) ? "Invoice" : request.InvoiceNumber)
+                        // IG-220 AC: "visually distinguishable... labelling on screen and PDF" -
+                        // always shown, not just as a fallback for a blank number, so an Estimate
+                        // and an Invoice are never confusable at a glance.
+                        invoiceColumn.Item().AlignRight().Text(request.DocumentTypeLabel.ToUpperInvariant())
+                            .FontColor(accentColor).SemiBold().FontSize(10);
+                        invoiceColumn.Item().AlignRight().Text(string.IsNullOrWhiteSpace(request.InvoiceNumber) ? request.DocumentTypeLabel : request.InvoiceNumber)
                             .FontColor(accentColor).SemiBold().FontSize(16);
                         invoiceColumn.Item().AlignRight().Text(request.Currency);
                     });

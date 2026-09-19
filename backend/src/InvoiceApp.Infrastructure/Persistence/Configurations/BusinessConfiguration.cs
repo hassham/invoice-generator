@@ -31,6 +31,7 @@ public sealed class BusinessConfiguration : IEntityTypeConfiguration<Business>
         builder.Property(business => business.DefaultTaxRate).HasColumnType("decimal(9,4)");
         builder.Property(business => business.TaxCalculationMethod).HasConversion<string>().HasMaxLength(20);
         builder.Property(business => business.InvoicePrefix).HasMaxLength(20).IsRequired();
+        builder.Property(business => business.EstimatePrefix).HasMaxLength(20).IsRequired();
         builder.Property(business => business.DefaultPaymentTerms).HasConversion<string>().HasMaxLength(20);
         builder.Property(business => business.LogoUrl).HasMaxLength(500);
         builder.Property(business => business.StripeAccountId).HasMaxLength(50);

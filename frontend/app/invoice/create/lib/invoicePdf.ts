@@ -43,6 +43,11 @@ export interface InvoicePdfPayload {
   templateCode: string | null;
   templateCustomization: TemplateCustomization | null;
   logo: string | null;
+  /** IG-220: optional - omitted (undefined, never serialized into the request body) means the
+   * backend's own "Invoice" default applies, so every existing invoice PDF call is unaffected.
+   * lib/estimatePdf.ts sets this to "Estimate" for the estimate editor/detail page's own
+   * Download PDF action. */
+  documentTypeLabel?: string;
 }
 
 function nullIfEmpty(value: string): string | null {

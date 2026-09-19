@@ -100,6 +100,28 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return new GeneratedInvoiceNumberDto(formatted);
     }
 
+    /// <summary>IG-220: same atomic UPDATE...RETURNING reasoning as GenerateNextInvoiceNumberAsync
+    /// above, against the independent Estimate* columns instead.</summary>
+    public async Task<GeneratedEstimateNumberDto> GenerateNextEstimateNumberAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, cancellationToken);
+
+        var allocatedNumbers = await dbContext.Database.SqlQueryRaw<int>(
+            """
+            UPDATE business.businesses
+            SET next_estimate_number = next_estimate_number + 1, updated_at = {1}
+            WHERE id = {0}
+            RETURNING next_estimate_number - 1
+            """,
+            business.Id, DateTimeOffset.UtcNow)
+            .ToListAsync(cancellationToken);
+        var allocatedNumber = allocatedNumbers.Single();
+
+        var formatted = FormatInvoiceNumber(business.EstimatePrefix, allocatedNumber, business.EstimateNumberPadding);
+
+        return new GeneratedEstimateNumberDto(formatted);
+    }
+
     public async Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Stream content, string contentType, CancellationToken cancellationToken)
     {
         var business = await FindOwnedAsync(userId, cancellationToken);

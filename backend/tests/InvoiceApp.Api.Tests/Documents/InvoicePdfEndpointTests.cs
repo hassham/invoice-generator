@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using InvoiceApp.Api.Tests.Authentication;
 using InvoiceApp.Application.Documents;
 using InvoiceApp.Domain.Businesses;
@@ -52,6 +54,42 @@ public class InvoicePdfEndpointTests
         Assert.True(bytes.Length > 0);
         // PDF file signature ("%PDF") - confirms QuestPDF actually produced a PDF, not just bytes.
         Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
+    }
+
+    [Fact]
+    public async Task A_request_with_no_documentTypeLabel_field_still_renders_with_the_default_Invoice_label()
+    {
+        // Simulates a pre-IG-220 client - serializes ValidRequest() manually, omitting
+        // documentTypeLabel entirely, to prove the field's C# default ("Invoice") is honored by
+        // System.Text.Json's record-constructor binding when the JSON property is absent, not just
+        // when a serialized record happens to include it.
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+        var withoutLabel = JsonSerializer.SerializeToNode(ValidRequest())!.AsObject();
+        withoutLabel.Remove("documentTypeLabel");
+
+        var response = await client.PostAsync(PdfEndpoint, new StringContent(withoutLabel.ToJsonString(), Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
+    }
+
+    [Fact]
+    public async Task An_estimate_labelled_request_renders_different_bytes_than_the_same_request_labelled_invoice()
+    {
+        // IG-220 AC: "visually distinguishable... labelling on screen and PDF." Rendered PDF bytes
+        // differing when the only change is DocumentTypeLabel is indirect but solid proof the field
+        // actually reaches the rendered output, not just plumbed through unused.
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+
+        var invoiceResponse = await client.PostAsJsonAsync(PdfEndpoint, ValidRequest());
+        var estimateResponse = await client.PostAsJsonAsync(PdfEndpoint, ValidRequest() with { DocumentTypeLabel = "Estimate" });
+
+        var invoiceBytes = await invoiceResponse.Content.ReadAsByteArrayAsync();
+        var estimateBytes = await estimateResponse.Content.ReadAsByteArrayAsync();
+        Assert.NotEqual(invoiceBytes, estimateBytes);
     }
 
     [Fact]

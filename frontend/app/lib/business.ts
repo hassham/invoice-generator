@@ -93,6 +93,10 @@ export interface GeneratedInvoiceNumber {
   invoiceNumber: string;
 }
 
+export interface GeneratedEstimateNumber {
+  estimateNumber: string;
+}
+
 /** FSD section 64: mirrors the backend's own formatting exactly (prefix + next number zero-padded)
  * - used for the settings page's live preview, purely client-side, no request needed. */
 export function formatInvoiceNumberPreview(prefix: string, nextNumber: number, padding: number): string {
@@ -144,6 +148,18 @@ export async function generateNextInvoiceNumber(): Promise<GeneratedInvoiceNumbe
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to generate the next invoice number."));
+  }
+
+  return response.json();
+}
+
+/** IG-220: same "has a server-side side effect, don't call speculatively" reasoning as
+ * generateNextInvoiceNumber - a completely independent sequence, never shared with invoices. */
+export async function generateNextEstimateNumber(): Promise<GeneratedEstimateNumber> {
+  const response = await fetch(`${baseUrl()}/api/v1/business/next-estimate-number`, { method: "POST", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to generate the next estimate number."));
   }
 
   return response.json();

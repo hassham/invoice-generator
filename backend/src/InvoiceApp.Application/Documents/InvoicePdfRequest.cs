@@ -58,4 +58,9 @@ public sealed record InvoicePdfRequest(
     InvoicePdfPaymentInstructions? PaymentInstructions,
     string? TemplateCode,
     InvoiceTemplateCustomization? TemplateCustomization,
-    string? Logo);
+    string? Logo,
+    // IG-220: lets an Estimate render through this exact same stateless endpoint/document with a
+    // real, always-visible "Estimate" label instead of "Invoice" - appended last with a default so
+    // every existing positional caller (all of them invoices) is unaffected. See
+    // InvoicePdfDocument.Compose for where this actually renders.
+    string DocumentTypeLabel = "Invoice");

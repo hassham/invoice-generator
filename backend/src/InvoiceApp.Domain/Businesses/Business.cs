@@ -44,6 +44,16 @@ public sealed class Business
 
     public int InvoiceNumberPadding { get; set; } = 4;
 
+    /// <summary>IG-220: an estimate's own independent numbering sequence - mirrors InvoicePrefix/
+    /// NextInvoiceNumber/InvoiceNumberPadding exactly, but estimates and invoices must never share
+    /// one counter (an accepted-and-converted estimate becomes a separate Invoice row with its own
+    /// number from the invoice sequence, not this one).</summary>
+    public string EstimatePrefix { get; set; } = "EST-";
+
+    public int NextEstimateNumber { get; set; } = 1;
+
+    public int EstimateNumberPadding { get; set; } = 4;
+
     public PaymentTermsOption DefaultPaymentTerms { get; set; } = PaymentTermsOption.DueOnReceipt;
 
     public int? DefaultPaymentTermsDays { get; set; }

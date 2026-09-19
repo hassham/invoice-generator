@@ -24,6 +24,8 @@ public static class BusinessEndpoints
         // IG-54: has a side effect (increments NextInvoiceNumber), so POST rather than GET even
         // though it doesn't create a resource of its own.
         app.MapPost("/api/v1/business/next-invoice-number", GenerateNextInvoiceNumberAsync).RequireAuthorization();
+        // IG-220: same "has a side effect" reasoning as next-invoice-number above.
+        app.MapPost("/api/v1/business/next-estimate-number", GenerateNextEstimateNumberAsync).RequireAuthorization();
         // DisableAntiforgery(): ASP.NET Core 8 Minimal APIs auto-require an antiforgery token on
         // any endpoint that binds IFormFile, but this app has no antiforgery middleware anywhere
         // (protected instead by the strict CORS allowlist + AllowCredentials() in Program.cs) -
@@ -74,6 +76,15 @@ public static class BusinessEndpoints
         CancellationToken cancellationToken)
     {
         var generated = await businessService.GenerateNextInvoiceNumberAsync(UserId(user), cancellationToken);
+        return Results.Ok(generated);
+    }
+
+    private static async Task<IResult> GenerateNextEstimateNumberAsync(
+        ClaimsPrincipal user,
+        IBusinessService businessService,
+        CancellationToken cancellationToken)
+    {
+        var generated = await businessService.GenerateNextEstimateNumberAsync(UserId(user), cancellationToken);
         return Results.Ok(generated);
     }
 

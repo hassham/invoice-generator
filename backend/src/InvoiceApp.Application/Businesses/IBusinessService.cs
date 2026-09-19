@@ -13,6 +13,11 @@ public interface IBusinessService
     /// NextInvoiceNumber so the next call/generation produces a different one.</summary>
     Task<GeneratedInvoiceNumberDto> GenerateNextInvoiceNumberAsync(Guid userId, CancellationToken cancellationToken);
 
+    /// <summary>IG-220: same atomic UPDATE...RETURNING pattern as GenerateNextInvoiceNumberAsync,
+    /// against EstimatePrefix/NextEstimateNumber/EstimateNumberPadding instead - a completely
+    /// independent sequence, never shared with invoice numbering.</summary>
+    Task<GeneratedEstimateNumberDto> GenerateNextEstimateNumberAsync(Guid userId, CancellationToken cancellationToken);
+
     /// <summary>IG-52 / FSD section 14: caller (InvoiceApp.Api) is responsible for validating
     /// <paramref name="content"/> via BusinessLogoValidator before calling this - same convention
     /// as UpdateAsync's BusinessProfileRequestValidator call happening in the endpoint layer, not

@@ -18,6 +18,16 @@ export const HEADER_FIELDS: FieldConfig[] = [
   { name: "reference", label: "Reference / Purchase Order", maxLength: 100 },
 ];
 
+/** IG-220: same field names/shape as HEADER_FIELDS (InvoiceHeaderSection keys its FieldValues state
+ * by `name`, not label) - only the labels differ, so an estimate's state still round-trips through
+ * every shared lib module (invoiceDraft.ts's FieldValues, invoiceTotals.ts, etc.) unchanged. */
+export const ESTIMATE_HEADER_FIELDS: FieldConfig[] = [
+  { name: "invoiceNumber", label: "Estimate Number", required: true, maxLength: 50 },
+  { name: "issueDate", label: "Issue Date", required: true, maxLength: 10, type: "date" },
+  { name: "dueDate", label: "Expiry Date", required: true, maxLength: 10, type: "date" },
+  { name: "reference", label: "Reference / Purchase Order", maxLength: 100 },
+];
+
 /**
  * IG-193: replaces the structured Seller/Customer field sets (FSD sections 13/15) with free-text
  * blocks - name, address, contact info and tax numbers all typed together like a real invoice,

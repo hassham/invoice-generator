@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { ADVANCED_HEADER_FIELD_NAMES, CURRENCY_OPTIONS, HEADER_FIELDS } from "../lib/fields";
+import { ADVANCED_HEADER_FIELD_NAMES, CURRENCY_OPTIONS, HEADER_FIELDS, type FieldConfig } from "../lib/fields";
 import type { FieldErrors, FieldValues } from "../lib/invoiceDraft";
 import { FormField } from "./FormField";
 
@@ -11,6 +11,12 @@ interface InvoiceHeaderSectionProps {
   onFieldChange: (name: string, value: string) => void;
   onFieldBlur: (name: string) => void;
   onCurrencyChange: (value: string) => void;
+  /** IG-220: defaults to HEADER_FIELDS (every existing caller's behavior is unchanged) - lets
+   * CreateEstimateEditor pass ESTIMATE_HEADER_FIELDS instead, relabeling "Invoice Number"/"Due
+   * Date" to "Estimate Number"/"Expiry Date" without a second copy of this component. */
+  fields?: FieldConfig[];
+  /** Same reasoning as `fields` - "Estimate details" for the estimate editor. */
+  legend?: string;
 }
 
 /**
@@ -27,14 +33,16 @@ export function InvoiceHeaderSection({
   onFieldChange,
   onFieldBlur,
   onCurrencyChange,
+  fields = HEADER_FIELDS,
+  legend = "Invoice details",
 }: InvoiceHeaderSectionProps) {
   const currencyId = useId();
 
   return (
     <fieldset>
-      <legend className="text-base font-semibold text-slate-950">Invoice details</legend>
+      <legend className="text-base font-semibold text-slate-950">{legend}</legend>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {HEADER_FIELDS.map((field) => {
+        {fields.map((field) => {
           const isAdvanced = ADVANCED_HEADER_FIELD_NAMES.includes(field.name);
           return (
             <div key={field.name} hidden={isAdvanced && !advancedVisible}>
