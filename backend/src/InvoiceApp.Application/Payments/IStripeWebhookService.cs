@@ -15,4 +15,4 @@ public interface IStripeWebhookService
     StripeWebhookParseResult ParseEvent(string payload, string signatureHeader);
 }
 
-public sealed record StripeWebhookParseResult(bool IsValid, string? SessionId, string? PublicTokenMetadata, bool IsPaid, decimal? AmountTotal);
+public sealed record StripeWebhookParseResult(bool IsValid, string? SessionId, string? PublicTokenMetadata, bool IsPaid, decimal? AmountTotal, string? PayerEmail);

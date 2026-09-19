@@ -174,6 +174,11 @@ public class HostedCheckoutEndpointsTests
         Assert.Equal(sessionId, payment.StripeCheckoutSessionId);
         Assert.Null(payment.CreatedBy);
         Assert.Equal(Domain.Payments.PaymentMethod.Card, payment.PaymentMethod);
+
+        // IG-218: the redirect-based confirm path shares the same receipt-sending logic as the
+        // webhook - a receipt goes out here too, not only when a webhook happens to arrive.
+        var receipt = Assert.Single(factory.InvoiceEmailSender.SentMessages);
+        Assert.Contains(factory.StripeCheckoutService.PayerEmailToReturn, receipt.To);
     }
 
     [Fact]

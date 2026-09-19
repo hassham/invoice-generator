@@ -75,6 +75,6 @@ public sealed class StripeCheckoutService(IOptions<StripeOptions> stripeOptions)
         var publicToken = session.Metadata is not null && session.Metadata.TryGetValue("publicToken", out var token) ? token : null;
         var amountTotal = session.AmountTotal.HasValue ? StripeAmountConverter.FromSmallestUnit(session.AmountTotal.Value, session.Currency) : (decimal?)null;
 
-        return new StripeCheckoutSessionStatus(session.PaymentStatus == "paid", publicToken, amountTotal);
+        return new StripeCheckoutSessionStatus(session.PaymentStatus == "paid", publicToken, amountTotal, session.CustomerDetails?.Email);
     }
 }

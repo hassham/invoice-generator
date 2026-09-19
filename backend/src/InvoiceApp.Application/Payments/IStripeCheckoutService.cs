@@ -35,5 +35,6 @@ public sealed record StripeCheckoutSessionResult(string SessionId, string Url);
 /// <summary>PublicTokenMetadata is compared against the invoice being confirmed - a session id
 /// alone is opaque enough to not be guessable, but binding it to the invoice's own token via
 /// Stripe-stored metadata stops a session created for one invoice from ever confirming a
-/// different one.</summary>
-public sealed record StripeCheckoutSessionStatus(bool IsPaid, string? PublicTokenMetadata, decimal? AmountTotal);
+/// different one. PayerEmail is whatever Stripe Checkout itself collected from the payer (IG-218's
+/// receipt destination) - this app never asks for or stores it separately.</summary>
+public sealed record StripeCheckoutSessionStatus(bool IsPaid, string? PublicTokenMetadata, decimal? AmountTotal, string? PayerEmail);

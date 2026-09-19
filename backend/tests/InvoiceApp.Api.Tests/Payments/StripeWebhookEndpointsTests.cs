@@ -78,7 +78,7 @@ public class StripeWebhookEndpointsTests
         using var client = await RegisteredClientAsync(factory, "webhook-paid@example.com");
         var (invoiceId, token) = await CreateConnectedInvoiceAsync(factory, client, "INV-WH-1");
 
-        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_wh1", token, true, 209);
+        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_wh1", token, true, 209, "payer@example.com");
 
         using var anonymousClient = factory.CreateClient();
         var response = await anonymousClient.PostAsync(WebhookEndpoint, new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -92,6 +92,12 @@ public class StripeWebhookEndpointsTests
         var payment = await db.Payments.SingleAsync(p => p.InvoiceId == invoiceId);
         Assert.Equal("cs_test_wh1", payment.StripeCheckoutSessionId);
         Assert.Null(payment.CreatedBy);
+
+        // IG-218: a receipt email is sent once the webhook confirms payment, referencing the
+        // invoice number and amount paid.
+        var receipt = Assert.Single(factory.InvoiceEmailSender.SentMessages);
+        Assert.Equal(["payer@example.com"], receipt.To);
+        Assert.Contains("INV-WH-1", receipt.Subject);
     }
 
     [Fact]
@@ -101,7 +107,7 @@ public class StripeWebhookEndpointsTests
         using var client = await RegisteredClientAsync(factory, "webhook-invalid-sig@example.com");
         var (invoiceId, token) = await CreateConnectedInvoiceAsync(factory, client, "INV-WH-2");
 
-        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(false, "cs_test_wh2", token, true, 209);
+        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(false, "cs_test_wh2", token, true, 209, "payer@example.com");
 
         using var anonymousClient = factory.CreateClient();
         var response = await anonymousClient.PostAsync(WebhookEndpoint, new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -122,7 +128,7 @@ public class StripeWebhookEndpointsTests
         using var client = await RegisteredClientAsync(factory, "webhook-replay@example.com");
         var (invoiceId, token) = await CreateConnectedInvoiceAsync(factory, client, "INV-WH-3");
 
-        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_wh3", token, true, 209);
+        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_wh3", token, true, 209, "payer@example.com");
 
         using var anonymousClient = factory.CreateClient();
         await anonymousClient.PostAsync(WebhookEndpoint, new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -134,6 +140,32 @@ public class StripeWebhookEndpointsTests
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var paymentCount = await db.Payments.CountAsync(p => p.InvoiceId == invoiceId);
         Assert.Equal(1, paymentCount);
+        // IG-218: a replayed event must not send a second receipt either.
+        Assert.Single(factory.InvoiceEmailSender.SentMessages);
+    }
+
+    [Fact]
+    public async Task A_receipt_send_failure_does_not_roll_back_or_block_the_already_recorded_payment()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "webhook-receipt-fails@example.com");
+        var (invoiceId, token) = await CreateConnectedInvoiceAsync(factory, client, "INV-WH-5");
+        factory.InvoiceEmailSender.ThrowOnSend = new InvalidOperationException("SMTP is down");
+
+        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_wh5", token, true, 209, "payer@example.com");
+
+        using var anonymousClient = factory.CreateClient();
+        var response = await anonymousClient.PostAsync(WebhookEndpoint, new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        // IG-218 AC: a receipt-send failure must never affect the already-recorded payment - the
+        // webhook still acks 200, and the payment/invoice-status update both persisted.
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == invoiceId);
+        Assert.Equal(InvoiceStatus.Paid, invoice.Status);
+        Assert.True(await db.Payments.AnyAsync(p => p.InvoiceId == invoiceId && p.StripeCheckoutSessionId == "cs_test_wh5"));
     }
 
     [Fact]
@@ -143,7 +175,7 @@ public class StripeWebhookEndpointsTests
         using var client = await RegisteredClientAsync(factory, "webhook-irrelevant@example.com");
         var (invoiceId, _) = await CreateConnectedInvoiceAsync(factory, client, "INV-WH-4");
 
-        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, null, null, false, null);
+        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, null, null, false, null, null);
 
         using var anonymousClient = factory.CreateClient();
         var response = await anonymousClient.PostAsync(WebhookEndpoint, new StringContent("{}", Encoding.UTF8, "application/json"));
@@ -159,7 +191,7 @@ public class StripeWebhookEndpointsTests
     public async Task A_webhook_for_a_session_whose_token_matches_no_invoice_is_acknowledged_but_ignored()
     {
         using var factory = new AuthenticatedRouteTestFactory();
-        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_orphan", "does-not-exist", true, 100);
+        factory.StripeWebhookService.ResultToReturn = new StripeWebhookParseResult(true, "cs_test_orphan", "does-not-exist", true, 100, "payer@example.com");
 
         using var anonymousClient = factory.CreateClient();
         var response = await anonymousClient.PostAsync(WebhookEndpoint, new StringContent("{}", Encoding.UTF8, "application/json"));

@@ -11,7 +11,7 @@ namespace InvoiceApp.Api.Tests.Payments;
 /// </summary>
 public sealed class FakeStripeWebhookService : IStripeWebhookService
 {
-    public StripeWebhookParseResult ResultToReturn { get; set; } = new(true, null, null, false, null);
+    public StripeWebhookParseResult ResultToReturn { get; set; } = new(true, null, null, false, null, null);
 
     public List<(string Payload, string SignatureHeader)> ReceivedCalls { get; } = [];
 

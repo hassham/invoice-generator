@@ -14,6 +14,8 @@ public sealed class FakeStripeCheckoutService : IStripeCheckoutService
 
     public string SessionUrlToReturn { get; set; } = "https://checkout.stripe.com/c/pay/cs_test_fake123";
 
+    public string? PayerEmailToReturn { get; set; } = "payer@example.com";
+
     public List<StripeCheckoutSessionRequest> CreatedSessions { get; } = [];
 
     /// <summary>Keyed by session id so a test can script different confirmation outcomes (paid,
@@ -27,11 +29,11 @@ public sealed class FakeStripeCheckoutService : IStripeCheckoutService
         // Default: a status a real successful payment would produce, bound to the same invoice
         // the session was created for - a test overrides this per-session-id when it wants a
         // different outcome (unpaid, wrong-invoice metadata, etc).
-        StatusesBySessionId.TryAdd(SessionIdToReturn, new StripeCheckoutSessionStatus(true, request.PublicToken, request.AmountDue));
+        StatusesBySessionId.TryAdd(SessionIdToReturn, new StripeCheckoutSessionStatus(true, request.PublicToken, request.AmountDue, PayerEmailToReturn));
 
         return Task.FromResult(new StripeCheckoutSessionResult(SessionIdToReturn, SessionUrlToReturn));
     }
 
     public Task<StripeCheckoutSessionStatus> GetSessionStatusAsync(string stripeAccountId, string sessionId, CancellationToken cancellationToken) =>
-        Task.FromResult(StatusesBySessionId.TryGetValue(sessionId, out var status) ? status : new StripeCheckoutSessionStatus(false, null, null));
+        Task.FromResult(StatusesBySessionId.TryGetValue(sessionId, out var status) ? status : new StripeCheckoutSessionStatus(false, null, null, null));
 }

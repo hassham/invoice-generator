@@ -29,19 +29,19 @@ public sealed class StripeWebhookService(IOptions<StripeOptions> stripeOptions) 
         }
         catch (StripeException)
         {
-            return new StripeWebhookParseResult(false, null, null, false, null);
+            return new StripeWebhookParseResult(false, null, null, false, null, null);
         }
 
         if (!RelevantEventTypes.Contains(stripeEvent.Type) || stripeEvent.Data.Object is not Session session)
         {
             // Validly signed, just not an event this app acts on - the caller should still ack
             // with 200 (IsValid true) so Stripe doesn't retry it forever.
-            return new StripeWebhookParseResult(true, null, null, false, null);
+            return new StripeWebhookParseResult(true, null, null, false, null, null);
         }
 
         var publicToken = session.Metadata is not null && session.Metadata.TryGetValue("publicToken", out var token) ? token : null;
         var amountTotal = session.AmountTotal.HasValue ? StripeAmountConverter.FromSmallestUnit(session.AmountTotal.Value, session.Currency) : (decimal?)null;
 
-        return new StripeWebhookParseResult(true, session.Id, publicToken, session.PaymentStatus == "paid", amountTotal);
+        return new StripeWebhookParseResult(true, session.Id, publicToken, session.PaymentStatus == "paid", amountTotal, session.CustomerDetails?.Email);
     }
 }

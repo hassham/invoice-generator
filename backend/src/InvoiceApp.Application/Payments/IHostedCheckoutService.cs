@@ -26,7 +26,7 @@ public interface IHostedCheckoutService
     /// customer who pays but closes the tab before Checkout's redirect-back ever runs
     /// ConfirmSessionAsync. Shares the same idempotent record-payment logic, so whichever of the
     /// two paths arrives first records the payment and the other becomes a no-op.</summary>
-    Task HandleWebhookPaymentAsync(string publicToken, string sessionId, decimal? amountTotal, bool isPaid, CancellationToken cancellationToken);
+    Task HandleWebhookPaymentAsync(string publicToken, string sessionId, decimal? amountTotal, bool isPaid, string? payerEmail, CancellationToken cancellationToken);
 }
 
 public sealed record CheckoutSessionDto(string Url);

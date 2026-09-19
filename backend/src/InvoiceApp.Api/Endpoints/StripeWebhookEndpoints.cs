@@ -36,7 +36,7 @@ public static class StripeWebhookEndpoints
 
         if (result.SessionId is not null && result.PublicTokenMetadata is not null)
         {
-            await hostedCheckoutService.HandleWebhookPaymentAsync(result.PublicTokenMetadata, result.SessionId, result.AmountTotal, result.IsPaid, cancellationToken);
+            await hostedCheckoutService.HandleWebhookPaymentAsync(result.PublicTokenMetadata, result.SessionId, result.AmountTotal, result.IsPaid, result.PayerEmail, cancellationToken);
         }
 
         return Results.Ok();

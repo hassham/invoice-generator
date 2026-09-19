@@ -1,4 +1,5 @@
 using InvoiceApp.Application.Audit;
+using InvoiceApp.Application.Email;
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Application.Payments;
@@ -7,6 +8,7 @@ using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Payments;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace InvoiceApp.Infrastructure.Payments;
 
@@ -15,7 +17,12 @@ namespace InvoiceApp.Infrastructure.Payments;
 /// module, same cross-entity precedent PaymentService.RecordAsync already established (loads and
 /// updates Invoice despite living in Payments, not Invoicing).
 /// </summary>
-public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStripeCheckoutService stripeCheckoutService, IAuditLogService auditLogService) : IHostedCheckoutService
+public sealed class HostedCheckoutService(
+    ApplicationDbContext dbContext,
+    IStripeCheckoutService stripeCheckoutService,
+    IAuditLogService auditLogService,
+    IEmailSender emailSender,
+    ILogger<HostedCheckoutService> logger) : IHostedCheckoutService
 {
     public async Task<CheckoutSessionDto> CreateSessionAsync(string token, string successUrl, string cancelUrl, CancellationToken cancellationToken)
     {
@@ -84,7 +91,7 @@ public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStrip
             return new CheckoutConfirmationDto(false, ToHostedDto(invoice, business));
         }
 
-        await RecordPaymentIfNewAsync(invoice, sessionId, status.AmountTotal, cancellationToken);
+        await RecordPaymentIfNewAsync(invoice, business, sessionId, status.AmountTotal, status.PayerEmail, cancellationToken);
 
         return new CheckoutConfirmationDto(true, ToHostedDto(invoice, business));
     }
@@ -95,7 +102,7 @@ public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStrip
     /// against (the token itself came from the trusted event). A webhook for a token that no
     /// longer resolves to a real invoice (stale/deleted) is silently ignored rather than throwing -
     /// Stripe would otherwise retry indefinitely for something this app can never resolve.</summary>
-    public async Task HandleWebhookPaymentAsync(string publicToken, string sessionId, decimal? amountTotal, bool isPaid, CancellationToken cancellationToken)
+    public async Task HandleWebhookPaymentAsync(string publicToken, string sessionId, decimal? amountTotal, bool isPaid, string? payerEmail, CancellationToken cancellationToken)
     {
         if (!isPaid)
         {
@@ -108,13 +115,17 @@ public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStrip
             return;
         }
 
-        await RecordPaymentIfNewAsync(invoice, sessionId, amountTotal, cancellationToken);
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == invoice.BusinessId, cancellationToken);
+
+        await RecordPaymentIfNewAsync(invoice, business, sessionId, amountTotal, payerEmail, cancellationToken);
     }
 
     /// <summary>Shared by both the redirect-based confirmation and the webhook - the single place
     /// idempotency (unique StripeCheckoutSessionId) and the overpayment-safe amount clamp are
-    /// enforced, regardless of which path a given payment gets reconciled through first.</summary>
-    private async Task RecordPaymentIfNewAsync(Invoice invoice, string sessionId, decimal? verifiedAmountTotal, CancellationToken cancellationToken)
+    /// enforced, regardless of which path a given payment gets reconciled through first. Also the
+    /// single place IG-218's receipt email fires from, so a payment recorded via either path always
+    /// gets one.</summary>
+    private async Task RecordPaymentIfNewAsync(Invoice invoice, Business business, string sessionId, decimal? verifiedAmountTotal, string? payerEmail, CancellationToken cancellationToken)
     {
         var alreadyRecorded = await dbContext.Payments.AnyAsync(p => p.StripeCheckoutSessionId == sessionId, cancellationToken);
         if (alreadyRecorded || invoice.AmountDue <= 0)
@@ -159,6 +170,24 @@ public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStrip
             cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // IG-218 AC: a failed receipt send must never affect the already-recorded payment above -
+        // deliberately the one place in this codebase that logs and swallows rather than following
+        // InvoiceEndpoints.SendEmailAsync's rethrow precedent, since that precedent exists so an
+        // account owner can see/retry a failed send in their own email history UI, which has no
+        // equivalent here (no user is waiting on this HTTP response for a receipt).
+        if (payerEmail is not null)
+        {
+            try
+            {
+                var message = PaymentReceiptEmailMessageBuilder.Build(payerEmail, business.BusinessName, invoice.InvoiceNumber, amount, invoice.Currency, business.Email);
+                await emailSender.SendAsync(message, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to send payment receipt email for invoice {InvoiceNumber}", invoice.InvoiceNumber);
+            }
+        }
     }
 
     private async Task<Invoice> LoadByPublicTokenAsync(string token, CancellationToken cancellationToken)
