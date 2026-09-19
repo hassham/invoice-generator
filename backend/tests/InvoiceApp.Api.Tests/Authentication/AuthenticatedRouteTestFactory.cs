@@ -58,6 +58,11 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
     // verification - the real implementation would otherwise call Stripe's live API.
     public FakeStripeCheckoutService StripeCheckoutService { get; } = new();
 
+    // Same reasoning as StripeConnectService above, for IG-217's webhook signature verification -
+    // the real implementation performs a real HMAC check, covered separately by
+    // StripeWebhookServiceTests instead of at this HTTP-pipeline level.
+    public FakeStripeWebhookService StripeWebhookService { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -129,6 +134,9 @@ public sealed class AuthenticatedRouteTestFactory : WebApplicationFactory<Progra
 
             services.RemoveAll<IStripeCheckoutService>();
             services.AddSingleton<IStripeCheckoutService>(StripeCheckoutService);
+
+            services.RemoveAll<IStripeWebhookService>();
+            services.AddSingleton<IStripeWebhookService>(StripeWebhookService);
         });
     }
 }

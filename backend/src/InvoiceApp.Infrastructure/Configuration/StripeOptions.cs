@@ -16,4 +16,10 @@ public sealed class StripeOptions
     public string PublishableKey { get; init; } = string.Empty;
 
     public string ConnectClientId { get; init; } = string.Empty;
+
+    /// <summary>IG-217: the signing secret for the Connect webhook endpoint (Stripe Dashboard ->
+    /// Workbench -> Webhooks -> a "Connect" endpoint, which is how events from every connected
+    /// account arrive at one URL) - distinct from any secret a non-Connect webhook endpoint would
+    /// use.</summary>
+    public string ConnectWebhookSecret { get; init; } = string.Empty;
 }

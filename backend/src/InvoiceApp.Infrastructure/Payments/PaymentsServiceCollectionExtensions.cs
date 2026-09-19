@@ -21,6 +21,10 @@ public static class PaymentsServiceCollectionExtensions
         services.AddScoped<IStripeCheckoutService, StripeCheckoutService>();
         services.AddScoped<IHostedCheckoutService, HostedCheckoutService>();
 
+        // IG-217: webhook signature verification/parsing - separate from IStripeCheckoutService
+        // since it's Stripe-push-initiated, not called from this app's own outbound flow.
+        services.AddScoped<IStripeWebhookService, StripeWebhookService>();
+
         return services;
     }
 }

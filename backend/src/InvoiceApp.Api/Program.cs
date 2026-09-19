@@ -141,6 +141,7 @@ app.MapCatalogEndpoints();
 app.MapPaymentEndpoints();
 app.MapDashboardEndpoints();
 app.MapBusinessEndpoints();
+app.MapStripeWebhookEndpoints();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the
 // app look like it needs to be restarted.

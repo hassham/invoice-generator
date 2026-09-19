@@ -20,6 +20,13 @@ public interface IHostedCheckoutService
     /// same session id twice (e.g. the customer reloading the redirect-back page) records the
     /// payment only once.</summary>
     Task<CheckoutConfirmationDto> ConfirmSessionAsync(string token, string sessionId, CancellationToken cancellationToken);
+
+    /// <summary>IG-217: reconciles a payment from an already signature-verified Stripe webhook
+    /// event (IStripeWebhookService's own job, not this method's) - the real safety net for a
+    /// customer who pays but closes the tab before Checkout's redirect-back ever runs
+    /// ConfirmSessionAsync. Shares the same idempotent record-payment logic, so whichever of the
+    /// two paths arrives first records the payment and the other becomes a no-op.</summary>
+    Task HandleWebhookPaymentAsync(string publicToken, string sessionId, decimal? amountTotal, bool isPaid, CancellationToken cancellationToken);
 }
 
 public sealed record CheckoutSessionDto(string Url);

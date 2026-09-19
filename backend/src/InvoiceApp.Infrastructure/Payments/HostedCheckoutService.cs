@@ -84,11 +84,50 @@ public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStrip
             return new CheckoutConfirmationDto(false, ToHostedDto(invoice, business));
         }
 
+        await RecordPaymentIfNewAsync(invoice, sessionId, status.AmountTotal, cancellationToken);
+
+        return new CheckoutConfirmationDto(true, ToHostedDto(invoice, business));
+    }
+
+    /// <summary>IG-217: the webhook handler has already verified the event's signature and
+    /// extracted publicToken from the session's own Stripe-held metadata before calling this - so,
+    /// unlike ConfirmSessionAsync, there's no caller-supplied token to cross-check the session
+    /// against (the token itself came from the trusted event). A webhook for a token that no
+    /// longer resolves to a real invoice (stale/deleted) is silently ignored rather than throwing -
+    /// Stripe would otherwise retry indefinitely for something this app can never resolve.</summary>
+    public async Task HandleWebhookPaymentAsync(string publicToken, string sessionId, decimal? amountTotal, bool isPaid, CancellationToken cancellationToken)
+    {
+        if (!isPaid)
+        {
+            return;
+        }
+
+        var invoice = await dbContext.Invoices.SingleOrDefaultAsync(i => i.PublicToken == publicToken && !i.IsDeleted, cancellationToken);
+        if (invoice is null)
+        {
+            return;
+        }
+
+        await RecordPaymentIfNewAsync(invoice, sessionId, amountTotal, cancellationToken);
+    }
+
+    /// <summary>Shared by both the redirect-based confirmation and the webhook - the single place
+    /// idempotency (unique StripeCheckoutSessionId) and the overpayment-safe amount clamp are
+    /// enforced, regardless of which path a given payment gets reconciled through first.</summary>
+    private async Task RecordPaymentIfNewAsync(Invoice invoice, string sessionId, decimal? verifiedAmountTotal, CancellationToken cancellationToken)
+    {
+        var alreadyRecorded = await dbContext.Payments.AnyAsync(p => p.StripeCheckoutSessionId == sessionId, cancellationToken);
+        if (alreadyRecorded || invoice.AmountDue <= 0)
+        {
+            return;
+        }
+
         // Clamped to the invoice's own outstanding balance, not trusted verbatim from Stripe - the
-        // balance could have shifted (e.g. a manual payment recorded concurrently) between Checkout
-        // session creation and this confirmation, and this must never push AmountDue negative,
-        // mirroring PaymentService.RecordAsync's own overpayment invariant.
-        var amount = Math.Min(status.AmountTotal ?? invoice.AmountDue, invoice.AmountDue);
+        // balance could have shifted (e.g. a manual payment recorded concurrently, or the other of
+        // the confirm/webhook paths racing this one) between Checkout session creation and this
+        // reconciliation, and this must never push AmountDue negative, mirroring
+        // PaymentService.RecordAsync's own overpayment invariant.
+        var amount = Math.Min(verifiedAmountTotal ?? invoice.AmountDue, invoice.AmountDue);
 
         var payment = new Payment
         {
@@ -120,8 +159,6 @@ public sealed class HostedCheckoutService(ApplicationDbContext dbContext, IStrip
             cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
-
-        return new CheckoutConfirmationDto(true, ToHostedDto(invoice, business));
     }
 
     private async Task<Invoice> LoadByPublicTokenAsync(string token, CancellationToken cancellationToken)
