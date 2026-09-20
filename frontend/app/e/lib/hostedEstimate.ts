@@ -31,3 +31,32 @@ export async function getHostedEstimate(token: string): Promise<HostedEstimate> 
 export function hostedEstimatePdfUrl(token: string): string {
   return `${baseUrl()}/api/v1/public/estimates/${encodeURIComponent(token)}/pdf`;
 }
+
+async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
+  const problem = await response.json().catch(() => null);
+  return problem?.detail ?? fallback;
+}
+
+/** IG-222: the customer's Accept action on the hosted page - anonymous, the token is the
+ * authorization (same as getHostedEstimate). Returns the updated estimate so the caller can update
+ * its status badge without a second round trip. */
+export async function acceptEstimate(token: string): Promise<HostedEstimate> {
+  const response = await fetch(`${baseUrl()}/api/v1/public/estimates/${encodeURIComponent(token)}/accept`, { method: "POST" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "This estimate can't be accepted right now."));
+  }
+
+  return response.json();
+}
+
+/** IG-222: mirror of acceptEstimate - same shape, opposite action. */
+export async function declineEstimate(token: string): Promise<HostedEstimate> {
+  const response = await fetch(`${baseUrl()}/api/v1/public/estimates/${encodeURIComponent(token)}/decline`, { method: "POST" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "This estimate can't be declined right now."));
+  }
+
+  return response.json();
+}

@@ -10,8 +10,9 @@ namespace InvoiceApp.Application.Estimates;
 /// userId - a caller can never save under, or overwrite, another account's estimate. IG-221 adds
 /// email sending/hosted-page access, reusing InvoiceEmailRequest/InvoiceEmailStatus/
 /// InvoiceEmailLogDto/InvoiceEmailContext directly (all already fully generic - no
-/// EstimateEmailRequest etc. needed). Cancel/Delete/Duplicate/Accept/Decline/Convert are
-/// deliberately still out of scope (later Stories in Epic IG-207).
+/// EstimateEmailRequest etc. needed). IG-222 adds the customer-facing Accept/Decline action on the
+/// hosted page. Cancel/Delete/Duplicate/Convert are deliberately still out of scope (later Stories
+/// in Epic IG-207).
 /// </summary>
 public interface IEstimateService
 {
@@ -46,4 +47,14 @@ public interface IEstimateService
     /// <summary>IG-221/262: newest first, account-owned - same precedent as
     /// IInvoiceService.GetEmailHistoryAsync.</summary>
     Task<IReadOnlyList<InvoiceEmailLogDto>> GetEstimateEmailHistoryAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken);
+
+    /// <summary>IG-222: anonymous, token-keyed - the customer's Accept action on the hosted page.
+    /// Only valid from Sent; already-Accepted is idempotent (returns the current state rather than
+    /// erroring, so a double-click or page refresh after accepting is harmless); Declined/Converted/
+    /// Draft all reject with a client-safe ConflictException explaining why.</summary>
+    Task<HostedEstimateDto> AcceptEstimateAsync(string token, CancellationToken cancellationToken);
+
+    /// <summary>IG-222: the customer's Decline action - same token-keyed, idempotent-on-repeat
+    /// shape as AcceptEstimateAsync, just the mirror-image transition and conflict messages.</summary>
+    Task<HostedEstimateDto> DeclineEstimateAsync(string token, CancellationToken cancellationToken);
 }

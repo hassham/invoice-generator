@@ -7,6 +7,7 @@ using InvoiceApp.Application.Estimates;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
+using InvoiceApp.Domain.Estimates;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -117,6 +118,107 @@ public class PublicEstimateEndpointsTests
         using var anonymousClient = factory.CreateClient();
 
         var response = await anonymousClient.GetAsync("/api/v1/public/estimates/does-not-exist/pdf");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Anonymous_visitor_can_accept_a_sent_estimate()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "accept-estimate@example.com");
+        var token = await CreateAndSendGetTokenAsync(factory, client, "EST-ACCEPT-1");
+
+        using var anonymousClient = factory.CreateClient();
+        var response = await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/accept", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var hosted = await response.Content.ReadFromJsonAsync<HostedEstimateDto>(JsonOptions);
+        Assert.Equal(EstimateStatus.Accepted, hosted!.Status);
+    }
+
+    [Fact]
+    public async Task Anonymous_visitor_can_decline_a_sent_estimate()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "decline-estimate@example.com");
+        var token = await CreateAndSendGetTokenAsync(factory, client, "EST-DECLINE-1");
+
+        using var anonymousClient = factory.CreateClient();
+        var response = await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/decline", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var hosted = await response.Content.ReadFromJsonAsync<HostedEstimateDto>(JsonOptions);
+        Assert.Equal(EstimateStatus.Declined, hosted!.Status);
+    }
+
+    [Fact]
+    public async Task Accepting_an_already_accepted_estimate_is_idempotent()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "accept-twice@example.com");
+        var token = await CreateAndSendGetTokenAsync(factory, client, "EST-ACCEPT-2");
+        using var anonymousClient = factory.CreateClient();
+        await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/accept", null);
+
+        var secondResponse = await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/accept", null);
+
+        Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+        var hosted = await secondResponse.Content.ReadFromJsonAsync<HostedEstimateDto>(JsonOptions);
+        Assert.Equal(EstimateStatus.Accepted, hosted!.Status);
+    }
+
+    [Fact]
+    public async Task Declining_an_already_declined_estimate_is_idempotent()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "decline-twice@example.com");
+        var token = await CreateAndSendGetTokenAsync(factory, client, "EST-DECLINE-2");
+        using var anonymousClient = factory.CreateClient();
+        await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/decline", null);
+
+        var secondResponse = await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/decline", null);
+
+        Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+        var hosted = await secondResponse.Content.ReadFromJsonAsync<HostedEstimateDto>(JsonOptions);
+        Assert.Equal(EstimateStatus.Declined, hosted!.Status);
+    }
+
+    [Fact]
+    public async Task Cannot_accept_an_estimate_that_has_already_been_declined()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "accept-after-decline@example.com");
+        var token = await CreateAndSendGetTokenAsync(factory, client, "EST-CONFLICT-1");
+        using var anonymousClient = factory.CreateClient();
+        await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/decline", null);
+
+        var response = await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/accept", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Cannot_decline_an_estimate_that_has_already_been_accepted()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "decline-after-accept@example.com");
+        var token = await CreateAndSendGetTokenAsync(factory, client, "EST-CONFLICT-2");
+        using var anonymousClient = factory.CreateClient();
+        await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/accept", null);
+
+        var response = await anonymousClient.PostAsync($"/api/v1/public/estimates/{token}/decline", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unknown_token_accept_also_returns_a_generic_not_found()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var anonymousClient = factory.CreateClient();
+
+        var response = await anonymousClient.PostAsync("/api/v1/public/estimates/does-not-exist/accept", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

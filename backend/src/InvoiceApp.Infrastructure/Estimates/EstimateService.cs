@@ -184,16 +184,60 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
     {
         var estimate = await LoadByPublicTokenAsync(token, cancellationToken);
         var business = await dbContext.Businesses.SingleAsync(b => b.Id == estimate.BusinessId, cancellationToken);
+        return ToHostedDto(business, estimate);
+    }
 
-        return new HostedEstimateDto(
-            business.BusinessName,
-            business.LogoUrl,
-            estimate.EstimateNumber,
-            estimate.Status,
-            estimate.IssueDate,
-            estimate.ExpiryDate,
-            estimate.Currency,
-            estimate.TotalAmount);
+    /// <summary>IG-222: anonymous, token-keyed - see IEstimateService's own doc comment for the
+    /// exact transition/idempotency/conflict rules.</summary>
+    public async Task<HostedEstimateDto> AcceptEstimateAsync(string token, CancellationToken cancellationToken)
+    {
+        var estimate = await LoadByPublicTokenAsync(token, cancellationToken);
+
+        switch (estimate.Status)
+        {
+            case EstimateStatus.Sent:
+                estimate.Status = EstimateStatus.Accepted;
+                estimate.UpdatedAt = DateTimeOffset.UtcNow;
+                await dbContext.SaveChangesAsync(cancellationToken);
+                break;
+            case EstimateStatus.Accepted:
+                break;
+            case EstimateStatus.Declined:
+                throw new ConflictException("This estimate has already been declined and can no longer be accepted.");
+            case EstimateStatus.Converted:
+                throw new ConflictException("This estimate has already been converted to an invoice and can no longer be changed.");
+            default:
+                throw new ConflictException("This estimate hasn't been sent yet and can't be accepted.");
+        }
+
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == estimate.BusinessId, cancellationToken);
+        return ToHostedDto(business, estimate);
+    }
+
+    /// <summary>IG-222: mirror of AcceptEstimateAsync - same shape, opposite transition/messages.</summary>
+    public async Task<HostedEstimateDto> DeclineEstimateAsync(string token, CancellationToken cancellationToken)
+    {
+        var estimate = await LoadByPublicTokenAsync(token, cancellationToken);
+
+        switch (estimate.Status)
+        {
+            case EstimateStatus.Sent:
+                estimate.Status = EstimateStatus.Declined;
+                estimate.UpdatedAt = DateTimeOffset.UtcNow;
+                await dbContext.SaveChangesAsync(cancellationToken);
+                break;
+            case EstimateStatus.Declined:
+                break;
+            case EstimateStatus.Accepted:
+                throw new ConflictException("This estimate has already been accepted and can no longer be declined.");
+            case EstimateStatus.Converted:
+                throw new ConflictException("This estimate has already been converted to an invoice and can no longer be changed.");
+            default:
+                throw new ConflictException("This estimate hasn't been sent yet and can't be declined.");
+        }
+
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == estimate.BusinessId, cancellationToken);
+        return ToHostedDto(business, estimate);
     }
 
     public async Task<InvoicePdfRequest> BuildHostedEstimatePdfRequestAsync(string token, CancellationToken cancellationToken)
@@ -458,6 +502,16 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
             lines.Add($"{label}: {value.Trim()}");
         }
     }
+
+    private static HostedEstimateDto ToHostedDto(Business business, Estimate estimate) => new(
+        business.BusinessName,
+        business.LogoUrl,
+        estimate.EstimateNumber,
+        estimate.Status,
+        estimate.IssueDate,
+        estimate.ExpiryDate,
+        estimate.Currency,
+        estimate.TotalAmount);
 
     private static EstimateDto ToDto(Estimate estimate) => new(
         estimate.Id,

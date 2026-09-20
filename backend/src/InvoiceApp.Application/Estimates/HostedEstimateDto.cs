@@ -4,8 +4,9 @@ namespace InvoiceApp.Application.Estimates;
 
 /// <summary>
 /// IG-221: the hosted estimate page's view model - mirrors HostedInvoiceDto, minus any payment
-/// concept (no HasStripeAccount/AmountDue - estimates are never paid). Accept/Decline actions are
-/// IG-222's own scope, not added here.
+/// concept (no HasStripeAccount/AmountDue - estimates are never paid). IG-222's Accept/Decline
+/// endpoints return this same shape (with the updated Status) rather than a separate DTO, since the
+/// frontend needs nothing more than an updated status badge after the action.
 /// </summary>
 public sealed record HostedEstimateDto(
     string BusinessName,
