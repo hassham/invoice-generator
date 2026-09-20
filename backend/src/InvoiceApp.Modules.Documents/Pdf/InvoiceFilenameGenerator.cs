@@ -7,9 +7,11 @@ public static class InvoiceFilenameGenerator
 {
     private static readonly Regex UnsafeCharacterPattern = new(@"[^a-zA-Z0-9\-_]", RegexOptions.Compiled);
 
-    public static string Generate(string invoiceNumber)
+    // IG-221: reused as-is for estimates via documentLabel="Estimate" - defaults to "Invoice" so
+    // every existing call site's filename is unaffected.
+    public static string Generate(string invoiceNumber, string documentLabel = "Invoice")
     {
         var sanitized = UnsafeCharacterPattern.Replace(invoiceNumber, "");
-        return $"Invoice-{sanitized}.pdf";
+        return $"{documentLabel}-{sanitized}.pdf";
     }
 }

@@ -137,6 +137,7 @@ app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
 app.MapEstimateEndpoints();
 app.MapPublicInvoiceEndpoints();
+app.MapPublicEstimateEndpoints();
 app.MapTemplateEndpoints();
 app.MapDocumentEndpoints();
 app.MapCustomerEndpoints();

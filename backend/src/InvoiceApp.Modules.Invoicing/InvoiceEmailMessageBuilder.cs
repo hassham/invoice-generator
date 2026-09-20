@@ -13,19 +13,21 @@ namespace InvoiceApp.Modules.Invoicing;
 /// </summary>
 public static class InvoiceEmailMessageBuilder
 {
-    public static EmailMessage Build(InvoiceEmailRequest request, string hostedLink, byte[] pdfBytes, string pdfFileName, string? replyTo)
+    // IG-221: reused as-is for estimates via documentLabel="estimate" - defaults to "invoice" so
+    // every existing call site's wording is unaffected.
+    public static EmailMessage Build(InvoiceEmailRequest request, string hostedLink, byte[] pdfBytes, string pdfFileName, string? replyTo, string documentLabel = "invoice")
     {
         var plainTextBody = $"""
             {request.Message}
 
-            View your invoice online: {hostedLink}
+            View your {documentLabel} online: {hostedLink}
             """;
         // The sender's own Message is free text a real person typed, not developer-authored copy -
         // must be HTML-encoded before it ever lands in an HTML email body (the one part of this
         // email a malicious/careless sender actually controls the content of).
         var htmlBody = $"""
             <p>{WebUtility.HtmlEncode(request.Message).Replace("\n", "<br />")}</p>
-            <p><a href="{WebUtility.HtmlEncode(hostedLink)}">View your invoice online</a></p>
+            <p><a href="{WebUtility.HtmlEncode(hostedLink)}">View your {documentLabel} online</a></p>
             """;
 
         return new EmailMessage(

@@ -25,6 +25,8 @@ import { TemplateCustomizationPanel } from "../../../../invoice/create/component
 import { TextAreaField } from "../../../../invoice/create/components/TextAreaField";
 import { buildEstimatePdfPayloadFromEditable } from "../../../../lib/estimatePdf";
 import { buildEstimateSavePayload, getEstimate, toEditableEstimate, updateEstimate, type EditableEstimate, type EstimateDetail as EstimateDetailData } from "../../../../lib/estimate";
+import { SendEstimateEmailDialog } from "./SendEstimateEmailDialog";
+import { EstimateEmailHistorySection } from "./EstimateEmailHistorySection";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -41,10 +43,11 @@ interface EstimateDetailProps {
 }
 
 /**
- * IG-220: mirrors InvoiceDetail.tsx's structure closely, trimmed to exactly what this Story needs
- * - Save and Download PDF. No Cancel/Delete/Duplicate/Send/Accept/Decline/Convert-to-Invoice
- * actions yet (later Stories in Epic IG-207 - see IEstimateService's own doc comment for why the
- * backend has no such methods to call yet either).
+ * IG-220/221: mirrors InvoiceDetail.tsx's structure closely, trimmed to what this epic has built
+ * so far - Save, Download PDF, and Send by Email (with its own history section). No Cancel/
+ * Delete/Duplicate/Accept/Decline/Convert-to-Invoice actions yet (later Stories in Epic IG-207 -
+ * see IEstimateService's own doc comment for why the backend has no such methods to call yet
+ * either).
  */
 export function EstimateDetail({ estimateId }: EstimateDetailProps) {
   const [state, setState] = useState<LoadState>("loading");
@@ -63,6 +66,11 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  // Bumped on every successful send so <EstimateEmailHistorySection key={emailHistoryRefreshKey}>
+  // remounts and refetches - same pattern InvoiceDetail.tsx uses for its own history section.
+  const [emailHistoryRefreshKey, setEmailHistoryRefreshKey] = useState(0);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -278,6 +286,16 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
           </button>
           <button
             type="button"
+            onClick={() => {
+              setEmailSent(false);
+              setEmailDialogOpen(true);
+            }}
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Send by Email
+          </button>
+          <button
+            type="button"
             onClick={() => void handleSave()}
             disabled={saveStatus === "saving"}
             className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
@@ -287,6 +305,26 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
         </div>
       </div>
 
+      {emailDialogOpen ? (
+        <SendEstimateEmailDialog
+          estimateId={estimateId}
+          estimateNumber={detail.estimateNumber}
+          customerId={detail.customerId}
+          onClose={() => setEmailDialogOpen(false)}
+          onSent={() => {
+            setEmailDialogOpen(false);
+            setEmailSent(true);
+            setEmailHistoryRefreshKey((key) => key + 1);
+            // IG-262: sending may have just transitioned status Draft -> Sent - refetch so the
+            // status pill/badge reflects it instead of only updating after the next full reload.
+            getEstimate(estimateId).then((loaded) => {
+              setDetail(loaded);
+              setEditable((current) => (current ? { ...current, ...toEditableEstimate(loaded) } : current));
+            });
+          }}
+        />
+      ) : null}
+
       <p className="mt-2 text-xs text-slate-500">
         Created {formatDateTime(detail.createdAt)} · Last updated {formatDateTime(detail.updatedAt)}
       </p>
@@ -294,6 +332,12 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
       {pdfError ? (
         <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {pdfError}
+        </p>
+      ) : null}
+
+      {emailSent ? (
+        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          Estimate sent.
         </p>
       ) : null}
 
@@ -463,6 +507,8 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
             />
           </div>
         </fieldset>
+
+        <EstimateEmailHistorySection key={emailHistoryRefreshKey} estimateId={estimateId} />
       </div>
     </div>
   );

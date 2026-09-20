@@ -32,6 +32,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<EstimateItem> EstimateItems => Set<EstimateItem>();
 
+    public DbSet<EstimateEmailLog> EstimateEmailLogs => Set<EstimateEmailLog>();
+
     public DbSet<Payment> Payments => Set<Payment>();
 
     public DbSet<Template> Templates => Set<Template>();

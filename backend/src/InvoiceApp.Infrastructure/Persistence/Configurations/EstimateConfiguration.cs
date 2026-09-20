@@ -28,11 +28,15 @@ public sealed class EstimateConfiguration : IEntityTypeConfiguration<Estimate>
         builder.Property(estimate => estimate.TaxAmount).HasColumnType("decimal(19,4)").IsRequired();
         builder.Property(estimate => estimate.TotalAmount).HasColumnType("decimal(19,4)").IsRequired();
         builder.Property(estimate => estimate.TemplateSettings).HasColumnType("jsonb");
+        builder.Property(estimate => estimate.PublicToken).HasMaxLength(32);
         builder.Property(estimate => estimate.IsDeleted).IsRequired();
         builder.Property(estimate => estimate.CreatedAt).IsRequired();
         builder.Property(estimate => estimate.UpdatedAt).IsRequired();
 
         builder.HasIndex(estimate => new { estimate.BusinessId, estimate.EstimateNumber }).IsUnique();
+        // Postgres treats each NULL as distinct for uniqueness purposes, same precedent as
+        // Invoice.PublicToken's own index - estimates saved before IG-221 simply have none.
+        builder.HasIndex(estimate => estimate.PublicToken).IsUnique();
         builder.HasIndex(estimate => estimate.BusinessId);
         builder.HasIndex(estimate => estimate.CustomerId);
         builder.HasIndex(estimate => estimate.Status);

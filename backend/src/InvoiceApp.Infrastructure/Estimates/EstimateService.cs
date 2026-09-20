@@ -1,10 +1,14 @@
 using System.Text.Json;
 using InvoiceApp.Application.Audit;
+using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Estimates;
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Invoicing;
+using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Customers;
 using InvoiceApp.Domain.Estimates;
+using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,9 +17,10 @@ namespace InvoiceApp.Infrastructure.Estimates;
 /// <summary>
 /// IG-220: mirrors InvoiceService's SaveAsync/GetAsync/ListAsync structure closely - same
 /// find-or-create customer resolution, same snapshot-at-save-time approach, same InvoiceCalculator
-/// reuse (unchanged, fully generic - see InvoiceCalculator's own doc comment). Deliberately narrower
-/// than IInvoiceService: no Cancel/Delete/Duplicate/email/hosted-page methods exist yet - out of
-/// this Story's scope (see IEstimateService's own doc comment).
+/// reuse (unchanged, fully generic - see InvoiceCalculator's own doc comment). IG-221 adds
+/// email/hosted-page methods mirroring IInvoiceService's own equivalents. Deliberately narrower
+/// than IInvoiceService: no Cancel/Delete/Duplicate/Accept/Decline/Convert exist yet - out of this
+/// Story's scope (see IEstimateService's own doc comment).
 /// </summary>
 public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogService auditLogService) : IEstimateService
 {
@@ -172,6 +177,106 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         return new EstimateListResponse(items, effectivePage, effectivePageSize, totalCount);
     }
 
+    /// <summary>IG-221: anonymous - the token itself is the authorization, same precedent as
+    /// InvoiceService.GetHostedInvoiceAsync, including the identical generic-404 behavior for an
+    /// unknown/invalid/soft-deleted token.</summary>
+    public async Task<HostedEstimateDto> GetHostedEstimateAsync(string token, CancellationToken cancellationToken)
+    {
+        var estimate = await LoadByPublicTokenAsync(token, cancellationToken);
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == estimate.BusinessId, cancellationToken);
+
+        return new HostedEstimateDto(
+            business.BusinessName,
+            business.LogoUrl,
+            estimate.EstimateNumber,
+            estimate.Status,
+            estimate.IssueDate,
+            estimate.ExpiryDate,
+            estimate.Currency,
+            estimate.TotalAmount);
+    }
+
+    public async Task<InvoicePdfRequest> BuildHostedEstimatePdfRequestAsync(string token, CancellationToken cancellationToken)
+    {
+        var estimate = await LoadByPublicTokenAsync(token, cancellationToken);
+        return await BuildPdfRequestAsync(estimate, cancellationToken);
+    }
+
+    public async Task<InvoiceEmailContext> PrepareEstimateEmailAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var estimate = await LoadOwnedAsync(businessId, estimateId, cancellationToken);
+
+        if (estimate.PublicToken is null)
+        {
+            estimate.PublicToken = await GenerateUniqueEstimatePublicTokenAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var business = await dbContext.Businesses.SingleAsync(b => b.Id == businessId, cancellationToken);
+        var pdfRequest = await BuildPdfRequestAsync(estimate, cancellationToken);
+
+        return new InvoiceEmailContext(pdfRequest, estimate.PublicToken, business.Email);
+    }
+
+    public async Task RecordEstimateEmailSentAsync(Guid userId, Guid estimateId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var owned = await dbContext.Estimates.SingleOrDefaultAsync(e => e.Id == estimateId && e.BusinessId == businessId && !e.IsDeleted, cancellationToken);
+        if (owned is null)
+        {
+            throw new NotFoundException("Estimate not found.");
+        }
+
+        dbContext.EstimateEmailLogs.Add(new EstimateEmailLog
+        {
+            Id = Guid.NewGuid(),
+            EstimateId = estimateId,
+            SentAt = DateTimeOffset.UtcNow,
+            To = JsonSerializer.Serialize(request.To),
+            Cc = JsonSerializer.Serialize(request.Cc),
+            Subject = request.Subject,
+            Status = status,
+            ErrorMessage = errorMessage,
+        });
+
+        // IG-221 AC: sending transitions status to Sent. IG-262: "exactly once" - only a genuinely
+        // successful send moves it, and only forward from Draft; an estimate already Sent (a
+        // resend) or already Accepted/Declined/Converted is never regressed back to Sent.
+        if (status == InvoiceEmailStatus.Sent && owned.Status == EstimateStatus.Draft)
+        {
+            owned.Status = EstimateStatus.Sent;
+            owned.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<InvoiceEmailLogDto>> GetEstimateEmailHistoryAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var owned = await dbContext.Estimates.AnyAsync(e => e.Id == estimateId && e.BusinessId == businessId && !e.IsDeleted, cancellationToken);
+        if (!owned)
+        {
+            throw new NotFoundException("Estimate not found.");
+        }
+
+        var logs = await dbContext.EstimateEmailLogs
+            .Where(log => log.EstimateId == estimateId)
+            .OrderByDescending(log => log.SentAt)
+            .ToListAsync(cancellationToken);
+
+        return logs
+            .Select(log => new InvoiceEmailLogDto(
+                log.Id,
+                log.SentAt,
+                JsonSerializer.Deserialize<List<string>>(log.To) ?? [],
+                JsonSerializer.Deserialize<List<string>>(log.Cc) ?? [],
+                log.Subject,
+                log.Status))
+            .ToList();
+    }
+
     /// <summary>Same narrow mapping as InvoiceService.ResolveOrCreateCustomerAsync - duplicated
     /// rather than shared, matching this codebase's existing precedent of small cross-service
     /// duplication over a forced abstraction (PaymentService/InvoiceService already duplicate their
@@ -236,6 +341,85 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
             .SingleOrDefaultAsync(e => e.Id == estimateId && e.BusinessId == businessId && !e.IsDeleted, cancellationToken);
 
         return estimate ?? throw new NotFoundException("Estimate not found.");
+    }
+
+    /// <summary>IG-221: an empty/unrecognized/soft-deleted token all 404 identically - see
+    /// GetHostedEstimateAsync's own doc comment.</summary>
+    private async Task<Estimate> LoadByPublicTokenAsync(string token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new NotFoundException("Estimate not found.");
+        }
+
+        var estimate = await dbContext.Estimates
+            .Include(e => e.Items)
+            .SingleOrDefaultAsync(e => e.PublicToken == token && !e.IsDeleted, cancellationToken);
+
+        return estimate ?? throw new NotFoundException("Estimate not found.");
+    }
+
+    /// <summary>Reuses PublicInvoiceTokenGenerator as-is (pure string generation, no Invoice
+    /// coupling) - collision odds are the same astronomically low 93 bits of entropy.</summary>
+    private async Task<string> GenerateUniqueEstimatePublicTokenAsync(CancellationToken cancellationToken)
+    {
+        string candidate;
+        do
+        {
+            candidate = PublicInvoiceTokenGenerator.Generate();
+        }
+        while (await dbContext.Estimates.AnyAsync(estimate => estimate.PublicToken == candidate, cancellationToken));
+
+        return candidate;
+    }
+
+    private async Task<InvoicePdfRequest> BuildPdfRequestAsync(Estimate estimate, CancellationToken cancellationToken)
+    {
+        var seller = JsonSerializer.Deserialize<SellerSnapshotPayload>(estimate.SellerSnapshot);
+        var customer = JsonSerializer.Deserialize<CustomerSnapshotPayload>(estimate.CustomerSnapshot);
+
+        string? templateCode = null;
+        if (estimate.TemplateId is { } templateId)
+        {
+            templateCode = await dbContext.Templates
+                .Where(template => template.Id == templateId)
+                .Select(template => template.TemplateCode)
+                .SingleOrDefaultAsync(cancellationToken);
+        }
+
+        InvoiceTemplateCustomization? templateCustomization = null;
+        if (estimate.TemplateSettings is not null)
+        {
+            var saved = JsonSerializer.Deserialize<EstimateSaveTemplateCustomization>(estimate.TemplateSettings);
+            templateCustomization = saved is null
+                ? null
+                : new InvoiceTemplateCustomization(saved.PrimaryColor, saved.AccentColor, saved.Font, saved.HeaderStyle);
+        }
+
+        return new InvoicePdfRequest(
+            estimate.EstimateNumber,
+            estimate.IssueDate,
+            estimate.ExpiryDate,
+            estimate.Reference,
+            estimate.Currency,
+            seller?.Text ?? string.Empty,
+            customer?.Text ?? string.Empty,
+            customer?.ShipTo,
+            estimate.Items
+                .OrderBy(item => item.SortOrder)
+                .Select(item => new InvoicePdfLineItem(item.Description, item.Quantity, item.Unit, item.UnitPrice, item.TaxRate, item.Discount))
+                .ToList(),
+            estimate.DiscountType,
+            estimate.DiscountValue,
+            TaxCalculationMethod.Exclusive,
+            estimate.Notes,
+            estimate.Terms,
+            estimate.PaymentInstructions,
+            null,
+            templateCode,
+            templateCustomization,
+            null,
+            "Estimate");
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

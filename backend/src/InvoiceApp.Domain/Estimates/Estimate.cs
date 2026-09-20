@@ -57,6 +57,11 @@ public sealed class Estimate
 
     public string? TemplateSettings { get; set; }
 
+    /// <summary>IG-221: the hosted estimate page's unguessable token - same shape/generation
+    /// (PublicInvoiceTokenGenerator, reused as-is) and same "generated once, at creation" precedent
+    /// as Invoice.PublicToken's own doc comment.</summary>
+    public string? PublicToken { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTimeOffset? DeletedAt { get; set; }
