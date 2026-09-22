@@ -14,12 +14,12 @@ namespace InvoiceApp.Api.Endpoints;
 /// <summary>
 /// IG-220: authenticated, account-owned - same shape as InvoiceEndpoints' Create/Update/Get/List.
 /// IG-221 adds send-email/email-history, mirroring InvoiceEndpoints' own equivalents exactly.
-/// Still deliberately without Cancel/Delete/Duplicate/Accept/Decline/Convert (out of this epic's
-/// current scope, see IEstimateService's own doc comment). PDF rendering deliberately reuses the
-/// existing stateless POST /api/v1/invoices/pdf endpoint directly rather than a parallel
-/// /api/v1/estimates/pdf one - InvoicePdfRequest is a pure value shape with no persisted-invoice
-/// coupling, and now carries a DocumentTypeLabel field precisely so both document types can share
-/// this one endpoint.
+/// IG-223 adds convert-to-invoice, which reuses the entire invoice creation/calculation pipeline.
+/// Still deliberately without Cancel/Delete/Duplicate (out of this epic's current scope, see
+/// IEstimateService's own doc comment). PDF rendering deliberately reuses the existing stateless
+/// POST /api/v1/invoices/pdf endpoint directly rather than a parallel /api/v1/estimates/pdf one -
+/// InvoicePdfRequest is a pure value shape with no persisted-invoice coupling, and now carries a
+/// DocumentTypeLabel field precisely so both document types can share this one endpoint.
 /// </summary>
 public static class EstimateEndpoints
 {
@@ -33,6 +33,9 @@ public static class EstimateEndpoints
         // a real external side effect (an actual email sent to a caller-supplied address).
         app.MapPost("/api/v1/estimates/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         app.MapGet("/api/v1/estimates/{id:guid}/email-history", GetEmailHistoryAsync).RequireAuthorization();
+        // IG-223: convert an Accepted estimate to an invoice - reuses the entire invoice
+        // creation/calculation pipeline, returns the new invoice ID.
+        app.MapPost("/api/v1/estimates/{id:guid}/convert-to-invoice", ConvertToInvoiceAsync).RequireAuthorization();
         return app;
     }
 
@@ -129,6 +132,16 @@ public static class EstimateEndpoints
     {
         var history = await estimateService.GetEstimateEmailHistoryAsync(UserId(user), id, cancellationToken);
         return Results.Ok(history);
+    }
+
+    private static async Task<IResult> ConvertToInvoiceAsync(
+        Guid id,
+        ClaimsPrincipal user,
+        IEstimateService estimateService,
+        CancellationToken cancellationToken)
+    {
+        var invoiceId = await estimateService.ConvertToInvoiceAsync(UserId(user), id, cancellationToken);
+        return Results.Ok(new { invoiceId });
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

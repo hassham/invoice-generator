@@ -27,6 +27,7 @@ import { buildEstimatePdfPayloadFromEditable } from "../../../../lib/estimatePdf
 import { buildEstimateSavePayload, getEstimate, toEditableEstimate, updateEstimate, type EditableEstimate, type EstimateDetail as EstimateDetailData } from "../../../../lib/estimate";
 import { SendEstimateEmailDialog } from "./SendEstimateEmailDialog";
 import { EstimateEmailHistorySection } from "./EstimateEmailHistorySection";
+import { ConvertToInvoiceDialog } from "./ConvertToInvoiceDialog";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -72,6 +73,7 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
   // remounts and refetches - same pattern InvoiceDetail.tsx uses for its own history section.
   const [emailHistoryRefreshKey, setEmailHistoryRefreshKey] = useState(0);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -294,6 +296,15 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
           >
             Send by Email
           </button>
+          {detail.status === "Accepted" ? (
+            <button
+              type="button"
+              onClick={() => setConvertDialogOpen(true)}
+              className="rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              Convert to Invoice
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => void handleSave()}
@@ -323,6 +334,10 @@ export function EstimateDetail({ estimateId }: EstimateDetailProps) {
             });
           }}
         />
+      ) : null}
+
+      {convertDialogOpen ? (
+        <ConvertToInvoiceDialog estimateId={estimateId} estimateNumber={detail.estimateNumber} onClose={() => setConvertDialogOpen(false)} />
       ) : null}
 
       <p className="mt-2 text-xs text-slate-500">

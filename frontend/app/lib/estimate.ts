@@ -306,3 +306,23 @@ export async function listEstimates(page = 1, pageSize = 25): Promise<EstimateLi
 
   return response.json();
 }
+
+export interface ConvertEstimateToInvoiceResponse {
+  invoiceId: string;
+}
+
+/** IG-223: convert an accepted estimate to an invoice. Returns the new invoice ID. */
+export async function convertEstimateToInvoice(estimateId: string): Promise<string> {
+  const response = await fetch(`${baseUrl()}/api/v1/estimates/${estimateId}/convert-to-invoice`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to convert this estimate to an invoice."));
+  }
+
+  const result: ConvertEstimateToInvoiceResponse = await response.json();
+  return result.invoiceId;
+}

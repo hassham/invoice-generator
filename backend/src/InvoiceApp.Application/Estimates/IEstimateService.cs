@@ -57,4 +57,11 @@ public interface IEstimateService
     /// <summary>IG-222: the customer's Decline action - same token-keyed, idempotent-on-repeat
     /// shape as AcceptEstimateAsync, just the mirror-image transition and conflict messages.</summary>
     Task<HostedEstimateDto> DeclineEstimateAsync(string token, CancellationToken cancellationToken);
+
+    /// <summary>IG-223: authenticated, account-owned - convert an Accepted estimate into a new
+    /// invoice. Reuses the entire invoice creation/calculation pipeline; the new invoice starts
+    /// as Draft with all line items, totals, and customer data copied from the estimate.
+    /// Estimate status transitions to Converted. Only valid from Accepted; Sent/Declined/Draft/
+    /// Converted all reject with a client-safe ConflictException.</summary>
+    Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken);
 }

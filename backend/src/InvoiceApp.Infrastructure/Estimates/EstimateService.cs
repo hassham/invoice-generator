@@ -22,7 +22,7 @@ namespace InvoiceApp.Infrastructure.Estimates;
 /// than IInvoiceService: no Cancel/Delete/Duplicate/Accept/Decline/Convert exist yet - out of this
 /// Story's scope (see IEstimateService's own doc comment).
 /// </summary>
-public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogService auditLogService) : IEstimateService
+public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogService auditLogService, IInvoiceService invoiceService) : IEstimateService
 {
     public async Task<EstimateDto> SaveAsync(Guid userId, Guid? estimateId, EstimateSaveRequest request, CancellationToken cancellationToken)
     {
@@ -319,6 +319,73 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
                 log.Subject,
                 log.Status))
             .ToList();
+    }
+
+    /// <summary>IG-223: convert an Accepted estimate into a new invoice. Reuses the entire
+    /// invoice creation/calculation pipeline: the new invoice starts as Draft with all line
+    /// items, totals, customer data copied from the estimate. Estimate transitions to Converted.
+    /// Only valid from Accepted; other statuses reject with a 409 ConflictException.</summary>
+    public async Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    {
+        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        var estimate = await LoadOwnedAsync(businessId, estimateId, cancellationToken);
+
+        if (estimate.Status != EstimateStatus.Accepted)
+        {
+            throw new ConflictException("Only accepted estimates can be converted to invoices.");
+        }
+
+        var seller = JsonSerializer.Deserialize<SellerSnapshotPayload>(estimate.SellerSnapshot);
+        var customer = JsonSerializer.Deserialize<CustomerSnapshotPayload>(estimate.CustomerSnapshot);
+
+        var invoiceRequest = new InvoiceSaveRequest(
+            InvoiceNumber: string.Empty,
+            IssueDate: DateOnly.FromDateTime(DateTimeOffset.UtcNow.DateTime),
+            DueDate: estimate.ExpiryDate,
+            Reference: estimate.Reference,
+            Currency: estimate.Currency,
+            Seller: seller?.Text ?? string.Empty,
+            Customer: customer?.Text ?? string.Empty,
+            ShipTo: customer?.ShipTo,
+            Items: estimate.Items
+                .OrderBy(item => item.SortOrder)
+                .Select(item => new InvoiceSaveLineItem(
+                    item.Description,
+                    item.Quantity,
+                    item.Unit,
+                    item.UnitPrice,
+                    item.TaxRate,
+                    item.Discount))
+                .ToList(),
+            InvoiceDiscountType: estimate.DiscountType,
+            InvoiceDiscountValue: estimate.DiscountValue,
+            TaxCalculationMethod: TaxCalculationMethod.Exclusive,
+            Notes: estimate.Notes,
+            Terms: estimate.Terms,
+            CustomInstructions: null,
+            PaymentInstructions: null,
+            TemplateId: estimate.TemplateId,
+            TemplateCustomization: estimate.TemplateSettings is null
+                ? null
+                : JsonSerializer.Deserialize<InvoiceSaveTemplateCustomization>(estimate.TemplateSettings),
+            CustomerId: estimate.CustomerId);
+
+        var createdInvoice = await invoiceService.SaveAsync(userId, null, invoiceRequest, cancellationToken);
+
+        estimate.Status = EstimateStatus.Converted;
+        estimate.UpdatedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.RecordAsync(
+            userId,
+            businessId,
+            "Estimate",
+            estimate.Id,
+            "Estimate converted to invoice",
+            new { estimate.EstimateNumber, invoiceId = createdInvoice.Id },
+            cancellationToken);
+
+        return createdInvoice.Id;
     }
 
     /// <summary>Same narrow mapping as InvoiceService.ResolveOrCreateCustomerAsync - duplicated
