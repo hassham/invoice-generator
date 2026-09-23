@@ -21,25 +21,30 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-225: Outstanding/Overdue Reports (completed locally, pushed, Jira Done)**
+**IG-226: Revenue by Customer (completed locally, pushed, Jira Done)**
 
 Completed work:
-- Commits pushed to GitHub (c8be0b3):
+- Commits pushed to GitHub (df1ca21):
   - IG-224: Revenue report + bug fixes
   - IG-225: Outstanding/overdue invoice reports
-- All Jira transitions complete: IG-224 Done, IG-225 Done, IG-269 Done, IG-270 Done
-- IG-225 deliverables:
-  - Backend: GET /api/v1/reports/outstanding, /api/v1/reports/overdue endpoints
-  - Outstanding: AmountDue > 0 and Status != Cancelled
-  - Overdue: Outstanding with DueDate < Today
-  - Frontend: /reports/outstanding and /reports/overdue pages with invoice tables + View links
-  - Tests: 7 passing for OutstandingAndOverdueView component
+  - IG-226: Revenue by customer report
+- All Jira transitions complete: IG-224 Done, IG-225 Done, IG-226 Done, IG-269 Done, IG-270 Done, IG-271 Done, IG-272 Done
+- IG-226 deliverables:
+  - Backend: GET /api/v1/reports/by-customer endpoint (with optional date range)
+  - Queries all customers, sums paid amounts per customer
+  - Includes zero-revenue customers explicitly, ordered by revenue descending
+  - Frontend: /reports/by-customer page with customer revenue table and total sum
+  - Tests: 6 passing for RevenueByCustomerView component
   - Builds: backend ✓, frontend ✓
 
-**Next: IG-226 — View revenue by customer** (To Do, High priority)
-- User Story: Revenue breakdown by customer over selected period
-- AC: Customers with zero revenue shown explicitly, account/business scoped
-- Estimated: Similar scope to IG-224 (backend aggregation + frontend report table)
+**Reporting epic (IG-208) progress: 3 of 5 stories complete**
+- ✅ IG-224: Revenue by period
+- ✅ IG-225: Outstanding/overdue invoices
+- ✅ IG-226: Revenue by customer
+- ⏳ IG-227: Tax summary (To Do)
+- ⏳ IG-228: CSV/PDF export (To Do)
+
+Ready to start IG-227 or handle different priority?
 
 ## Engineering Notes
 
