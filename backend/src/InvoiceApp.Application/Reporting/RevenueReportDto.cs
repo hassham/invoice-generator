@@ -13,3 +13,29 @@ public sealed record RevenueReportDto(
     string Currency,
     string PeriodType,
     IReadOnlyList<RevenuePeriodDto> Periods);
+
+/// <summary>
+/// IG-225: Outstanding invoice (AmountDue > 0, not Cancelled).
+/// </summary>
+public sealed record OutstandingInvoiceDto(
+    Guid Id,
+    string InvoiceNumber,
+    string CustomerName,
+    DateOnly IssueDate,
+    DateOnly DueDate,
+    string Currency,
+    decimal AmountDue,
+    string Status);
+
+/// <summary>
+/// IG-225: Overdue invoice (outstanding and past due date).
+/// </summary>
+public sealed record OverdueInvoiceDto(
+    Guid Id,
+    string InvoiceNumber,
+    string CustomerName,
+    DateOnly IssueDate,
+    DateOnly DueDate,
+    string Currency,
+    decimal AmountDue,
+    string Status);

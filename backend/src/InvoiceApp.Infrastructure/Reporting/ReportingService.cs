@@ -1,5 +1,6 @@
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Reporting;
+using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -111,5 +112,71 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
             periods.Add($"{year}");
         }
         return periods;
+    }
+
+    public async Task<List<OutstandingInvoiceDto>> GetOutstandingReportAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("No business found for user.");
+
+        var invoices = await dbContext.Invoices
+            .AsNoTracking()
+            .Where(i => i.BusinessId == business.Id && !i.IsDeleted)
+            .Where(i => i.Status != InvoiceStatus.Cancelled && i.AmountDue > 0)
+            .Join(
+                dbContext.Customers,
+                invoice => invoice.CustomerId,
+                customer => customer.Id,
+                (invoice, customer) => new OutstandingInvoiceDto(
+                    invoice.Id,
+                    invoice.InvoiceNumber,
+                    customer.BusinessName ?? customer.ContactName ?? string.Empty,
+                    invoice.IssueDate,
+                    invoice.DueDate,
+                    invoice.Currency,
+                    invoice.AmountDue,
+                    invoice.Status.ToString()))
+            .OrderByDescending(x => x.DueDate)
+            .ToListAsync(cancellationToken);
+
+        return invoices;
+    }
+
+    public async Task<List<OverdueInvoiceDto>> GetOverdueReportAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("No business found for user.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var invoices = await dbContext.Invoices
+            .AsNoTracking()
+            .Where(i => i.BusinessId == business.Id && !i.IsDeleted)
+            .Where(i => i.Status != InvoiceStatus.Cancelled && i.AmountDue > 0 && i.DueDate < today)
+            .Join(
+                dbContext.Customers,
+                invoice => invoice.CustomerId,
+                customer => customer.Id,
+                (invoice, customer) => new OverdueInvoiceDto(
+                    invoice.Id,
+                    invoice.InvoiceNumber,
+                    customer.BusinessName ?? customer.ContactName ?? string.Empty,
+                    invoice.IssueDate,
+                    invoice.DueDate,
+                    invoice.Currency,
+                    invoice.AmountDue,
+                    invoice.Status.ToString()))
+            .OrderByDescending(x => x.DueDate)
+            .ToListAsync(cancellationToken);
+
+        return invoices;
     }
 }

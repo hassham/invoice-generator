@@ -30,6 +30,28 @@ export interface RevenueReport {
   periods: RevenuePeriod[];
 }
 
+export interface OutstandingInvoice {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  issueDate: string;
+  dueDate: string;
+  currency: string;
+  amountDue: number;
+  status: string;
+}
+
+export interface OverdueInvoice {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  issueDate: string;
+  dueDate: string;
+  currency: string;
+  amountDue: number;
+  status: string;
+}
+
 function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
@@ -85,6 +107,32 @@ export async function getRevenueReport(
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load the revenue report."));
+  }
+
+  return response.json();
+}
+
+/** IG-225: Get invoices with outstanding balance (AmountDue > 0, not Cancelled). */
+export async function getOutstandingReport(): Promise<OutstandingInvoice[]> {
+  const response = await fetch(`${baseUrl()}/api/v1/reports/outstanding`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load outstanding invoices."));
+  }
+
+  return response.json();
+}
+
+/** IG-225: Get invoices that are both outstanding and overdue (past due date). */
+export async function getOverdueReport(): Promise<OverdueInvoice[]> {
+  const response = await fetch(`${baseUrl()}/api/v1/reports/overdue`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load overdue invoices."));
   }
 
   return response.json();
