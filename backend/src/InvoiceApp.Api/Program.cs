@@ -11,6 +11,7 @@ using InvoiceApp.Infrastructure.Customers;
 using InvoiceApp.Infrastructure.Dashboard;
 using InvoiceApp.Infrastructure.Email;
 using InvoiceApp.Infrastructure.Estimates;
+using InvoiceApp.Infrastructure.Reporting;
 using InvoiceApp.Infrastructure.HealthChecks;
 using InvoiceApp.Infrastructure.Invoicing;
 using InvoiceApp.Infrastructure.Payments;
@@ -53,6 +54,7 @@ builder.Services.AddInfrastructureEstimates();
 builder.Services.AddInfrastructureEmail(builder.Configuration);
 builder.Services.AddInfrastructurePayments(builder.Configuration);
 builder.Services.AddInfrastructureDashboard();
+builder.Services.AddReportingServices();
 builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructureHealthChecks();
 

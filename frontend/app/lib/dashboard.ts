@@ -19,6 +19,17 @@ export interface DashboardSummary {
   recentInvoices: DashboardRecentInvoice[];
 }
 
+export interface RevenuePeriod {
+  period: string;
+  revenue: number;
+}
+
+export interface RevenueReport {
+  currency: string;
+  periodType: string;
+  periods: RevenuePeriod[];
+}
+
 function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
@@ -46,6 +57,34 @@ export async function getDashboardSummary(startDate?: string, endDate?: string):
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load the dashboard."));
+  }
+
+  return response.json();
+}
+
+/** IG-224: account-owned revenue aggregation by period. periodType is "month", "quarter", or
+ * "year". startDate/endDate (YYYY-MM-DD) scope the report - omit both for the backend's default
+ * (current month). */
+export async function getRevenueReport(
+  periodType: string = "month",
+  startDate?: string,
+  endDate?: string
+): Promise<RevenueReport> {
+  const params = new URLSearchParams();
+  params.set("periodType", periodType);
+  if (startDate) {
+    params.set("startDate", startDate);
+  }
+  if (endDate) {
+    params.set("endDate", endDate);
+  }
+  const query = params.toString();
+  const response = await fetch(`${baseUrl()}/api/v1/reports/revenue?${query}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load the revenue report."));
   }
 
   return response.json();
