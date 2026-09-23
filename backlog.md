@@ -21,30 +21,33 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-226: Revenue by Customer (completed locally, pushed, Jira Done)**
+**IG-227: Tax Summary (completed locally, pushed, Jira Done)**
 
 Completed work:
-- Commits pushed to GitHub (df1ca21):
+- Commits pushed to GitHub (c981519):
   - IG-224: Revenue report + bug fixes
   - IG-225: Outstanding/overdue invoice reports
   - IG-226: Revenue by customer report
-- All Jira transitions complete: IG-224 Done, IG-225 Done, IG-226 Done, IG-269 Done, IG-270 Done, IG-271 Done, IG-272 Done
-- IG-226 deliverables:
-  - Backend: GET /api/v1/reports/by-customer endpoint (with optional date range)
-  - Queries all customers, sums paid amounts per customer
-  - Includes zero-revenue customers explicitly, ordered by revenue descending
-  - Frontend: /reports/by-customer page with customer revenue table and total sum
-  - Tests: 6 passing for RevenueByCustomerView component
+  - IG-227: Tax summary report
+- All Jira transitions complete: IG-224 Done, IG-225 Done, IG-226 Done, IG-227 Done, IG-269 Done, IG-270 Done, IG-271 Done, IG-272 Done, IG-273 Done, IG-274 Done
+- IG-227 deliverables:
+  - Backend: GET /api/v1/reports/tax-summary endpoint (with optional date range)
+  - Aggregates tax collected across invoices, calculates taxable amounts (subtotal - discount)
+  - Uses each invoice's stored tax amounts (not re-derived)
+  - Frontend: /reports/tax-summary page with summary cards (taxable/collected) + tax-by-rate table
+  - Tests: 6 passing for TaxSummaryView component
   - Builds: backend ✓, frontend ✓
 
-**Reporting epic (IG-208) progress: 3 of 5 stories complete**
-- ✅ IG-224: Revenue by period
+**Reporting epic (IG-208) progress: 4 of 5 stories complete**
+- ✅ IG-224: Revenue by period (month/quarter/year)
 - ✅ IG-225: Outstanding/overdue invoices
 - ✅ IG-226: Revenue by customer
-- ⏳ IG-227: Tax summary (To Do)
-- ⏳ IG-228: CSV/PDF export (To Do)
+- ✅ IG-227: Tax summary
+- ⏳ IG-228: CSV/PDF export (To Do) - last reporting story
 
-Ready to start IG-227 or handle different priority?
+**Phase 2 completion**: 4 reporting stories + 3 estimate stories + 4 payment stories + 4 email stories + 2 hosted invoice stories = majority of Phase 2 MVP delivered across all epics.
+
+Ready to start IG-228 (CSV/PDF export) or pivot to a different epic?
 
 ## Engineering Notes
 
