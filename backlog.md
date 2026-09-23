@@ -21,30 +21,25 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-224: Revenue Report (completed locally, 2 bugs fixed, ready for Jira transition)**
+**IG-225: Outstanding/Overdue Reports (completed locally, pushed, Jira Done)**
 
 Completed work:
-- Commit `baec86f`: Implement revenue report (IG-224)
-  - Backend: ReportingService + DTOs + HTTP endpoint + DI registration
-  - Frontend: /reports page, RevenueReportView component, API client function
-- Commit `abfaecb`: Fix period selection bugs (IG-224)
-  - Bug 1 (High): Quarter/Year tabs now request proper date ranges (fixed)
-  - Bug 2 (Medium): Invalid periodType returns 400 not 500 (fixed)
+- Commits pushed to GitHub (c8be0b3):
+  - IG-224: Revenue report + bug fixes
+  - IG-225: Outstanding/overdue invoice reports
+- All Jira transitions complete: IG-224 Done, IG-225 Done, IG-269 Done, IG-270 Done
+- IG-225 deliverables:
+  - Backend: GET /api/v1/reports/outstanding, /api/v1/reports/overdue endpoints
+  - Outstanding: AmountDue > 0 and Status != Cancelled
+  - Overdue: Outstanding with DueDate < Today
+  - Frontend: /reports/outstanding and /reports/overdue pages with invoice tables + View links
+  - Tests: 7 passing for OutstandingAndOverdueView component
+  - Builds: backend ✓, frontend ✓
 
-QA findings: Both high-priority bugs fixed. Feature now fully functional:
-- Period selector tabs correctly widen date ranges (month/quarter/year)
-- Revenue aggregation works per specification
-- Currency formatting correct
-- Authorization verified (401 for unauthenticated)
-- All 6 frontend tests passing
-- Backend dotnet build ✓, frontend npm run build ✓
-
-Known unfixed bugs (outside IG-224 scope):
-- Bug 3: Unrelated invoice-save race condition in CreateInvoiceEditor (pre-existing) — recommend separate Jira issue
-
-Next: 
-- Transition IG-224 to Done in Jira (and close its Subtasks)
-- User selects next priority from `IG-225`-`IG-228` (outstanding/overdue, by-customer, tax summary, CSV/PDF export under Epic `IG-208`)
+**Next: IG-226 — View revenue by customer** (To Do, High priority)
+- User Story: Revenue breakdown by customer over selected period
+- AC: Customers with zero revenue shown explicitly, account/business scoped
+- Estimated: Similar scope to IG-224 (backend aggregation + frontend report table)
 
 ## Engineering Notes
 
