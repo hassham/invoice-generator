@@ -52,6 +52,13 @@ export interface OverdueInvoice {
   status: string;
 }
 
+export interface RevenueByCustomer {
+  customerId: string;
+  customerName: string;
+  currency: string;
+  revenue: number;
+}
+
 function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
@@ -133,6 +140,31 @@ export async function getOverdueReport(): Promise<OverdueInvoice[]> {
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load overdue invoices."));
+  }
+
+  return response.json();
+}
+
+/** IG-226: Get revenue aggregated by customer over a period. Includes all customers with
+ * zero revenue shown explicitly. Omit startDate/endDate for current month. */
+export async function getRevenueByCustomer(
+  startDate?: string,
+  endDate?: string
+): Promise<RevenueByCustomer[]> {
+  const params = new URLSearchParams();
+  if (startDate) {
+    params.set("startDate", startDate);
+  }
+  if (endDate) {
+    params.set("endDate", endDate);
+  }
+  const query = params.toString();
+  const response = await fetch(`${baseUrl()}/api/v1/reports/by-customer?${query}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load revenue by customer."));
   }
 
   return response.json();

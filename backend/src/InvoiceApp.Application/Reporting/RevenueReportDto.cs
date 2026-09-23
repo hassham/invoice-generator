@@ -39,3 +39,12 @@ public sealed record OverdueInvoiceDto(
     string Currency,
     decimal AmountDue,
     string Status);
+
+/// <summary>
+/// IG-226: Revenue aggregated by customer. Includes all customers with zero revenue shown explicitly.
+/// </summary>
+public sealed record RevenueByCustomerDto(
+    Guid CustomerId,
+    string CustomerName,
+    string Currency,
+    decimal Revenue);

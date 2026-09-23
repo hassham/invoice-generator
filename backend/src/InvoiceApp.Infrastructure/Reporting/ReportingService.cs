@@ -179,4 +179,53 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
         return invoices;
     }
+
+    public async Task<List<RevenueByCustomerDto>> GetRevenueByCustomerAsync(
+        Guid userId,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("No business found for user.");
+
+        var now = DateOnly.FromDateTime(DateTime.UtcNow);
+        var effectiveStart = startDate ?? new DateOnly(now.Year, now.Month, 1);
+        var effectiveEnd = endDate ?? now;
+
+        // Get all customers for the business
+        var customers = await dbContext.Customers
+            .AsNoTracking()
+            .Where(c => c.BusinessId == business.Id && !c.IsArchived)
+            .Select(c => new { c.Id, c.BusinessName, c.ContactName })
+            .ToListAsync(cancellationToken);
+
+        // Get revenue for each customer in the period
+        var revenueByCustomer = await dbContext.Invoices
+            .AsNoTracking()
+            .Where(i => i.BusinessId == business.Id && !i.IsDeleted && i.Currency == business.DefaultCurrency)
+            .Where(i => i.IssueDate >= effectiveStart && i.IssueDate <= effectiveEnd)
+            .Join(
+                dbContext.Payments,
+                invoice => invoice.Id,
+                payment => payment.InvoiceId,
+                (invoice, payment) => new { invoice.CustomerId, payment.Amount })
+            .GroupBy(x => x.CustomerId)
+            .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Amount), cancellationToken);
+
+        // Build result including customers with zero revenue
+        var result = customers
+            .Select(c => new RevenueByCustomerDto(
+                c.Id,
+                c.BusinessName ?? c.ContactName ?? string.Empty,
+                business.DefaultCurrency,
+                revenueByCustomer.TryGetValue(c.Id, out var revenue) ? revenue : 0m))
+            .OrderByDescending(x => x.Revenue)
+            .ThenBy(x => x.CustomerName)
+            .ToList();
+
+        return result;
+    }
 }

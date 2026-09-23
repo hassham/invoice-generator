@@ -30,4 +30,14 @@ public interface IReportingService
     Task<List<OverdueInvoiceDto>> GetOverdueReportAsync(
         Guid userId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// IG-226: Get revenue aggregated by customer over a period.
+    /// Includes all customers, with zero revenue shown explicitly.
+    /// </summary>
+    Task<List<RevenueByCustomerDto>> GetRevenueByCustomerAsync(
+        Guid userId,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken);
 }
