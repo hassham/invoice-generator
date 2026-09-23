@@ -40,4 +40,15 @@ public interface IReportingService
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// IG-227: Get tax summary for a period - totals tax collected across invoices.
+    /// Uses each invoice's stored tax breakdown, not re-derived.
+    /// Defaults to current month if startDate/endDate are null.
+    /// </summary>
+    Task<TaxSummaryDto> GetTaxSummaryAsync(
+        Guid userId,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken);
 }

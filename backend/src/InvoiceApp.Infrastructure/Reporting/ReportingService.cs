@@ -228,4 +228,65 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
         return result;
     }
+
+    public async Task<TaxSummaryDto> GetTaxSummaryAsync(
+        Guid userId,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("No business found for user.");
+
+        var now = DateOnly.FromDateTime(DateTime.UtcNow);
+        var effectiveStart = startDate ?? new DateOnly(now.Year, now.Month, 1);
+        var effectiveEnd = endDate ?? now;
+
+        var invoices = await dbContext.Invoices
+            .AsNoTracking()
+            .Where(i => i.BusinessId == business.Id && !i.IsDeleted && i.Currency == business.DefaultCurrency)
+            .Where(i => i.IssueDate >= effectiveStart && i.IssueDate <= effectiveEnd)
+            .Select(i => new
+            {
+                i.TaxAmount,
+                i.Subtotal,
+                i.DiscountAmount,
+                i.Status
+            })
+            .ToListAsync(cancellationToken);
+
+        // Calculate taxable amount (subtotal - discount) for each invoice
+        var taxableAmountPerInvoice = invoices
+            .Select(i => new
+            {
+                TaxableAmount = i.Subtotal - i.DiscountAmount,
+                i.TaxAmount
+            })
+            .ToList();
+
+        var totalTaxable = taxableAmountPerInvoice.Sum(x => x.TaxableAmount);
+        var totalTaxCollected = invoices.Sum(i => i.TaxAmount);
+
+        // Group taxes by rate (simplified: group by whether tax exists)
+        // Since the invoices don't store tax rate explicitly, we aggregate by the tax collected
+        var taxesByRate = new List<TaxByRateDto>();
+
+        if (totalTaxCollected > 0 && totalTaxable > 0)
+        {
+            // Calculate average tax rate from total
+            var avgTaxRate = (totalTaxCollected / totalTaxable) * 100m;
+            taxesByRate.Add(new TaxByRateDto(
+                Math.Round(avgTaxRate, 2),
+                totalTaxable,
+                totalTaxCollected));
+        }
+
+        return new TaxSummaryDto(
+            business.DefaultCurrency,
+            totalTaxable,
+            totalTaxCollected,
+            taxesByRate);
+    }
 }

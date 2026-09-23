@@ -48,3 +48,17 @@ public sealed record RevenueByCustomerDto(
     string CustomerName,
     string Currency,
     decimal Revenue);
+
+/// <summary>
+/// IG-227: Tax summary for a period - totals tax collected by currency.
+/// </summary>
+public sealed record TaxByRateDto(
+    decimal TaxRate,
+    decimal TaxableAmount,
+    decimal TaxCollected);
+
+public sealed record TaxSummaryDto(
+    string Currency,
+    decimal TotalTaxableAmount,
+    decimal TotalTaxCollected,
+    IReadOnlyList<TaxByRateDto> TaxesByRate);

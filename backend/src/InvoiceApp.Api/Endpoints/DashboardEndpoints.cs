@@ -18,6 +18,8 @@ public static class DashboardEndpoints
         app.MapGet("/api/v1/reports/overdue", GetOverdueReportAsync).RequireAuthorization();
         // IG-226: revenue by customer report
         app.MapGet("/api/v1/reports/by-customer", GetRevenueByCustomerAsync).RequireAuthorization();
+        // IG-227: tax summary report
+        app.MapGet("/api/v1/reports/tax-summary", GetTaxSummaryAsync).RequireAuthorization();
         return app;
     }
 
@@ -89,6 +91,18 @@ public static class DashboardEndpoints
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var report = await reportingService.GetRevenueByCustomerAsync(userId, startDate, endDate, cancellationToken);
+        return Results.Ok(report);
+    }
+
+    private static async Task<IResult> GetTaxSummaryAsync(
+        ClaimsPrincipal user,
+        IReportingService reportingService,
+        CancellationToken cancellationToken,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var report = await reportingService.GetTaxSummaryAsync(userId, startDate, endDate, cancellationToken);
         return Results.Ok(report);
     }
 }

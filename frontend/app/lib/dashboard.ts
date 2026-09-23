@@ -59,6 +59,19 @@ export interface RevenueByCustomer {
   revenue: number;
 }
 
+export interface TaxByRate {
+  taxRate: number;
+  taxableAmount: number;
+  taxCollected: number;
+}
+
+export interface TaxSummary {
+  currency: string;
+  totalTaxableAmount: number;
+  totalTaxCollected: number;
+  taxesByRate: TaxByRate[];
+}
+
 function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
@@ -165,6 +178,28 @@ export async function getRevenueByCustomer(
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load revenue by customer."));
+  }
+
+  return response.json();
+}
+
+/** IG-227: Get tax summary for a period - totals tax collected across invoices.
+ * Omit startDate/endDate for current month. */
+export async function getTaxSummary(startDate?: string, endDate?: string): Promise<TaxSummary> {
+  const params = new URLSearchParams();
+  if (startDate) {
+    params.set("startDate", startDate);
+  }
+  if (endDate) {
+    params.set("endDate", endDate);
+  }
+  const query = params.toString();
+  const response = await fetch(`${baseUrl()}/api/v1/reports/tax-summary?${query}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load tax summary."));
   }
 
   return response.json();
