@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRevenueReport, RevenueReport } from "../../lib/dashboard";
+import { getRevenueReport, RevenueReport, exportRevenueReportCsv } from "../../lib/dashboard";
 
 export function RevenueReportView() {
   const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">("month");
   const [report, setReport] = useState<RevenueReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [startDate, setStartDate] = useState<string>();
+  const [endDate, setEndDate] = useState<string>();
 
   useEffect(() => {
     const loadReport = async () => {
@@ -19,26 +22,29 @@ export function RevenueReportView() {
         const year = today.getFullYear();
         const month = today.getMonth();
 
-        let startDate: string | undefined;
-        let endDate: string | undefined;
+        let start: string | undefined;
+        let end: string | undefined;
 
         if (periodType === "month") {
-          startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+          start = `${year}-${String(month + 1).padStart(2, "0")}-01`;
           const lastDay = new Date(year, month + 1, 0).getDate();
-          endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+          end = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
         } else if (periodType === "quarter") {
           const quarter = Math.floor(month / 3);
           const quarterStart = quarter * 3;
-          startDate = `${year}-${String(quarterStart + 1).padStart(2, "0")}-01`;
+          start = `${year}-${String(quarterStart + 1).padStart(2, "0")}-01`;
           const quarterEndMonth = quarterStart + 2;
           const lastDay = new Date(year, quarterEndMonth + 1, 0).getDate();
-          endDate = `${year}-${String(quarterEndMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+          end = `${year}-${String(quarterEndMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
         } else if (periodType === "year") {
-          startDate = `${year}-01-01`;
-          endDate = `${year}-12-31`;
+          start = `${year}-01-01`;
+          end = `${year}-12-31`;
         }
 
-        const data = await getRevenueReport(periodType, startDate, endDate);
+        setStartDate(start);
+        setEndDate(end);
+
+        const data = await getRevenueReport(periodType, start, end);
         setReport(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load revenue report");
@@ -49,6 +55,25 @@ export function RevenueReportView() {
 
     loadReport();
   }, [periodType]);
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportRevenueReportCsv(periodType, startDate, endDate);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `revenue-report-${periodType}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export revenue report");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return <div className="text-center text-gray-500">Loading revenue report...</div>;
@@ -76,20 +101,29 @@ export function RevenueReportView() {
         <p className="text-sm text-gray-600 mt-1">Revenue by {periodType}</p>
       </div>
 
-      <div className="flex gap-2">
-        {(["month", "quarter", "year"] as const).map((period) => (
-          <button
-            key={period}
-            onClick={() => setPeriodType(period)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              periodType === period
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-          >
-            By {period.charAt(0).toUpperCase() + period.slice(1)}
-          </button>
-        ))}
+      <div className="flex gap-2 justify-between items-center">
+        <div className="flex gap-2">
+          {(["month", "quarter", "year"] as const).map((period) => (
+            <button
+              key={period}
+              onClick={() => setPeriodType(period)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                periodType === period
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+            >
+              By {period.charAt(0).toUpperCase() + period.slice(1)}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+        >
+          {exporting ? "Exporting..." : "Export to CSV"}
+        </button>
       </div>
 
       <div className="overflow-x-auto">

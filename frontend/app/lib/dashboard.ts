@@ -204,3 +204,100 @@ export async function getTaxSummary(startDate?: string, endDate?: string): Promi
 
   return response.json();
 }
+
+/** IG-228: Export revenue report to CSV. */
+export async function exportRevenueReportCsv(
+  periodType: string = "month",
+  startDate?: string,
+  endDate?: string
+): Promise<Blob> {
+  const params = new URLSearchParams();
+  params.set("periodType", periodType);
+  if (startDate) {
+    params.set("startDate", startDate);
+  }
+  if (endDate) {
+    params.set("endDate", endDate);
+  }
+  const query = params.toString();
+  const response = await fetch(`${baseUrl()}/api/v1/reports/revenue/export/csv?${query}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to export revenue report."));
+  }
+
+  return response.blob();
+}
+
+/** IG-228: Export outstanding invoices to CSV. */
+export async function exportOutstandingInvoicesCsv(): Promise<Blob> {
+  const response = await fetch(`${baseUrl()}/api/v1/reports/outstanding/export/csv`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to export outstanding invoices."));
+  }
+
+  return response.blob();
+}
+
+/** IG-228: Export overdue invoices to CSV. */
+export async function exportOverdueInvoicesCsv(): Promise<Blob> {
+  const response = await fetch(`${baseUrl()}/api/v1/reports/overdue/export/csv`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to export overdue invoices."));
+  }
+
+  return response.blob();
+}
+
+/** IG-228: Export revenue by customer to CSV. */
+export async function exportRevenueByCustomerCsv(
+  startDate?: string,
+  endDate?: string
+): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (startDate) {
+    params.set("startDate", startDate);
+  }
+  if (endDate) {
+    params.set("endDate", endDate);
+  }
+  const query = params.toString();
+  const response = await fetch(`${baseUrl()}/api/v1/reports/by-customer/export/csv?${query}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to export revenue by customer."));
+  }
+
+  return response.blob();
+}
+
+/** IG-228: Export tax summary to CSV. */
+export async function exportTaxSummaryCsv(startDate?: string, endDate?: string): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (startDate) {
+    params.set("startDate", startDate);
+  }
+  if (endDate) {
+    params.set("endDate", endDate);
+  }
+  const query = params.toString();
+  const response = await fetch(`${baseUrl()}/api/v1/reports/tax-summary/export/csv?${query}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to export tax summary."));
+  }
+
+  return response.blob();
+}

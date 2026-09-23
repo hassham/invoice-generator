@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getOutstandingReport, getOverdueReport, OutstandingInvoice, OverdueInvoice } from "../../lib/dashboard";
+import {
+  getOutstandingReport,
+  getOverdueReport,
+  exportOutstandingInvoicesCsv,
+  exportOverdueInvoicesCsv,
+  OutstandingInvoice,
+  OverdueInvoice,
+} from "../../lib/dashboard";
 
 type ReportType = "outstanding" | "overdue";
 
@@ -16,6 +23,7 @@ export function OutstandingAndOverdueView({ type }: Props) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -52,6 +60,28 @@ export function OutstandingAndOverdueView({ type }: Props) {
     return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   };
 
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob =
+        type === "outstanding"
+          ? await exportOutstandingInvoicesCsv()
+          : await exportOverdueInvoicesCsv();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type}-invoices.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to export ${type} invoices`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center text-gray-500">Loading {title.toLowerCase()}...</div>;
   }
@@ -62,9 +92,20 @@ export function OutstandingAndOverdueView({ type }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <p className="text-sm text-gray-600 mt-1">{description}</p>
+        </div>
+        {invoices.length > 0 && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+          >
+            {exporting ? "Exporting..." : "Export to CSV"}
+          </button>
+        )}
       </div>
 
       {invoices.length === 0 ? (

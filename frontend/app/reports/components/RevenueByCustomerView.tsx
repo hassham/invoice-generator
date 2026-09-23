@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRevenueByCustomer, RevenueByCustomer } from "../../lib/dashboard";
+import { getRevenueByCustomer, exportRevenueByCustomerCsv, RevenueByCustomer } from "../../lib/dashboard";
 
 export function RevenueByCustomerView() {
   const [customers, setCustomers] = useState<RevenueByCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -34,6 +35,25 @@ export function RevenueByCustomerView() {
 
   const totalRevenue = customers.reduce((sum, c) => sum + c.revenue, 0);
 
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportRevenueByCustomerCsv();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "revenue-by-customer.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export revenue by customer");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center text-gray-500">Loading revenue by customer...</div>;
   }
@@ -44,9 +64,20 @@ export function RevenueByCustomerView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Revenue by Customer</h1>
-        <p className="text-sm text-gray-600 mt-1">Revenue breakdown by customer for current month</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Revenue by Customer</h1>
+          <p className="text-sm text-gray-600 mt-1">Revenue breakdown by customer for current month</p>
+        </div>
+        {customers.length > 0 && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+          >
+            {exporting ? "Exporting..." : "Export to CSV"}
+          </button>
+        )}
       </div>
 
       {customers.length === 0 ? (
