@@ -21,21 +21,30 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-224: Revenue Report (just completed locally, awaiting QA + Jira transition)**
+**IG-224: Revenue Report (completed locally, 2 bugs fixed, ready for Jira transition)**
 
 Completed work:
 - Commit `baec86f`: Implement revenue report (IG-224)
-- Files: backend Reporting module (Application/Infrastructure), frontend /reports page with RevenueReportView component
-- Backend tests: ReportingService logic fully queryable from infrastructure/persistence layer
-- Frontend tests: 6 tests for RevenueReportView (load, display, period switching, errors, empty state)
-- Full build verification: backend dotnet build ✓, frontend npm run build ✓, frontend npm test (Revenue tests) ✓
+  - Backend: ReportingService + DTOs + HTTP endpoint + DI registration
+  - Frontend: /reports page, RevenueReportView component, API client function
+- Commit `abfaecb`: Fix period selection bugs (IG-224)
+  - Bug 1 (High): Quarter/Year tabs now request proper date ranges (fixed)
+  - Bug 2 (Medium): Invalid periodType returns 400 not 500 (fixed)
 
-Verification in progress: QA agent testing end-to-end against live servers (localhost:5094 backend, localhost:3000 frontend).
+QA findings: Both high-priority bugs fixed. Feature now fully functional:
+- Period selector tabs correctly widen date ranges (month/quarter/year)
+- Revenue aggregation works per specification
+- Currency formatting correct
+- Authorization verified (401 for unauthenticated)
+- All 6 frontend tests passing
+- Backend dotnet build ✓, frontend npm run build ✓
+
+Known unfixed bugs (outside IG-224 scope):
+- Bug 3: Unrelated invoice-save race condition in CreateInvoiceEditor (pre-existing) — recommend separate Jira issue
 
 Next: 
-- Await QA completion and any findings
-- Transition IG-224 to Done in Jira (and close its Subtasks IG-245, IG-246 if they exist)
-- User selects next priority item from `IG-225`-`IG-228` (outstanding/overdue, by-customer, tax summary, CSV/PDF export under Epic `IG-208`)
+- Transition IG-224 to Done in Jira (and close its Subtasks)
+- User selects next priority from `IG-225`-`IG-228` (outstanding/overdue, by-customer, tax summary, CSV/PDF export under Epic `IG-208`)
 
 ## Engineering Notes
 
