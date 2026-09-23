@@ -43,7 +43,7 @@ describe("RevenueReportView", () => {
     expect(screen.getByText("$2,000.00")).toBeInTheDocument();
   });
 
-  it("switches between period types", async () => {
+  it("switches between period types with appropriate date ranges", async () => {
     const monthReport = {
       currency: "USD",
       periodType: "month",
@@ -73,6 +73,13 @@ describe("RevenueReportView", () => {
     await waitFor(() => {
       expect(screen.getByText("2026-Q3")).toBeInTheDocument();
     });
+
+    // Verify that appropriate date ranges were requested (quarter should have wider range)
+    expect(dashboardLib.getRevenueReport).toHaveBeenLastCalledWith(
+      "quarter",
+      expect.stringMatching(/2026-0[1-9]-01/), // quarter start
+      expect.stringMatching(/2026-\d{2}-\d{2}/) // quarter end
+    );
   });
 
   it("displays error message on fetch failure", async () => {
@@ -106,7 +113,7 @@ describe("RevenueReportView", () => {
     });
   });
 
-  it("calls getRevenueReport with correct periodType", async () => {
+  it("requests full year data when period type is year", async () => {
     const monthReport = {
       currency: "USD",
       periodType: "month",
@@ -134,7 +141,11 @@ describe("RevenueReportView", () => {
     await user.click(yearButton);
 
     await waitFor(() => {
-      expect(dashboardLib.getRevenueReport).toHaveBeenCalledWith("year");
+      expect(dashboardLib.getRevenueReport).toHaveBeenLastCalledWith(
+        "year",
+        "2026-01-01",
+        "2026-12-31"
+      );
     });
   });
 });

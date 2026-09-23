@@ -36,8 +36,22 @@ public static class DashboardEndpoints
         DateOnly? startDate = null,
         DateOnly? endDate = null)
     {
+        if (!IsValidPeriodType(periodType))
+        {
+            return Results.BadRequest(new { detail = "periodType must be 'month', 'quarter', or 'year'." });
+        }
+
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var report = await reportingService.GetRevenueReportAsync(userId, periodType, startDate, endDate, cancellationToken);
         return Results.Ok(report);
+    }
+
+    private static bool IsValidPeriodType(string periodType)
+    {
+        return periodType.ToLower() switch
+        {
+            "month" or "quarter" or "year" => true,
+            _ => false,
+        };
     }
 }

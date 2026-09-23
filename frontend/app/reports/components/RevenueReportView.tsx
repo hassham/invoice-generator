@@ -14,7 +14,31 @@ export function RevenueReportView() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getRevenueReport(periodType);
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        let startDate: string | undefined;
+        let endDate: string | undefined;
+
+        if (periodType === "month") {
+          startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+          const lastDay = new Date(year, month + 1, 0).getDate();
+          endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+        } else if (periodType === "quarter") {
+          const quarter = Math.floor(month / 3);
+          const quarterStart = quarter * 3;
+          startDate = `${year}-${String(quarterStart + 1).padStart(2, "0")}-01`;
+          const quarterEndMonth = quarterStart + 2;
+          const lastDay = new Date(year, quarterEndMonth + 1, 0).getDate();
+          endDate = `${year}-${String(quarterEndMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+        } else if (periodType === "year") {
+          startDate = `${year}-01-01`;
+          endDate = `${year}-12-31`;
+        }
+
+        const data = await getRevenueReport(periodType, startDate, endDate);
         setReport(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load revenue report");
