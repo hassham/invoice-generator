@@ -137,6 +137,7 @@ app.UseRateLimiter();
 
 app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
+app.MapRecurringScheduleEndpoints();
 app.MapEstimateEndpoints();
 app.MapPublicInvoiceEndpoints();
 app.MapPublicEstimateEndpoints();

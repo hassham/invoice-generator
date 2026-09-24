@@ -8,6 +8,7 @@ public static class InvoicingServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureInvoicing(this IServiceCollection services)
     {
         services.AddScoped<IInvoiceService, InvoiceService>();
+        services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
         return services;
     }
 }
