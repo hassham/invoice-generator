@@ -21,48 +21,50 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-228: CSV/PDF Export (completed locally, ready for Jira Done)**
+**IG-229: Create a recurring invoice schedule (part 1 - backend infrastructure completed)**
 
-Completed work (2026-09-24):
-- Commit 2d6f14b: CSV export implementation for all reporting endpoints
-- IG-228 deliverables:
-  - Backend: ExportService with IExportService interface
-    - 5 export methods: revenue report, outstanding invoices, overdue invoices, revenue by customer, tax summary
-    - CsvEscape utility for RFC 4180 compliant CSV formatting (handles commas, quotes, newlines)
-    - All export methods return Task<string> with properly formatted CSV data
-  - Backend: 5 new export endpoints (GET /api/v1/reports/*/export/csv)
-    - ExportRevenueReportCsvAsync: aggregates revenue data, returns as downloadable CSV
-    - ExportOutstandingInvoicesCsvAsync: exports outstanding invoice list
-    - ExportOverdueInvoicesCsvAsync: exports overdue invoice list
-    - ExportRevenueByCustomerCsvAsync: exports customer revenue breakdown
-    - ExportTaxSummaryCsvAsync: exports tax summary with rates and amounts
-    - All endpoints return proper Content-Type: text/csv and Content-Disposition headers
-    - All endpoints require authorization (RequireAuthorization())
-  - Frontend: 5 new export functions in dashboard.ts
-    - exportRevenueReportCsv, exportOutstandingInvoicesCsv, exportOverdueInvoicesCsv, exportRevenueByCustomerCsv, exportTaxSummaryCsv
-    - All return Promise<Blob>, handle auth credentials, parse errors
-  - Frontend: Export buttons on all report components
-    - RevenueReportView: green "Export to CSV" button (top right, alongside period selectors)
-    - OutstandingAndOverdueView: export button visible only when invoices present
-    - RevenueByCustomerView: export button visible only when customers present
-    - TaxSummaryView: export button visible only when tax collected > 0
-    - Each button triggers client-side file download with appropriate filename (e.g., revenue-report-month.csv)
-    - Loading state during export (button text changes to "Exporting...")
-  - Tests: Backend 236 tests passing (no new export-specific tests added; uses existing test infra)
-  - Builds: backend ✓, frontend ✓, no TypeScript errors
+Completed work (2026-09-24, commit e6c4571):
+- IG-229 backend infrastructure:
+  - Domain: RecurringSchedule entity (BusinessId/CustomerId/InvoiceTemplateId, Frequency enum, StartDate/EndDate/NextRunDate, AutoSend, IsActive, soft-delete)
+  - RecurringScheduleFrequency enum: Weekly/Fortnightly/Monthly/Quarterly/Annually/Custom
+  - Application: CreateRecurringScheduleCommand, RecurringScheduleDto, IRecurringScheduleService interface
+  - Infrastructure: RecurringScheduleService implementation (create with validation, list by business, get by ID)
+  - API: 3 endpoints (POST /businesses/{id}/recurring-schedules, GET /businesses/{id}/recurring-schedules, GET /businesses/{id}/recurring-schedules/{id})
+  - Database: migration AddRecurringSchedules with proper foreign key indexes and soft-delete support
+  - Authorization: all endpoints verify user->business ownership
+  - Validation: end date > start date, customer/template existence, ownership verification
+- Backend builds ✓, 0 errors, 0 warnings
+- Pushed to GitHub (e6c4571)
 
-**Reporting epic (IG-208) progress: 5 of 5 stories complete - REPORTING EPIC DONE**
-- ✅ IG-224: Revenue by period (month/quarter/year)
-- ✅ IG-225: Outstanding/overdue invoices
-- ✅ IG-226: Revenue by customer
-- ✅ IG-227: Tax summary
-- ✅ IG-228: CSV export (PDF deferred to post-MVP)
+**Remaining for IG-229 (part 2 - frontend + background job):**
+- Frontend: React form component for creating recurring schedules
+  - Input fields: Customer selector, Invoice template selector, Frequency dropdown, Start date picker, End date picker (optional), AutoSend toggle
+  - Form validation on frontend (start < end if end provided)
+  - Submit to POST /api/v1/businesses/{id}/recurring-schedules
+  - Success: show created schedule or navigate to schedule list
+- Frontend: List view for recurring schedules (GET /api/v1/businesses/{id}/recurring-schedules)
+- Frontend: Detail view / edit capabilities (future)
+- Backend: Background job to generate invoices (Quartz or similar)
+  - Query RecurringSchedules where NextRunDate <= today and not expired
+  - For each, clone the template invoice, update customer, set new NextRunDate based on frequency
+  - Update schedule's NextRunDate after invoice generation
+  - Optional: send email if AutoSend = true
+  - Handle edge cases: invoice number generation, tax calculations, etc.
+- Tests: unit tests for service logic, endpoint tests for API, component tests for frontend form
 
-**Phase 2 completion**: 5 reporting stories + 3 estimate stories + 4 payment stories + 4 email stories + 2 hosted invoice stories = majority of Phase 2 MVP delivered.
+**Epic progress**:
+- IG-205 (Email Delivery): ✅ Done (all 4 stories)
+- IG-206 (Online Payments): ✅ Done (all 4 stories, epic status needs update)
+- IG-207 (Estimates): ✅ Done (all 4 stories, epic status needs update)
+- IG-208 (Reporting): ✅ Done (all 5 stories) - IG-228 CSV export completed 2026-09-24
+- IG-209 (Recurring Invoices): 🔄 In Progress
+  - ⏳ IG-229: Create recurring schedule (backend infrastructure done, frontend TBD)
+  - ⏳ IG-230: Generate invoices on schedule (background job TBD)
+  - ⏳ IG-231: Pause a recurring schedule (future)
+  - ⏳ IG-232: Configure reminders (future)
+  - ⏳ IG-233: Safe reminder failure handling (future)
 
-**Next task**: Check Jira for next priority item; likely from IG-205 (Email Delivery) or IG-206 (Online Payments).
-
-**Pending Jira work**: Transition IG-228 to Done once user confirms. All acceptance criteria met; QA-ready.
+**Next task**: Complete frontend form and background job for IG-229, then move to next epic or story.
 
 ## Engineering Notes
 
