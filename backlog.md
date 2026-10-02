@@ -21,32 +21,27 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-229: Create a recurring invoice schedule (Done → Jira 2026-10-02)**
+**IG-231: Pause or cancel a recurring schedule (COMPLETED 2026-10-02)**
 
-Completed work (commits e6c4571 + d9bc1ea):
-- **Part 1 - Backend Infrastructure (2026-09-24, e6c4571):**
-  - Domain: RecurringSchedule entity, RecurringScheduleFrequency enum
-  - Application: CreateRecurringScheduleCommand, RecurringScheduleDto, IRecurringScheduleService
-  - API: 3 endpoints for create/list/get
-  - Database: migration with indexes on business/customer/next-run-date
-  - Authorization: user->business->schedule ownership chain verified
+Completed work (commit 5c8c1a4):
+- **Backend:**
+  - Added PauseAsync, ResumeAsync, CancelAsync to IRecurringScheduleService
+  - Pause sets IsActive=false (stops future generation, keeps schedule & history)
+  - Cancel soft-deletes (sets IsDeleted=true and IsActive=false)
+  - PATCH /pause and /resume endpoints, DELETE endpoint for cancel
+  - Authorization checks via business ownership chain
 
-- **Part 2 - Frontend + Background Job (2026-10-02, d9bc1ea):**
-  - Frontend library (recurring.ts): API wrapper functions with error handling
-  - CreateRecurringScheduleForm: customer/template/frequency/dates/auto-send UI
-  - Page component with route-aware loading and success redirect
-  - RecurringInvoiceGenerationService: background job runs daily at 02:00 UTC
-    - Queries RecurringSchedules where NextRunDate ≤ today and not expired
-    - Clones template invoice for each due schedule
-    - Generates invoice number with date prefix
-    - Sets NextRunDate based on frequency (weekly/fortnightly/monthly/quarterly/annually/custom)
-    - Calculates due date from payment terms (DueOnReceipt/Net7/Net14/Net30/Net60/Net90)
-    - Proper logging of generated invoices
-    - Registered as hosted service in DI
+- **Frontend:**
+  - Added API functions: pauseRecurringSchedule, resumeRecurringSchedule, cancelRecurringSchedule
+  - RecurringScheduleList component: displays schedules with status badges
+  - Pause/resume buttons toggle based on IsActive state
+  - Cancel button with confirmation popup
+  - RecurringScheduleContent wrapper with Suspense for useSearchParams
+  - Tabbed interface: view schedules or create new
 
-- Acceptance criteria met: ✓ Create schedule, ✓ Auto-generate invoices on schedule, ✓ Frequency support, ✓ Auto-send prep (flag stored)
+- Acceptance criteria met: ✓ Pause stops generation, ✓ Cancel is permanent, ✓ History preserved
 - Backend builds ✓, 236 tests pass ✓
-- Frontend: form builds but needs business context setup for route params (minor next.js use-client routing issue)
+- Frontend builds ✓
 
 **Epic progress**:
 - IG-205 (Email Delivery): ✅ Done (all 4 stories)
@@ -55,12 +50,12 @@ Completed work (commits e6c4571 + d9bc1ea):
 - IG-208 (Reporting): ✅ Done (all 5 stories)
 - IG-209 (Recurring Invoices): 🔄 In Progress
   - ✅ IG-229: Create recurring schedule (Jira: Done)
-  - ⏳ IG-230: Generate invoices on schedule (complete: background job runs daily, see IG-229)
-  - ⏳ IG-231: Pause a recurring schedule (future)
+  - ✅ IG-230: Generate invoices on schedule (background job running)
+  - ✅ IG-231: Pause or cancel recurring schedule (complete, local)
   - ⏳ IG-232: Configure reminders (future)
   - ⏳ IG-233: Safe reminder failure handling (future)
 
-**Next task**: Continue IG-209 (IG-231/232/233), move to IG-210 (Expanded Billing Documents), or elsewhere?
+**Next task**: Transition IG-231 to Done in Jira, then continue IG-232 (reminders) or IG-233?
 
 ## Engineering Notes
 
