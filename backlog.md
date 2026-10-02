@@ -21,6 +21,27 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
+**IG-232: Configure payment reminders (IN PROGRESS — backend complete 2026-10-02)**
+
+Completed work (commits 52dbcb4 + 7768e27 + f6ad5d2):
+- **Domain:** ReminderTriggerType enum, ReminderRule entity, ReminderSent deduplication entity
+- **Database:** Migration with indexes on BusinessId, (InvoiceId, ReminderRuleId) unique
+- **Service:** IReminderRuleService with list/get/update, InitializeDefaultRulesAsync (5 default rules)
+- **Endpoints:** GET list/detail, PUT update, POST initialize-defaults (all auth-gated)
+- **Background Job:** ReminderSendingService runs daily at 03:00 UTC
+  - Finds invoices not paid/cancelled
+  - Evaluates rules: 3d before, on due, 3/7/14d overdue
+  - Deduplicates via ReminderSent
+  - Records sent reminders
+
+Acceptance criteria met (backend): ✓ Default rules, ✓ Customizable templates, ✓ Auto-stop on paid/cancelled
+Backend builds ✓, 236 tests pass ✓
+
+**Remaining (frontend + email):**
+- Frontend UI to view/edit reminder rules
+- Email integration (use existing email infrastructure)
+- Test end-to-end reminder sending
+
 **IG-231: Pause or cancel a recurring schedule (COMPLETED 2026-10-02)**
 
 Completed work (commit 5c8c1a4):
