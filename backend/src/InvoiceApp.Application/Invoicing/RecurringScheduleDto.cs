@@ -18,6 +18,24 @@ public interface IRecurringScheduleService
         Guid businessId,
         Guid scheduleId,
         CancellationToken cancellationToken);
+
+    Task<RecurringScheduleDto> PauseAsync(
+        Guid userId,
+        Guid businessId,
+        Guid scheduleId,
+        CancellationToken cancellationToken);
+
+    Task<RecurringScheduleDto> ResumeAsync(
+        Guid userId,
+        Guid businessId,
+        Guid scheduleId,
+        CancellationToken cancellationToken);
+
+    Task CancelAsync(
+        Guid userId,
+        Guid businessId,
+        Guid scheduleId,
+        CancellationToken cancellationToken);
 }
 
 public record CreateRecurringScheduleCommand(

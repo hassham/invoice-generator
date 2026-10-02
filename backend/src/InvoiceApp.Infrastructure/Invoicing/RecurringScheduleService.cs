@@ -99,6 +99,81 @@ public sealed class RecurringScheduleService(ApplicationDbContext dbContext) : I
         return MapToDto(schedule);
     }
 
+    public async Task<RecurringScheduleDto> PauseAsync(
+        Guid userId,
+        Guid businessId,
+        Guid scheduleId,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+
+        if (business == null)
+            throw new InvalidOperationException("Business not found or access denied.");
+
+        var schedule = await dbContext.RecurringSchedules
+            .FirstOrDefaultAsync(rs => rs.Id == scheduleId && rs.BusinessId == businessId && !rs.IsDeleted, cancellationToken);
+
+        if (schedule == null)
+            throw new InvalidOperationException("Recurring schedule not found.");
+
+        schedule.IsActive = false;
+        schedule.UpdatedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(schedule);
+    }
+
+    public async Task<RecurringScheduleDto> ResumeAsync(
+        Guid userId,
+        Guid businessId,
+        Guid scheduleId,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+
+        if (business == null)
+            throw new InvalidOperationException("Business not found or access denied.");
+
+        var schedule = await dbContext.RecurringSchedules
+            .FirstOrDefaultAsync(rs => rs.Id == scheduleId && rs.BusinessId == businessId && !rs.IsDeleted, cancellationToken);
+
+        if (schedule == null)
+            throw new InvalidOperationException("Recurring schedule not found.");
+
+        schedule.IsActive = true;
+        schedule.UpdatedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(schedule);
+    }
+
+    public async Task CancelAsync(
+        Guid userId,
+        Guid businessId,
+        Guid scheduleId,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+
+        if (business == null)
+            throw new InvalidOperationException("Business not found or access denied.");
+
+        var schedule = await dbContext.RecurringSchedules
+            .FirstOrDefaultAsync(rs => rs.Id == scheduleId && rs.BusinessId == businessId && !rs.IsDeleted, cancellationToken);
+
+        if (schedule == null)
+            throw new InvalidOperationException("Recurring schedule not found.");
+
+        schedule.IsDeleted = true;
+        schedule.IsActive = false;
+        schedule.DeletedAt = DateTimeOffset.UtcNow;
+        schedule.UpdatedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private static RecurringScheduleDto MapToDto(RecurringSchedule schedule)
     {
         return new RecurringScheduleDto(

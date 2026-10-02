@@ -74,3 +74,58 @@ export async function getRecurringSchedule(
 
   return response.json();
 }
+
+export async function pauseRecurringSchedule(
+  businessId: string,
+  scheduleId: string
+): Promise<RecurringSchedule> {
+  const response = await fetch(
+    `${baseUrl()}/api/v1/businesses/${businessId}/recurring-schedules/${scheduleId}/pause`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to pause recurring schedule."));
+  }
+
+  return response.json();
+}
+
+export async function resumeRecurringSchedule(
+  businessId: string,
+  scheduleId: string
+): Promise<RecurringSchedule> {
+  const response = await fetch(
+    `${baseUrl()}/api/v1/businesses/${businessId}/recurring-schedules/${scheduleId}/resume`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to resume recurring schedule."));
+  }
+
+  return response.json();
+}
+
+export async function cancelRecurringSchedule(
+  businessId: string,
+  scheduleId: string
+): Promise<void> {
+  const response = await fetch(
+    `${baseUrl()}/api/v1/businesses/${businessId}/recurring-schedules/${scheduleId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to cancel recurring schedule."));
+  }
+}

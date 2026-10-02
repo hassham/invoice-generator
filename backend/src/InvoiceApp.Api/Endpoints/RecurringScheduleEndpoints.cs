@@ -13,6 +13,12 @@ public static class RecurringScheduleEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/recurring-schedules", ListAsync).RequireAuthorization();
         // IG-229: Get a specific recurring schedule
         app.MapGet("/api/v1/businesses/{businessId:guid}/recurring-schedules/{id:guid}", GetAsync).RequireAuthorization();
+        // IG-231: Pause a recurring schedule
+        app.MapPatch("/api/v1/businesses/{businessId:guid}/recurring-schedules/{id:guid}/pause", PauseAsync).RequireAuthorization();
+        // IG-231: Resume a recurring schedule
+        app.MapPatch("/api/v1/businesses/{businessId:guid}/recurring-schedules/{id:guid}/resume", ResumeAsync).RequireAuthorization();
+        // IG-231: Cancel a recurring schedule
+        app.MapDelete("/api/v1/businesses/{businessId:guid}/recurring-schedules/{id:guid}", CancelAsync).RequireAuthorization();
         return app;
     }
 
@@ -72,6 +78,66 @@ public static class RecurringScheduleEndpoints
         {
             var schedule = await recurringService.GetAsync(userId, businessId, id, cancellationToken);
             return Results.Ok(schedule);
+        }
+        catch (InvalidOperationException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> PauseAsync(
+        ClaimsPrincipal user,
+        Guid businessId,
+        Guid id,
+        IRecurringScheduleService recurringService,
+        CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            var schedule = await recurringService.PauseAsync(userId, businessId, id, cancellationToken);
+            return Results.Ok(schedule);
+        }
+        catch (InvalidOperationException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> ResumeAsync(
+        ClaimsPrincipal user,
+        Guid businessId,
+        Guid id,
+        IRecurringScheduleService recurringService,
+        CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            var schedule = await recurringService.ResumeAsync(userId, businessId, id, cancellationToken);
+            return Results.Ok(schedule);
+        }
+        catch (InvalidOperationException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> CancelAsync(
+        ClaimsPrincipal user,
+        Guid businessId,
+        Guid id,
+        IRecurringScheduleService recurringService,
+        CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            await recurringService.CancelAsync(userId, businessId, id, cancellationToken);
+            return Results.NoContent();
         }
         catch (InvalidOperationException)
         {

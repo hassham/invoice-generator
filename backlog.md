@@ -21,7 +21,7 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-229: Create a recurring invoice schedule (COMPLETED 2026-10-02)**
+**IG-229: Create a recurring invoice schedule (Done → Jira 2026-10-02)**
 
 Completed work (commits e6c4571 + d9bc1ea):
 - **Part 1 - Backend Infrastructure (2026-09-24, e6c4571):**
@@ -54,13 +54,13 @@ Completed work (commits e6c4571 + d9bc1ea):
 - IG-207 (Estimates): ✅ Done (all 4 stories)
 - IG-208 (Reporting): ✅ Done (all 5 stories)
 - IG-209 (Recurring Invoices): 🔄 In Progress
-  - ✅ IG-229: Create recurring schedule (complete: form + background job)
+  - ✅ IG-229: Create recurring schedule (Jira: Done)
   - ⏳ IG-230: Generate invoices on schedule (complete: background job runs daily, see IG-229)
   - ⏳ IG-231: Pause a recurring schedule (future)
   - ⏳ IG-232: Configure reminders (future)
   - ⏳ IG-233: Safe reminder failure handling (future)
 
-**Summary**: IG-229/IG-230 effectively complete (background job generates invoices daily; manual pause/enable via soft-delete). Could mark both Done in Jira. Next: check for acceptance of both stories, or move to IG-210 (Expanded Billing Documents) or remaining IG-209 stories.
+**Next task**: Continue IG-209 (IG-231/232/233), move to IG-210 (Expanded Billing Documents), or elsewhere?
 
 ## Engineering Notes
 
