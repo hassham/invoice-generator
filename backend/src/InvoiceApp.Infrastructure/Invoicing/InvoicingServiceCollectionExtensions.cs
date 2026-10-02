@@ -9,6 +9,7 @@ public static class InvoicingServiceCollectionExtensions
     {
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
+        services.AddScoped<IReminderRuleService, ReminderRuleService>();
         services.AddHostedService<RecurringInvoiceGenerationService>();
         return services;
     }
