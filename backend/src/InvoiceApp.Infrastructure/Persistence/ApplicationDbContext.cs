@@ -44,6 +44,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<RecurringSchedule> RecurringSchedules => Set<RecurringSchedule>();
 
+    public DbSet<ReminderRule> ReminderRules => Set<ReminderRule>();
+
+    public DbSet<ReminderSent> RemindersSent => Set<ReminderSent>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
