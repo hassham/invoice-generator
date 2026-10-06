@@ -35,7 +35,10 @@ public sealed class ReceiptService(ApplicationDbContext dbContext) : IReceiptSer
             .Where(r => r.BusinessId == businessId && r.IssueDate == issueDate)
             .CountAsync(cancellationToken) + 1;
 
-        var receiptNumber = $"R-{businessId:N}".Substring(0, 9) + $"{issueDate:yyyyMMdd}{sequenceNumber:D3}";
+        // Count-then-insert races if two receipts are created for one business on the same day, so
+        // the (business_id, receipt_number) unique index is what actually guarantees uniqueness -
+        // a loser gets a DbUpdateException rather than silently sharing an accounting number.
+        var receiptNumber = $"RCP-{issueDate:yyyyMMdd}-{sequenceNumber:D3}";
 
         var receipt = new Receipt
         {

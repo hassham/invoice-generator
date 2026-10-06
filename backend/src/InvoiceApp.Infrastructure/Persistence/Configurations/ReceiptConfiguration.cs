@@ -8,7 +8,7 @@ public sealed class ReceiptConfiguration : IEntityTypeConfiguration<Receipt>
 {
     public void Configure(EntityTypeBuilder<Receipt> builder)
     {
-        builder.ToTable("receipts", "payments");
+        builder.ToTable("receipts", "payment");
 
         builder.HasKey(r => r.Id);
 
@@ -23,5 +23,6 @@ public sealed class ReceiptConfiguration : IEntityTypeConfiguration<Receipt>
         builder.HasIndex(r => r.InvoiceId);
         builder.HasIndex(r => r.PaymentId);
         builder.HasIndex(r => new { r.BusinessId, r.IssueDate });
+        builder.HasIndex(r => new { r.BusinessId, r.ReceiptNumber }).IsUnique();
     }
 }
