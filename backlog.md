@@ -22,7 +22,7 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-234: Credit notes (API LAYER COMPLETE 2026-10-06)**
+**IG-234: Credit notes (FEATURE COMPLETE 2026-10-06)**
 
 **IG-234 API work** (commits 16d3a7d + 0addc76):
 - Domain: CreditNote entity (references InvoiceId, CustomerId, tracks Amount, Reason, seller/customer snapshots)
@@ -33,10 +33,20 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
   - Amount validation: credit amount cannot exceed invoice amount due
 - Migration: 20261006103443_AddCreditNotes.cs added
 
-Backend builds ✓, 236 tests pass ✓, code pushed to GitHub ✓
+Backend builds ✓, 236 tests pass ✓
 
-**Next**: Implement frontend components for IG-234 credit notes (API library + create/list UI) following recurring schedules pattern
-**Then**: Continue to IG-235 (Receipts), IG-236 (Purchase Orders), IG-237 (Document filtering) under IG-210 epic
+**IG-234 Frontend work** (commit 04fe150):
+- API library (lib/creditNotes.ts): CRUD operations with error handling
+- CreateCreditNoteForm: Invoice selection, amount validation (≤ invoice due), reason, optional notes
+- CreditNoteList: Table view with delete confirmation
+- CreditNoteContent: Tab-based management (list/create)
+- Page route at /credit-notes (accessible via businessId query param)
+- Follows recurring schedules pattern for consistency
+
+Frontend build ✓, ESLint ✓
+
+**Next**: Test IG-234 frontend in app, then continue to IG-235 (Receipts)
+**Then**: Continue to IG-236 (Purchase Orders), IG-237 (Document filtering) under IG-210 epic
 
 **Epic progress**:
 - IG-205 (Email Delivery): ✅ Done (all 4 stories)
