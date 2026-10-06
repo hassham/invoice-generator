@@ -140,6 +140,7 @@ app.MapInvoiceEndpoints();
 app.MapRecurringScheduleEndpoints();
 app.MapReminderRuleEndpoints();
 app.MapReminderFailureEndpoints();
+app.MapCreditNoteEndpoints();
 app.MapEstimateEndpoints();
 app.MapPublicInvoiceEndpoints();
 app.MapPublicEstimateEndpoints();
