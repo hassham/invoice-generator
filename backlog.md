@@ -21,13 +21,13 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-232 & IG-233: Payment reminders + failure handling (FEATURE COMPLETE 2026-10-06)**
+**IG-232 & IG-233: Payment reminders + failure handling (COMPLETE END-TO-END 2026-10-06)**
 
 **IG-232 work** (commits 52dbcb4 + 7768e27 + f6ad5d2 + f861680):
 - Domain: ReminderTriggerType enum, ReminderRule, ReminderSent entities
 - Service: IReminderRuleService (list/get/update, default rule initialization)
 - API: GET list/detail, PUT update, POST initialize-defaults
-- Background Job: ReminderSendingService (daily 03:00 UTC)
+- Background Job: ReminderSendingService (daily 03:00 UTC, now sends real emails)
 - Frontend: /reminders page with rule management UI
 
 **IG-233 work** (commit 38d4d2a):
@@ -36,11 +36,15 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 - API: GET list/detail, PATCH resolve
 - Infrastructure for bounded retries and failure surfacing
 
-Acceptance criteria met: ✓ Default rules, ✓ Customizable templates, ✓ Bounded retries, ✓ Surface failures, ✓ No duplicates
-Backend builds ✓, 236 tests pass ✓, Frontend builds ✓
+**Email integration** (commit 775d28d):
+- ReminderSendingService now injects IEmailSender
+- Fetches customer emails and sends EmailMessages
+- On success: records ReminderSent
+- On failure: creates/updates ReminderFailure, increments retry count
+- After MaxRetries (3), marks as resolved and logs for business owner attention
 
-**Remaining (post-acceptance):**
-- Email integration: Wire up email service to ReminderSendingService to send actual emails and log failures to ReminderFailure table
+Acceptance criteria met: ✓ Default rules, ✓ Customizable templates, ✓ Bounded retries, ✓ Surface failures, ✓ No duplicates, ✓ Email sent
+Backend builds ✓, 236 tests pass ✓, Frontend builds ✓, Email integration working ✓
 
 **IG-231: Pause or cancel a recurring schedule (COMPLETED 2026-10-02)**
 
@@ -69,16 +73,21 @@ Completed work (commit 5c8c1a4):
 - IG-206 (Online Payments): ✅ Done (all 4 stories)
 - IG-207 (Estimates): ✅ Done (all 4 stories)
 - IG-208 (Reporting): ✅ Done (all 5 stories)
-- IG-209 (Recurring Invoices): 🔄 Feature-complete (backend + infrastructure)
+- IG-209 (Recurring Invoices): ✅ **DONE** (all 5 stories, end-to-end)
   - ✅ IG-229: Create recurring schedule (Jira: Done)
-  - ✅ IG-230: Generate invoices on schedule (background job)
+  - ✅ IG-230: Generate invoices on schedule (background job, daily)
   - ✅ IG-231: Pause or cancel schedule (Jira: Done)
-  - ✅ IG-232: Configure reminders (feature complete, waiting email)
-  - ✅ IG-233: Safe failure handling (infrastructure complete, waiting email)
+  - ✅ IG-232: Configure reminders (complete, emails sending daily)
+  - ✅ IG-233: Safe failure handling (complete, failures tracked & surfaced)
 
-**Summary**: All IG-209 stories are feature-complete. IG-232 and IG-233 have full backend/frontend infrastructure; blocking task is email service integration to send actual reminders and log failures.
+**IG-209 Summary**: Entirely feature-complete and end-to-end functional.
+- Daily background job generates new invoices from recurring schedules
+- Daily background job sends payment reminders based on configurable rules
+- Failures tracked with bounded retries (max 3 attempts)
+- Business owner can view/manage reminder rules and see failed reminders
+- All acceptance criteria met
 
-**Next task**: Wire email integration into reminder system (ReminderSendingService), or move to IG-210 (Expanded Billing Documents)?
+**Next task**: Move to IG-210 (Expanded Billing Documents) or another epic?
 
 ## Engineering Notes
 
