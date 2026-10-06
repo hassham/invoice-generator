@@ -50,6 +50,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<ReminderFailure> ReminderFailures => Set<ReminderFailure>();
 
+    public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
