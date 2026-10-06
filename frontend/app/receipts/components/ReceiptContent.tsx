@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CreateCreditNoteForm } from "./CreateCreditNoteForm";
-import { CreditNoteList } from "./CreditNoteList";
-import { listByBusiness, CreditNote } from "../../lib/creditNotes";
+import { CreateReceiptForm } from "./CreateReceiptForm";
+import { ReceiptList } from "./ReceiptList";
+import { listByBusiness, Receipt } from "../../lib/receipts";
 import { listInvoices, InvoiceListItem } from "../../lib/invoiceList";
 
-export function CreditNoteContent() {
+export function ReceiptContent() {
   const searchParams = useSearchParams();
   const businessId = searchParams.get("businessId") || "";
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
-  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
 
@@ -21,14 +21,14 @@ export function CreditNoteContent() {
     const load = async () => {
       try {
         setLoading(true);
-        const [creditNoteData, invoiceData] = await Promise.all([
+        const [receiptData, invoiceData] = await Promise.all([
           listByBusiness(businessId),
           listInvoices({ page: 1, pageSize: 100 }),
         ]);
-        setCreditNotes(creditNoteData);
+        setReceipts(receiptData);
         setInvoices(invoiceData.items);
       } catch (error) {
-        console.error("Failed to load credit notes:", error);
+        console.error("Failed to load receipts:", error);
       } finally {
         setLoading(false);
       }
@@ -39,7 +39,7 @@ export function CreditNoteContent() {
 
   const handleSuccess = () => {
     setActiveTab("list");
-    listByBusiness(businessId).then(setCreditNotes).catch(console.error);
+    listByBusiness(businessId).then(setReceipts).catch(console.error);
   };
 
   if (!businessId) {
@@ -47,7 +47,9 @@ export function CreditNoteContent() {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-red-600">Business context required. Please access through the main app.</p>
+            <p className="text-red-600">
+              Business context required. Please access through the main app.
+            </p>
           </div>
         </div>
       </div>
@@ -59,9 +61,9 @@ export function CreditNoteContent() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-8">
-            <h1 className="text-3xl font-bold text-gray-900">Credit Notes</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Receipts</h1>
             <p className="mt-2 text-gray-600">
-              Create and manage credit notes for your invoices.
+              Issue formal proof of payment for payments you have recorded.
             </p>
 
             <div className="mt-8">
@@ -74,7 +76,7 @@ export function CreditNoteContent() {
                       : "border-transparent text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Credit Notes ({creditNotes.length})
+                  Receipts ({receipts.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("create")}
@@ -91,15 +93,15 @@ export function CreditNoteContent() {
               {activeTab === "list" && (
                 <div className="mt-6">
                   {loading ? (
-                    <p className="text-gray-500">Loading credit notes...</p>
-                  ) : creditNotes.length === 0 ? (
-                    <p className="text-gray-500">No credit notes yet.</p>
+                    <p className="text-gray-500">Loading receipts...</p>
+                  ) : receipts.length === 0 ? (
+                    <p className="text-gray-500">No receipts yet.</p>
                   ) : (
-                    <CreditNoteList
+                    <ReceiptList
                       businessId={businessId}
-                      creditNotes={creditNotes}
-                      onCreditNoteDeleted={() =>
-                        listByBusiness(businessId).then(setCreditNotes).catch(console.error)
+                      receipts={receipts}
+                      onReceiptDeleted={() =>
+                        listByBusiness(businessId).then(setReceipts).catch(console.error)
                       }
                     />
                   )}
@@ -108,7 +110,7 @@ export function CreditNoteContent() {
 
               {activeTab === "create" && (
                 <div className="mt-6">
-                  <CreateCreditNoteForm
+                  <CreateReceiptForm
                     businessId={businessId}
                     invoices={invoices}
                     onSuccess={handleSuccess}

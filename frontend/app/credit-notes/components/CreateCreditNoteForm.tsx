@@ -2,17 +2,11 @@
 
 import { useState } from "react";
 import { createCreditNote, CreateCreditNoteRequest } from "../../lib/creditNotes";
-
-interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  amountDue: number;
-  currency: string;
-}
+import { InvoiceListItem } from "../../lib/invoiceList";
 
 interface CreateCreditNoteFormProps {
   businessId: string;
-  invoices: Invoice[];
+  invoices: InvoiceListItem[];
   onSuccess?: () => void;
 }
 
