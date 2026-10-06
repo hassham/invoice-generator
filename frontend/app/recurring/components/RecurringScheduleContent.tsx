@@ -26,10 +26,7 @@ export function RecurringScheduleContent() {
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
 
   useEffect(() => {
-    if (!businessId) {
-      setLoading(false);
-      return;
-    }
+    if (!businessId) return;
 
     const loadSchedules = async () => {
       try {

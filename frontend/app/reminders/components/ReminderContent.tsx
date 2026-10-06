@@ -14,10 +14,7 @@ export function ReminderContent() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (!businessId) {
-      setLoading(false);
-      return;
-    }
+    if (!businessId) return;
 
     const loadRules = async () => {
       try {
