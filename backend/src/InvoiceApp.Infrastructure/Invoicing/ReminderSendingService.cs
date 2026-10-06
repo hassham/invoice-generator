@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Email;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
@@ -48,11 +49,16 @@ public sealed class ReminderSendingService(
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var invoices = await dbContext.Invoices
+            .Include(i => i.Items)
             .Where(i => !i.IsDeleted && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
+            .ToListAsync(cancellationToken);
+
+        var customers = await dbContext.Customers
             .ToListAsync(cancellationToken);
 
         var reminderRules = await dbContext.ReminderRules
@@ -64,17 +70,35 @@ public sealed class ReminderSendingService(
             .ToListAsync(cancellationToken);
 
         var sentSet = new HashSet<(Guid, Guid)>(sentReminders.Select(sr => (sr.InvoiceId, sr.ReminderRuleId)));
-        var count = 0;
+        var sentCount = 0;
+        var failureCount = 0;
 
         foreach (var invoice in invoices)
         {
+            var customer = customers.FirstOrDefault(c => c.Id == invoice.CustomerId);
+            if (customer?.Email == null)
+                continue;
+
             foreach (var rule in reminderRules.Where(r => r.BusinessId == invoice.BusinessId))
             {
                 if (sentSet.Contains((invoice.Id, rule.Id)))
                     continue;
 
-                if (ShouldSendReminder(invoice.DueDate, rule, today))
+                if (!ShouldSendReminder(invoice.DueDate, rule, today))
+                    continue;
+
+                try
                 {
+                    var message = new EmailMessage(
+                        To: new[] { customer.Email },
+                        Cc: new List<string>(),
+                        Subject: rule.EmailSubject,
+                        PlainTextBody: rule.EmailBody,
+                        HtmlBody: $"<p>{System.Net.WebUtility.HtmlEncode(rule.EmailBody)}</p>",
+                        Attachments: new List<EmailAttachment>());
+
+                    await emailSender.SendAsync(message, cancellationToken);
+
                     var reminder = new ReminderSent
                     {
                         Id = Guid.NewGuid(),
@@ -84,19 +108,64 @@ public sealed class ReminderSendingService(
                     };
 
                     dbContext.RemindersSent.Add(reminder);
-                    count++;
+                    sentCount++;
 
                     logger.LogInformation(
-                        "Recorded reminder for invoice {InvoiceId} with rule {RuleId}",
-                        invoice.Id, rule.Id);
+                        "Sent reminder for invoice {InvoiceId} to {CustomerEmail}",
+                        invoice.Id, customer.Email);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to send reminder for invoice {InvoiceId}", invoice.Id);
+                    failureCount++;
+
+                    var existingFailure = await dbContext.ReminderFailures
+                        .FirstOrDefaultAsync(rf =>
+                            rf.InvoiceId == invoice.Id &&
+                            rf.ReminderRuleId == rule.Id &&
+                            !rf.IsResolved,
+                            cancellationToken);
+
+                    if (existingFailure == null)
+                    {
+                        var failure = new ReminderFailure
+                        {
+                            Id = Guid.NewGuid(),
+                            InvoiceId = invoice.Id,
+                            ReminderRuleId = rule.Id,
+                            FailureReason = ex.Message,
+                            RetryCount = 1,
+                            IsResolved = false,
+                            LastRetryAt = DateTimeOffset.UtcNow,
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            UpdatedAt = DateTimeOffset.UtcNow,
+                        };
+                        dbContext.ReminderFailures.Add(failure);
+                    }
+                    else
+                    {
+                        existingFailure.RetryCount++;
+                        existingFailure.LastRetryAt = DateTimeOffset.UtcNow;
+                        existingFailure.FailureReason = ex.Message;
+
+                        if (existingFailure.RetryCount >= existingFailure.MaxRetries)
+                        {
+                            existingFailure.IsResolved = true;
+                            logger.LogError("Reminder for invoice {InvoiceId} failed {Count} times, marking as resolved",
+                                invoice.Id, existingFailure.RetryCount);
+                        }
+
+                        existingFailure.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
                 }
             }
         }
 
-        if (count > 0)
+        if (sentCount > 0 || failureCount > 0)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Processed {Count} payment reminders", count);
+            logger.LogInformation("Processed reminders: {SentCount} sent, {FailureCount} failed",
+                sentCount, failureCount);
         }
     }
 
