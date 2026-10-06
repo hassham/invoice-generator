@@ -1,6 +1,9 @@
 using System.Security.Claims;
 using InvoiceApp.Application.Documents;
+using InvoiceApp.Application.Email;
 using InvoiceApp.Application.Payments;
+using InvoiceApp.Infrastructure.Configuration;
+using InvoiceApp.Infrastructure.Payments;
 using InvoiceApp.Modules.Documents.Pdf;
 using QuestPDF.Fluent;
 
@@ -22,6 +25,8 @@ public static class ReceiptEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/receipts/{id:guid}/pdf", GetPdfAsync).RequireAuthorization();
         // IG-235: Delete a receipt
         app.MapDelete("/api/v1/businesses/{businessId:guid}/receipts/{id:guid}", DeleteAsync).RequireAuthorization();
+        // IG-290: Send receipt via email (rate-limited, same "sensitive endpoint" reasoning as invoices)
+        app.MapPost("/api/v1/businesses/{businessId:guid}/receipts/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         return app;
     }
 
@@ -161,6 +166,44 @@ public static class ReceiptEndpoints
         catch (InvalidOperationException)
         {
             return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> SendEmailAsync(
+        ClaimsPrincipal user,
+        Guid businessId,
+        Guid id,
+        ReceiptEmailRequest request,
+        IReceiptService receiptService,
+        IEmailSender emailSender,
+        CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        if (request.To.Count == 0)
+            return Results.BadRequest(new { detail = "At least one recipient is required." });
+
+        try
+        {
+            var receipt = await receiptService.GetAsync(userId, businessId, id, cancellationToken);
+            var message = PaymentReceiptEmailMessageBuilder.Build(
+                request.To[0],
+                receipt.BusinessName,
+                receipt.InvoiceNumber,
+                receipt.Amount,
+                receipt.Currency,
+                receipt.BusinessEmail);
+
+            await emailSender.SendAsync(message, cancellationToken);
+            return Results.NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return Results.NotFound();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { detail = ex.Message });
         }
     }
 }
