@@ -149,6 +149,7 @@ app.MapDocumentEndpoints();
 app.MapCustomerEndpoints();
 app.MapCatalogEndpoints();
 app.MapPaymentEndpoints();
+app.MapReceiptEndpoints();
 app.MapDashboardEndpoints();
 app.MapBusinessEndpoints();
 app.MapStripeWebhookEndpoints();

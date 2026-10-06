@@ -10,6 +10,7 @@ public static class PaymentsServiceCollectionExtensions
     public static IServiceCollection AddInfrastructurePayments(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IReceiptService, ReceiptService>();
 
         // IG-219: same "optional, blank by default" precedent as SmtpOptions/GoogleAuthenticationOptions.
         services.Configure<StripeOptions>(configuration.GetSection(StripeOptions.SectionName));

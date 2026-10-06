@@ -52,6 +52,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
 
+    public DbSet<Receipt> Receipts => Set<Receipt>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
