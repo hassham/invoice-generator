@@ -139,6 +139,7 @@ app.MapAuthEndpoints();
 app.MapInvoiceEndpoints();
 app.MapRecurringScheduleEndpoints();
 app.MapReminderRuleEndpoints();
+app.MapReminderFailureEndpoints();
 app.MapEstimateEndpoints();
 app.MapPublicInvoiceEndpoints();
 app.MapPublicEstimateEndpoints();

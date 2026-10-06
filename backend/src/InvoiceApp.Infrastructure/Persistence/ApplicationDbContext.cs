@@ -48,6 +48,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<ReminderSent> RemindersSent => Set<ReminderSent>();
 
+    public DbSet<ReminderFailure> ReminderFailures => Set<ReminderFailure>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
