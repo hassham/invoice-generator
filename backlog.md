@@ -8,11 +8,12 @@ Jira project `IG` is the authoritative delivery backlog. This file is a local ha
 
 Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects/IG>
 
-## Current Status (as of 2026-09-23)
+## Current Status (as of 2026-10-06)
 
 - **Original MVP backlog is Done**: Epics `IG-1`-`IG-12` (all 12), their Stories (`IG-13`-`IG-72`, 60) and Subtasks (`IG-73`-`IG-192`, 120+) are all Done.
-- **Phase 2 delivery started**: `IG-216` (Stripe Checkout), `IG-219` (Stripe Connect), `IG-220`-`IG-223` (Estimates and Conversion), `IG-224` (Revenue Report) all Done locally, awaiting Jira status confirmation.
-- **IG-224: Revenue Report implemented** (2026-09-23): Backend revenue aggregation by month/quarter/year, frontend React component with period selector, authorization verified, tests passing.
+- **Phase 2 delivery progressing**: `IG-205`-`IG-208` (Email, Payments, Estimates, Reporting) all Done. `IG-209` (Recurring Invoices) **COMPLETE END-TO-END**, now moving to `IG-210` (Billing Documents).
+- **IG-209 epic fully complete** (2026-10-06): All 5 stories delivered and integrated end-to-end. Daily background jobs for invoice generation and payment reminders. Email integration wired. Failure tracking with bounded retries. Tests passing, no build errors.
+- **IG-234 (Credit Notes) API layer complete** (2026-10-06): Domain, service, and CRUD endpoints ready. Frontend components still needed.
 - **107+ backlog issues created in Phase 2+ roadmap**:
   - `IG-198` (new Epic, "In-App Navigation and Layout UX Polish") with `IG-199`-`IG-202` under it (fixed top bar, Invoice Generator back button + fixed preview panel, fixed action buttons, hide public nav links once authenticated); `IG-203` under existing `IG-8` (default tax setting); `IG-204` under existing `IG-6` (dedicated Templates view). User-requested UI/UX items, "we will pick those later." No Subtasks decomposed under these 7 yet.
   - `IG-205`-`IG-211`: PRD Phase 2+ roadmap Epics — `docs/PRD.md` §34's own "Phase 2 — SaaS" is already fully delivered by the original backlog; these 7 are what `docs/EPICS.md` §3 already had scoped as the genuinely-next phase (`EPIC-13`-`EPIC-19`), just never published to Jira before now: `IG-205` Email Delivery and Hosted Invoice Experience (P1), `IG-206` Online Payments/Stripe (P1, depends on `IG-205`), `IG-207` Estimates and Estimate Conversion (P1), `IG-208` Reporting and Data Export (P1), `IG-209` Recurring Invoices and Payment Reminders (P2), `IG-210` Expanded Billing Documents (P2), `IG-211` Multi-Business/Teams/International (P2). Recommended starting point: `IG-205`.
@@ -21,52 +22,21 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-232 & IG-233: Payment reminders + failure handling (COMPLETE END-TO-END 2026-10-06)**
+**IG-234: Credit notes (API LAYER COMPLETE 2026-10-06)**
 
-**IG-232 work** (commits 52dbcb4 + 7768e27 + f6ad5d2 + f861680):
-- Domain: ReminderTriggerType enum, ReminderRule, ReminderSent entities
-- Service: IReminderRuleService (list/get/update, default rule initialization)
-- API: GET list/detail, PUT update, POST initialize-defaults
-- Background Job: ReminderSendingService (daily 03:00 UTC, now sends real emails)
-- Frontend: /reminders page with rule management UI
+**IG-234 API work** (commits 16d3a7d + 0addc76):
+- Domain: CreditNote entity (references InvoiceId, CustomerId, tracks Amount, Reason, seller/customer snapshots)
+- Service: ICreditNoteService (CreateAsync validates amount ≤ invoice due, ListByInvoiceAsync, ListByBusinessAsync, GetAsync, DeleteAsync)
+- API: POST create, GET list/by-invoice/detail, DELETE
+  - All endpoints require authorization with proper error handling
+  - Generates numbers: "CN-{BusinessId}{Date}{Sequence}"
+  - Amount validation: credit amount cannot exceed invoice amount due
+- Migration: 20261006103443_AddCreditNotes.cs added
 
-**IG-233 work** (commit 38d4d2a):
-- Domain: ReminderFailure entity (InvoiceId, ReminderRuleId, FailureReason, RetryCount, MaxRetries, IsResolved)
-- Service: IReminderFailureService (list unresolved, get detail, resolve)
-- API: GET list/detail, PATCH resolve
-- Infrastructure for bounded retries and failure surfacing
+Backend builds ✓, 236 tests pass ✓, code pushed to GitHub ✓
 
-**Email integration** (commit 775d28d):
-- ReminderSendingService now injects IEmailSender
-- Fetches customer emails and sends EmailMessages
-- On success: records ReminderSent
-- On failure: creates/updates ReminderFailure, increments retry count
-- After MaxRetries (3), marks as resolved and logs for business owner attention
-
-Acceptance criteria met: ✓ Default rules, ✓ Customizable templates, ✓ Bounded retries, ✓ Surface failures, ✓ No duplicates, ✓ Email sent
-Backend builds ✓, 236 tests pass ✓, Frontend builds ✓, Email integration working ✓
-
-**IG-231: Pause or cancel a recurring schedule (COMPLETED 2026-10-02)**
-
-Completed work (commit 5c8c1a4):
-- **Backend:**
-  - Added PauseAsync, ResumeAsync, CancelAsync to IRecurringScheduleService
-  - Pause sets IsActive=false (stops future generation, keeps schedule & history)
-  - Cancel soft-deletes (sets IsDeleted=true and IsActive=false)
-  - PATCH /pause and /resume endpoints, DELETE endpoint for cancel
-  - Authorization checks via business ownership chain
-
-- **Frontend:**
-  - Added API functions: pauseRecurringSchedule, resumeRecurringSchedule, cancelRecurringSchedule
-  - RecurringScheduleList component: displays schedules with status badges
-  - Pause/resume buttons toggle based on IsActive state
-  - Cancel button with confirmation popup
-  - RecurringScheduleContent wrapper with Suspense for useSearchParams
-  - Tabbed interface: view schedules or create new
-
-- Acceptance criteria met: ✓ Pause stops generation, ✓ Cancel is permanent, ✓ History preserved
-- Backend builds ✓, 236 tests pass ✓
-- Frontend builds ✓
+**Next**: Implement frontend components for IG-234 credit notes (API library + create/list UI) following recurring schedules pattern
+**Then**: Continue to IG-235 (Receipts), IG-236 (Purchase Orders), IG-237 (Document filtering) under IG-210 epic
 
 **Epic progress**:
 - IG-205 (Email Delivery): ✅ Done (all 4 stories)
