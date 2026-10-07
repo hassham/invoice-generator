@@ -1,14 +1,25 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { RevenueReportView } from "./RevenueReportView";
 import * as dashboardLib from "../../lib/dashboard";
 
 vi.mock("../../lib/dashboard");
 
+// The component derives its date ranges from `new Date()`, so the clock is frozen mid-Q3 to keep
+// the range assertions below deterministic. Only Date is faked: faking the timers userEvent relies
+// on makes its interactions hang rather than fail.
+const FROZEN_NOW = new Date(2026, 7, 15);
+
 describe("RevenueReportView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(FROZEN_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders loading state initially", () => {
@@ -74,11 +85,11 @@ describe("RevenueReportView", () => {
       expect(screen.getByText("2026-Q3")).toBeInTheDocument();
     });
 
-    // Verify that appropriate date ranges were requested (quarter should have wider range)
+    // Frozen at 2026-08-15, so the enclosing quarter is Q3: 1 Jul to 30 Sep.
     expect(dashboardLib.getRevenueReport).toHaveBeenLastCalledWith(
       "quarter",
-      expect.stringMatching(/2026-0[1-9]-01/), // quarter start
-      expect.stringMatching(/2026-\d{2}-\d{2}/) // quarter end
+      "2026-07-01",
+      "2026-09-30"
     );
   });
 
