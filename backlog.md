@@ -8,7 +8,7 @@ Jira project `IG` is the authoritative delivery backlog. This file is a local ha
 
 Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects/IG>
 
-## Current Status (as of 2026-10-06)
+## Current Status (as of 2026-10-07)
 
 - **Original MVP backlog is Done**: Epics `IG-1`-`IG-12` (all 12), their Stories (`IG-13`-`IG-72`, 60) and Subtasks (`IG-73`-`IG-192`, 120+) are all Done.
 - **Phase 2 delivery progressing**: `IG-205`-`IG-208` (Email, Payments, Estimates, Reporting) all Done. `IG-209` (Recurring Invoices) **COMPLETE END-TO-END**, now moving to `IG-210` (Billing Documents).
@@ -21,6 +21,62 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
   - `IG-243`-`IG-304` (62 Subtasks, 2 per Story, same "Implement X" / "Test Y" split and "Completion Criteria" format as the original `docs/TASKS.md`) — every one of `IG-212`-`IG-242`'s 31 Stories now has exactly 2 Subtasks. This is now decomposed to the same depth as the original `IG-1`-`IG-12` backlog (Epic → Story → Subtask), ready to be picked up and claimed directly.
 
 ## Current Focus / Next Task
+
+**IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**
+
+Claimed To Do → In Progress with a scoping comment. `IG-291` had delivered the purchase order
+backend only — no frontend, no PDF and **no tests at all** — so meeting this subtask's criterion
+meant building the list and detail surfaces rather than asserting against existing ones.
+
+Delivered:
+
+- Backend: purchase order read model now surfaces `SupplierName`/`BusinessName` (deserialised from
+  the stored snapshots); list endpoints order newest issue date first; soft-deleted purchase orders
+  are no longer retrievable via detail or re-deletable.
+- Frontend: `app/lib/purchaseOrders.ts`, `/documents/purchase-orders` list and
+  `/documents/purchase-orders/[id]` detail, both labelling the document type explicitly and naming
+  the counterparty "Supplier"/"Ordered by" rather than "Customer".
+- Tests: 13 backend endpoint tests (`InvoiceApp.Api.Tests/Purchasing`) + 14 frontend component
+  tests. Backend 434 pass (249 API, up from 236).
+
+**Two `IG-291` defects found and handled:**
+
+1. *Numbering was broken, not merely racy* — the sequence counted rows whose `IssueDate` was today
+   while storing the caller's `IssueDate` and embedding today's date in the number, so any
+   backdated purchase order numbered `PO-{today}-001` every time and the second collided with the
+   unique index as an unhandled 500. **Fixed under IG-292** (see Engineering Note 23).
+2. *Line items are never persisted* — accepted on create, used for totals, then discarded; no
+   `purchase_order_items` table exists. Blocks the PDF, so split out to **`IG-306`** by product
+   decision.
+
+Verified empirically against a live server and real Postgres in Chromium (31 checks, all passing):
+two backdated purchase orders numbering 001/002 with the real unique index in play, per-date
+sequences, no number reuse after deletion, 400 on an unknown supplier, 404 on a missing purchase
+order rendering an error state rather than crashing, correct document-type labelling on both
+surfaces, and no horizontal overflow at 390px.
+
+**Not done / known gaps:**
+
+- No purchase order create UI — purchase orders are created via API only. The list has no "New
+  Purchase Order" action.
+- No nav entry, consistent with estimates/receipts/credit-notes/recurring/reports, which are all
+  reachable by URL only (Engineering Note 26 warns the header has no headroom).
+- `IG-306` (line items + PDF) must land before `IG-236` can close.
+
+**Next**: `IG-306` — persist purchase order line items + render the purchase order PDF
+**Then**: `IG-237` (document-type filtering) closes out the `IG-210` epic
+
+**Two pre-existing frontend test failures, unrelated to this work, currently break the four-command
+gate:**
+
+- `app/documents/estimates/[id]/components/ConvertToInvoiceDialog.test.tsx` uses `beforeEach`
+  without importing it from vitest (`globals: true` is not set — Engineering Note 32), so the file
+  fails to collect. Broken since `IG-223` (2026-09-22).
+- `app/reports/components/RevenueReportView.test.tsx` is a date time-bomb: it hard-codes
+  `2026-Q3` and a quarter start matching `/2026-0[1-9]-01/`, which started failing on 2026-10-01.
+
+(`app/settings/business/components/BusinessProfileSettings.test.tsx` also failed in the full run but
+passes in isolation — CPU-contention flake, Engineering Note 31.)
 
 **IG-234: Credit notes (FEATURE COMPLETE 2026-10-06)**
 
@@ -45,27 +101,21 @@ Backend builds ✓, 236 tests pass ✓
 
 Frontend build ✓, ESLint ✓
 
-**IG-235 (Receipts) — PARTIALLY COMPLETE 2026-10-07**
+**IG-235 (Receipts) — COMPLETE 2026-10-07** (`IG-289` and `IG-290` both Done)
 
-`IG-289` (Implement receipt generation) is **Done**; `IG-290` (Test receipt sending) is **still To Do**.
-
-Delivered (commits 1b423f6, e409d5f, abd9d01):
+Delivered (commits 1b423f6, e409d5f, abd9d01, 24da479):
 - Domain/service/API: `Receipt` + `IReceiptService`, CRUD endpoints under
   `/api/v1/businesses/{businessId}/receipts`, plus `GET .../{id}/pdf`
 - `ReceiptPdfDocument` (QuestPDF, same engine as invoices); numbers are `RCP-{yyyyMMdd}-{seq:D3}`
 - Table `payment.receipts` (migration `20261006143930_AddReceipts`), unique on (business_id, receipt_number)
 - Frontend `/receipts`: API lib, invoice→payment cascade create form, list with PDF download/delete
 
-**IG-235 is NOT fully done**: its third AC — "can be emailed using the existing send capability
-(IG-212)" — is **not implemented**. There is no send-email endpoint for receipts. `IG-290` should
-cover that plus its own testing before `IG-235` is closed.
+- Receipt emailing via the existing send capability (`IG-290`, commit 24da479), completing the
+  third AC
 
 Verified empirically against a live server + real Postgres (not just InMemory) and in a browser:
 register→invoice→payment→receipt→PDF download, 400/401/204 on the invalid paths, sequence 001→002,
 and the `/receipts` page creating a receipt end to end.
-
-**Next**: `IG-290` — receipt emailing (the missing AC) + tests
-**Then**: `IG-236` (Purchase Orders), `IG-237` (Document filtering) under the `IG-210` epic
 
 **Epic progress**:
 - IG-205 (Email Delivery): ✅ Done (all 4 stories)
@@ -86,7 +136,11 @@ and the `/receipts` page creating a receipt end to end.
 - Business owner can view/manage reminder rules and see failed reminders
 - All acceptance criteria met
 
-**Next task**: Move to IG-210 (Expanded Billing Documents) or another epic?
+- IG-210 (Expanded Billing Documents): 🔄 **in progress**
+  - ✅ IG-234: Credit note (API + frontend; still needs the Note 23 unique index)
+  - ✅ IG-235: Receipt (create, PDF, email)
+  - 🔄 IG-236: Purchase order — `IG-291` ✅, `IG-292` ✅, `IG-306` ⬜ (line items + PDF)
+  - ⬜ IG-237: Document-type filtering
 
 ## Engineering Notes
 
@@ -117,7 +171,7 @@ Standing lessons and conventions, most still directly actionable, none requiring
 20. **`main` has branch protection** (Backend build + Frontend build required, no force-push/delete) but `enforce_admins` is off and no PR-review count is required — direct pushes to `main` by an authenticated owner still work; only PR merges are gated.
 21. **Never hand-write an EF migration — always `dotnet ef migrations add`.** EF identifies a migration by the `[Migration("...")]` attribute that lives in its generated `.Designer.cs`, so a hand-written `.cs` alone is invisible to EF and leaves `ApplicationDbContextModelSnapshot` stale (the next generated migration then re-creates the same table). `dotnet test` will **not** catch this — tests run on EF Core InMemory, which bypasses migrations entirely (note 6). Generating it also gets `EnsureSchema` and this context's PascalCase→snake_case column mapping right, both of which are easy to miss by hand. Cost a full rollback/regenerate cycle on `IG-289` (2026-10-07).
 22. **Check which schema a new table belongs in before adding one.** Schemas here are singular and per-module (`invoice`, `payment`, `business`, `customer`, `estimate`); `invoicing` is an existing Phase-2 inconsistency, not a precedent to copy. `IG-289` initially created a `payments` schema one character off the existing `payment` one — `payment.payments` beside `payments.receipts` is a genuine foot-gun for anyone writing SQL.
-23. **A `CountAsync() + 1` document-number sequence races** — two documents created for one business on the same day can silently receive the same number. Back any such sequence with a unique index on (business_id, number) so a loser fails loudly rather than duplicating an accounting number (added for receipts in `IG-289`; **credit notes (`IG-234`) still have this unguarded** and should get the same treatment).
+23. **A `CountAsync() + 1` document-number sequence races** — two documents created for one business on the same day can silently receive the same number. Back any such sequence with a unique index on (business_id, number) so a loser fails loudly rather than duplicating an accounting number (added for receipts in `IG-289`; **credit notes (`IG-234`) still have this unguarded** and should get the same treatment). Two further traps, both hit by purchase orders in `IG-291` and fixed in `IG-292`: (a) **the date used to filter the sequence must be the same date embedded in the number** — counting rows by "today" while numbering by the caller's issue date made every backdated document `PO-{today}-001`, so the second one hit the unique index as an unhandled 500, deterministically rather than only under concurrency; (b) **count-based sequences reuse numbers after a soft delete** — derive the next value from the max sequence already present in the stored numbers instead, so a deleted accounting number is never issued twice. Critically, **EF Core InMemory does not enforce unique indexes**, so `dotnet test` can never prove any of this — it happily inserts the duplicate Postgres rejects. The same blind spot as Note 21's migrations: verify a numbering fix against real Postgres (Note 7's fixture, or a live server), which is how `IG-292`'s fix was actually confirmed rather than by the green suite alone.
 24. **Architecture-boundary tests (`InvoiceApp.ArchitectureTests`) must be validated against Linux CI, not just a Windows dev machine** — a real cross-platform bug in `ProjectFile.cs` sat undetected for several Subtasks because it only manifested on the Ubuntu runner.
 
 **Frontend**
@@ -139,7 +193,9 @@ Standing lessons and conventions, most still directly actionable, none requiring
 38. **Real Firefox and WebKit engines are cached locally** (`ms-playwright/firefox-1543`, `ms-playwright/webkit-2359`) alongside Chromium — reuse for cross-browser verification. **WebKit quirk**: `.fill()` doesn't reliably trigger this app's React `onChange` under this build (DOM value sets, React state doesn't) — use `.click()` + `.pressSequentially()` instead. Chromium/Firefox unaffected.
 39. **No project skill exists for browser verification** — an ad-hoc Playwright script in a scratch directory (`npm install --no-save playwright@<version>`, plain `.mjs`, `page.goto`/`getByRole`/`.screenshot()`) is the established approach; Chromium is already downloaded locally so `npx playwright install chromium` is a no-op check.
 40. **`waitForLoadState("networkidle")` is unreliable in Next.js dev mode** (HMR/websocket activity keeps it from settling) — prefer `page.waitForURL(pattern)` for cross-page checks and a short fixed `waitForTimeout` for same-page state changes.
-41. **Confirm a PID's actual command line before killing it to free a port/lock** (e.g. `Get-CimInstance Win32_Process -Filter 'ProcessId = <pid>'` on Windows) — this machine has had unrelated processes on ports that look like a stale dev-server lock at a glance; a misread has killed the wrong process before. Port 3000 in particular may already be occupied by an unrelated project (Next.js auto-selects the next free port on its own).
+41. **Tailwind's `uppercase` class is reflected in Playwright's `innerText`** — a `<dt class="uppercase">Supplier</dt>` comes back as `"SUPPLIER"`, so a verification script asserting `innerText.includes("Supplier")` fails against correct markup. Match case-insensitively for any CSS-upper-cased label. Equally, assert "this page never says Customer" against the specific table/article, not `body` — `SiteHeader`'s nav has a "Customers" link that makes a whole-page check always fail. Both produced false failures in `IG-292` before the real behaviour was confirmed correct.
+42. **The backend needs `ASPNETCORE_ENVIRONMENT=Development` when started without a launch profile** — the connection string lives only in `appsettings.Development.json`, so `dotnet run --no-launch-profile` dies on startup with "ConnectionStrings:Default is required". Use `ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile --urls http://localhost:5094`. Migrations are **not** applied at startup, so run `dotnet ef database update` first if a migration has just been added.
+43. **Confirm a PID's actual command line before killing it to free a port/lock** (e.g. `Get-CimInstance Win32_Process -Filter 'ProcessId = <pid>'` on Windows) — this machine has had unrelated processes on ports that look like a stale dev-server lock at a glance; a misread has killed the wrong process before. Port 3000 in particular may already be occupied by an unrelated project (Next.js auto-selects the next free port on its own).
 
 ## Handoff Update Template
 

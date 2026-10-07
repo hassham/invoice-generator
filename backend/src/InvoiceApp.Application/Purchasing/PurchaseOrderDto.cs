@@ -3,7 +3,9 @@ namespace InvoiceApp.Application.Purchasing;
 public sealed record PurchaseOrderDto(
     Guid Id,
     Guid BusinessId,
+    string BusinessName,
     Guid SupplierId,
+    string SupplierName,
     string PONumber,
     DateOnly IssueDate,
     DateOnly DueDate,
