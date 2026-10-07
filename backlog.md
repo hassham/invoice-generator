@@ -148,11 +148,22 @@ rejected by Postgres with `duplicate key value violates unique constraint
 ix_credit_notes_business_id_credit_note_number` — and the row it blocked was the **soft-deleted**
 one, confirming deleted numbers stay reserved.
 
-**Deployment note**: this migration adds a UNIQUE index to an existing table. It will fail on any
-database that already contains duplicate `(business_id, credit_note_number)` rows, which the old
-numbering could produce. The local database was empty of credit notes. **Check production for
-duplicates before deploying** — `SELECT business_id, credit_note_number, COUNT(*) FROM
-invoicing.credit_notes GROUP BY 1,2 HAVING COUNT(*) > 1;`
+**Deployment note**: this migration adds a UNIQUE index to an existing table, so it fails on any
+database already holding duplicate `(business_id, credit_note_number)` rows — which the old
+numbering could produce. User confirmed 2026-10-07 that no current data needs preserving, so this
+is not a blocker today; duplicates can simply be deleted. Keep the check in mind once there is real
+data: `SELECT business_id, credit_note_number, COUNT(*) FROM invoicing.credit_notes GROUP BY 1,2
+HAVING COUNT(*) > 1;`
+
+**`IG-234` still cannot close**, even though both its subtasks (`IG-287`, `IG-288`) are now Done.
+Its first acceptance criterion — "the credit note reuses the existing document editor/template
+engine" — is unmet: there is **no credit note PDF at all**, only CRUD plus a form and list. The
+route set is POST / GET list / GET by-invoice / GET detail / DELETE, with no `/pdf`. This is the
+same gap purchase orders had before `IG-306`, and the fix is the same shape: map the stored credit
+note onto `InvoicePdfRequest` with `DocumentTypeLabel = "Credit Note"` (see Note 24). Its third AC
+is also only partly met — the amount is hard-rejected above the invoice's amount due, whereas the
+AC allows exceeding it "with explicit confirmation"; stricter than asked, but a deviation worth a
+product decision.
 
 Unchanged and worth knowing: the number format is `CN-{32-hex business guid}{yyyyMMdd}{seq:D4}`,
 inconsistent with `RCP-{yyyyMMdd}-{seq:D3}` and `PO-{yyyyMMdd}-{seq:D3}` and unpleasant for a
