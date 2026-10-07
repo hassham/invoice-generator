@@ -99,17 +99,32 @@ surface is URL-only and absent from the nav, which is already at its width limit
 create form nobody can navigate to is only a partial fix. That part may belong with `IG-198`.
 **Then**: `IG-237` (document-type filtering) closes out the `IG-210` epic
 
-**Two pre-existing frontend test failures, unrelated to this work, currently break the four-command
-gate:**
+**Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
-- `app/documents/estimates/[id]/components/ConvertToInvoiceDialog.test.tsx` uses `beforeEach`
-  without importing it from vitest (`globals: true` is not set — Engineering Note 33), so the file
-  fails to collect. Broken since `IG-223` (2026-09-22).
-- `app/reports/components/RevenueReportView.test.tsx` is a date time-bomb: it hard-codes
-  `2026-Q3` and a quarter start matching `/2026-0[1-9]-01/`, which started failing on 2026-10-01.
+Both had been failing the four-command gate for reasons unrelated to the code under test:
 
-(`app/settings/business/components/BusinessProfileSettings.test.tsx` also failed in the full run but
-passes in isolation — CPU-contention flake, Engineering Note 32.)
+- `ConvertToInvoiceDialog.test.tsx` used `beforeEach` without importing it from vitest
+  (`globals: true` is not set — Engineering Note 33), so the file never collected and its six tests
+  had not run since `IG-223` (2026-09-22).
+- `RevenueReportView.test.tsx` asserted a quarter start matching `/2026-0[1-9]-01/` against a range
+  the component derives from `new Date()`, which broke on 2026-10-01; a second assertion hard-coding
+  the 2026 year range would have broken on 2027-01-01. The clock is now frozen mid-Q3 and the
+  assertions are exact dates. Only `Date` is faked — faking the timers `userEvent` relies on makes
+  its interactions hang rather than fail (Engineering Note 32).
+
+**The gate is now fully green**: frontend 92 files / 706 tests, backend 442, ESLint clean,
+`next build` clean.
+
+These were the test files behind `IG-266` and `IG-268`, but **neither subtask is closeable** — the
+fix made them run, not pass their actual criteria:
+
+- `IG-266` wants "the estimate records which invoice it was converted into, and only an accepted
+  estimate can be converted". `Estimate` has a `Converted` status but **no field holding the
+  resulting invoice id**, and no backend test covers the conversion rules. That is an
+  implementation gap, not just a test gap.
+- `IG-268` wants "periods with no invoices show zero, and figures never include another account's
+  data". The zero case is covered client-side, but **no backend test touches `/reports/revenue`
+  at all**, so cross-account isolation is unverified.
 
 **IG-234: Credit notes (FEATURE COMPLETE 2026-10-06)**
 
