@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using InvoiceApp.Application.Purchasing;
+using InvoiceApp.Modules.Documents.Pdf;
+using QuestPDF.Fluent;
 
 namespace InvoiceApp.Api.Endpoints;
 
@@ -12,6 +14,8 @@ public static class PurchaseOrderEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/suppliers/{supplierId:guid}/purchase-orders", ListBySupplierAsync).RequireAuthorization();
         app.MapGet("/api/v1/businesses/{businessId:guid}/purchase-orders/{id:guid}", GetAsync).RequireAuthorization();
         app.MapDelete("/api/v1/businesses/{businessId:guid}/purchase-orders/{id:guid}", DeleteAsync).RequireAuthorization();
+        // IG-306: renders through the shared invoice document engine, labelled "Purchase Order".
+        app.MapGet("/api/v1/businesses/{businessId:guid}/purchase-orders/{id:guid}/pdf", GetPdfAsync).RequireAuthorization();
         return app;
     }
 
@@ -87,6 +91,28 @@ public static class PurchaseOrderEndpoints
         {
             var po = await poService.GetAsync(userId, businessId, id, cancellationToken);
             return Results.Ok(po);
+        }
+        catch (InvalidOperationException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> GetPdfAsync(
+        ClaimsPrincipal user,
+        Guid businessId,
+        Guid id,
+        IPurchaseOrderService poService,
+        CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            var pdfRequest = await poService.GetPdfRequestAsync(userId, businessId, id, cancellationToken);
+            var pdfBytes = new InvoicePdfDocument(pdfRequest).GeneratePdf();
+
+            return Results.File(pdfBytes, "application/pdf", $"{pdfRequest.InvoiceNumber}.pdf");
         }
         catch (InvalidOperationException)
         {

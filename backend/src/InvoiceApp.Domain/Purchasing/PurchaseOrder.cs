@@ -38,6 +38,8 @@ public sealed class PurchaseOrder
 
     public string? TemplateSettings { get; set; }
 
+    public ICollection<PurchaseOrderItem> Items { get; init; } = new List<PurchaseOrderItem>();
+
     public bool IsDeleted { get; set; }
 
     public DateTime CreatedAt { get; set; }

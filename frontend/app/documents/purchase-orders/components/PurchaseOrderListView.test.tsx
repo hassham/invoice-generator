@@ -34,6 +34,7 @@ const samplePurchaseOrder = {
   notes: null,
   terms: null,
   deliveryInstructions: null,
+  items: [],
   createdAt: "2030-08-01T00:00:00Z",
   updatedAt: "2030-08-01T00:00:00Z",
 };

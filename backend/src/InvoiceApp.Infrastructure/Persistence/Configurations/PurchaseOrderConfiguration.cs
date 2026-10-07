@@ -21,5 +21,10 @@ public sealed class PurchaseOrderConfiguration : IEntityTypeConfiguration<Purcha
         builder.HasIndex(po => po.SupplierId);
         builder.HasIndex(po => new { po.BusinessId, po.IssueDate });
         builder.HasIndex(po => new { po.BusinessId, po.PONumber }).IsUnique();
+
+        builder.HasMany(po => po.Items)
+            .WithOne()
+            .HasForeignKey(item => item.PurchaseOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

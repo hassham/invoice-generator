@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getBusinessProfile } from "../../../../lib/business";
-import { getPurchaseOrder, type PurchaseOrder } from "../../../../lib/purchaseOrders";
+import {
+  downloadPurchaseOrderPdf,
+  getPurchaseOrder,
+  type PurchaseOrder,
+} from "../../../../lib/purchaseOrders";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -19,11 +23,19 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrder | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     getBusinessProfile()
-      .then((profile) => getPurchaseOrder(profile.id, purchaseOrderId))
+      .then((profile) => {
+        if (!cancelled) {
+          setBusinessId(profile.id);
+        }
+        return getPurchaseOrder(profile.id, purchaseOrderId);
+      })
       .then((result) => {
         if (!cancelled) {
           setPurchaseOrder(result);
@@ -62,18 +74,50 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
     return null;
   }
 
+  const handleDownload = async () => {
+    if (!businessId) {
+      return;
+    }
+
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadPurchaseOrderPdf(businessId, purchaseOrder.id, purchaseOrder.poNumber);
+    } catch (err: unknown) {
+      setDownloadError(err instanceof Error ? err.message : "Failed to download this purchase order.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <article>
       <Link href="/documents/purchase-orders" className="text-sm text-slate-700 hover:underline">
         Back to purchase orders
       </Link>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
-          Purchase Order
-        </span>
-        <h1 className="text-2xl font-bold text-slate-950">{purchaseOrder.poNumber}</h1>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+            Purchase Order
+          </span>
+          <h1 className="text-2xl font-bold text-slate-950">{purchaseOrder.poNumber}</h1>
+        </div>
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60"
+        >
+          {downloading ? "Preparing…" : "Download PDF"}
+        </button>
       </div>
+
+      {downloadError ? (
+        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {downloadError}
+        </p>
+      ) : null}
 
       <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
@@ -99,6 +143,37 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
           </div>
         ) : null}
       </dl>
+
+      <section className="mt-8">
+        <h2 className="sr-only">Items ordered</h2>
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-500">
+              <th className="py-2 pr-4 font-medium">Description</th>
+              <th className="py-2 pr-4 text-right font-medium">Qty</th>
+              <th className="py-2 pr-4 text-right font-medium">Unit price</th>
+              <th className="py-2 pr-4 text-right font-medium">Line total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {purchaseOrder.items.map((item, index) => (
+              <tr key={index} className="border-b border-slate-100">
+                <td className="py-2 pr-4 text-slate-900">{item.description}</td>
+                <td className="py-2 pr-4 text-right text-slate-700">
+                  {item.quantity}
+                  {item.unit ? ` ${item.unit}` : ""}
+                </td>
+                <td className="py-2 pr-4 text-right text-slate-700">
+                  {formatCurrency(item.unitPrice, purchaseOrder.currency)}
+                </td>
+                <td className="py-2 pr-4 text-right text-slate-700">
+                  {formatCurrency(item.lineTotal, purchaseOrder.currency)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
 
       <div className="mt-8 border-t border-slate-200 pt-6">
         <dl className="ml-auto max-w-xs space-y-2 text-sm">

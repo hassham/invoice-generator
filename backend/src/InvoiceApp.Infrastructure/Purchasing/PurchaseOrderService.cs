@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
+using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Purchasing;
+using InvoiceApp.Domain.Businesses;
+using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Purchasing;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +22,29 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
         var poNumber = await NextPurchaseOrderNumberAsync(businessId, command.IssueDate, cancellationToken);
 
-        var items = command.Items;
-        var subtotal = items.Sum(i => (i.Quantity * i.UnitPrice) - i.Discount);
-        var taxAmount = items.Sum(i => ((i.Quantity * i.UnitPrice) - i.Discount) * (i.TaxRate / 100m));
+        var lines = command.Items.Select((item, index) =>
+        {
+            var lineSubtotal = (item.Quantity * item.UnitPrice) - item.Discount;
+            var lineTax = lineSubtotal * (item.TaxRate / 100m);
+
+            return new PurchaseOrderItem
+            {
+                Id = Guid.NewGuid(),
+                Description = item.Description,
+                Quantity = item.Quantity,
+                Unit = string.IsNullOrWhiteSpace(item.Unit) ? null : item.Unit.Trim(),
+                UnitPrice = item.UnitPrice,
+                TaxRate = item.TaxRate,
+                Discount = item.Discount,
+                LineSubtotal = lineSubtotal,
+                TaxAmount = lineTax,
+                LineTotal = lineSubtotal + lineTax,
+                SortOrder = index,
+            };
+        }).ToList();
+
+        var subtotal = lines.Sum(line => line.LineSubtotal);
+        var taxAmount = lines.Sum(line => line.TaxAmount);
         var totalAmount = subtotal + taxAmount;
 
         var po = new PurchaseOrder
@@ -49,9 +72,20 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
         };
 
         dbContext.PurchaseOrders.Add(po);
+
+        foreach (var line in lines)
+        {
+            line.PurchaseOrderId = po.Id;
+            // Added straight to the DbSet rather than through po.Items, for the reason
+            // InvoiceService documents: a client-generated non-default Guid key discovered only by
+            // navigation fixup is tracked as Modified, and SaveChanges then tries to update a row
+            // that was never inserted.
+            dbContext.PurchaseOrderItems.Add(line);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return MapToDto(po);
+        return MapToDto(po, lines);
     }
 
     public async Task<List<PurchaseOrderDto>> ListByBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
@@ -60,12 +94,13 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
             ?? throw new InvalidOperationException("Business not found.");
 
         var pos = await dbContext.PurchaseOrders
+            .Include(po => po.Items)
             .Where(po => po.BusinessId == businessId && !po.IsDeleted)
             .OrderByDescending(po => po.IssueDate)
             .ThenByDescending(po => po.PONumber)
             .ToListAsync(cancellationToken);
 
-        return pos.Select(MapToDto).ToList();
+        return pos.Select(po => MapToDto(po, po.Items)).ToList();
     }
 
     public async Task<List<PurchaseOrderDto>> ListBySupplierAsync(Guid userId, Guid businessId, Guid supplierId, CancellationToken cancellationToken)
@@ -74,12 +109,13 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
             ?? throw new InvalidOperationException("Business not found.");
 
         var pos = await dbContext.PurchaseOrders
+            .Include(po => po.Items)
             .Where(po => po.BusinessId == businessId && po.SupplierId == supplierId && !po.IsDeleted)
             .OrderByDescending(po => po.IssueDate)
             .ThenByDescending(po => po.PONumber)
             .ToListAsync(cancellationToken);
 
-        return pos.Select(MapToDto).ToList();
+        return pos.Select(po => MapToDto(po, po.Items)).ToList();
     }
 
     public async Task<PurchaseOrderDto> GetAsync(Guid userId, Guid businessId, Guid id, CancellationToken cancellationToken)
@@ -87,10 +123,12 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
         var business = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
-        var po = await dbContext.PurchaseOrders.FirstOrDefaultAsync(po => po.Id == id && po.BusinessId == businessId && !po.IsDeleted, cancellationToken)
+        var po = await dbContext.PurchaseOrders
+            .Include(po => po.Items)
+            .FirstOrDefaultAsync(po => po.Id == id && po.BusinessId == businessId && !po.IsDeleted, cancellationToken)
             ?? throw new InvalidOperationException("Purchase order not found.");
 
-        return MapToDto(po);
+        return MapToDto(po, po.Items);
     }
 
     public async Task DeleteAsync(Guid userId, Guid businessId, Guid id, CancellationToken cancellationToken)
@@ -103,6 +141,62 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
         po.IsDeleted = true;
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<InvoicePdfRequest> GetPdfRequestAsync(Guid userId, Guid businessId, Guid id, CancellationToken cancellationToken)
+    {
+        _ = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new InvalidOperationException("Business not found.");
+
+        var po = await dbContext.PurchaseOrders
+            .Include(po => po.Items)
+            .FirstOrDefaultAsync(po => po.Id == id && po.BusinessId == businessId && !po.IsDeleted, cancellationToken)
+            ?? throw new InvalidOperationException("Purchase order not found.");
+
+        var supplier = Deserialize<SupplierSnapshot>(po.SupplierSnapshot);
+        var business = Deserialize<BusinessSnapshot>(po.BusinessSnapshot);
+
+        string? templateCode = null;
+        if (po.TemplateId is { } templateId)
+        {
+            templateCode = await dbContext.Templates
+                .Where(template => template.Id == templateId)
+                .Select(template => template.TemplateCode)
+                .SingleOrDefaultAsync(cancellationToken);
+        }
+
+        var templateCustomization = po.TemplateSettings is null
+            ? null
+            : Deserialize<InvoiceTemplateCustomization>(po.TemplateSettings);
+
+        return new InvoicePdfRequest(
+            po.PONumber,
+            po.IssueDate,
+            po.DueDate,
+            po.Reference,
+            po.Currency,
+            business?.BusinessName ?? string.Empty,
+            supplier?.BusinessName ?? supplier?.ContactName ?? string.Empty,
+            null,
+            po.Items
+                .OrderBy(item => item.SortOrder)
+                .Select(item => new InvoicePdfLineItem(item.Description, item.Quantity, item.Unit, item.UnitPrice, item.TaxRate, item.Discount))
+                .ToList(),
+            DiscountType.None,
+            null,
+            TaxCalculationMethod.Exclusive,
+            po.Notes,
+            po.Terms,
+            // DeliveryInstructions is deliberately not mapped to CustomInstructions: that field
+            // renders under a "Payment Instructions" heading, which would mislabel it on a
+            // purchase order.
+            null,
+            null,
+            templateCode,
+            templateCustomization,
+            null,
+            "Purchase Order",
+            "Supplier");
     }
 
     /// <summary>
@@ -129,16 +223,23 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
         return $"{prefix}{nextSequence:D3}";
     }
 
-    private static PurchaseOrderDto MapToDto(PurchaseOrder po)
+    private static PurchaseOrderDto MapToDto(PurchaseOrder po, IEnumerable<PurchaseOrderItem> items)
     {
         var supplier = Deserialize<SupplierSnapshot>(po.SupplierSnapshot);
         var business = Deserialize<BusinessSnapshot>(po.BusinessSnapshot);
+
+        var lines = items
+            .OrderBy(item => item.SortOrder)
+            .Select(item => new PurchaseOrderItemDto(
+                item.Description, item.Quantity, item.Unit, item.UnitPrice, item.TaxRate,
+                item.Discount, item.LineSubtotal, item.TaxAmount, item.LineTotal))
+            .ToList();
 
         return new(po.Id, po.BusinessId, business?.BusinessName ?? string.Empty,
             po.SupplierId, supplier?.BusinessName ?? supplier?.ContactName ?? string.Empty,
             po.PONumber, po.IssueDate, po.DueDate,
             po.Currency, po.Reference, po.Subtotal, po.TaxAmount, po.TotalAmount,
-            po.Notes, po.Terms, po.DeliveryInstructions, po.CreatedAt, po.UpdatedAt);
+            po.Notes, po.Terms, po.DeliveryInstructions, lines, po.CreatedAt, po.UpdatedAt);
     }
 
     private static T? Deserialize<T>(string snapshot) where T : class

@@ -63,4 +63,8 @@ public sealed record InvoicePdfRequest(
     // real, always-visible "Estimate" label instead of "Invoice" - appended last with a default so
     // every existing positional caller (all of them invoices) is unaffected. See
     // InvoicePdfDocument.Compose for where this actually renders.
-    string DocumentTypeLabel = "Invoice");
+    string DocumentTypeLabel = "Invoice",
+    // IG-306: same reasoning and same append-with-a-default treatment as DocumentTypeLabel above.
+    // A purchase order is addressed to the supplier it is ordering from, so "Bill to" is simply
+    // wrong on one; invoices and estimates keep the default.
+    string CounterpartyLabel = "Bill to");

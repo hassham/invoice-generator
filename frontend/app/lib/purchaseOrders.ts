@@ -1,3 +1,15 @@
+export interface PurchaseOrderItem {
+  description: string;
+  quantity: number;
+  unit: string | null;
+  unitPrice: number;
+  taxRate: number;
+  discount: number;
+  lineSubtotal: number;
+  taxAmount: number;
+  lineTotal: number;
+}
+
 export interface PurchaseOrder {
   id: string;
   businessId: string;
@@ -15,6 +27,7 @@ export interface PurchaseOrder {
   notes: string | null;
   terms: string | null;
   deliveryInstructions: string | null;
+  items: PurchaseOrderItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -62,4 +75,29 @@ export async function deletePurchaseOrder(businessId: string, purchaseOrderId: s
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to delete this purchase order."));
   }
+}
+
+export async function downloadPurchaseOrderPdf(
+  businessId: string,
+  purchaseOrderId: string,
+  poNumber: string
+): Promise<void> {
+  const response = await fetch(
+    `${baseUrl()}/api/v1/businesses/${businessId}/purchase-orders/${purchaseOrderId}/pdf`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to download this purchase order."));
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${poNumber}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

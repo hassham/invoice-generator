@@ -90,7 +90,7 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
                     column.Item().Text($"Reference: {request.Reference}");
                 }
 
-                column.Item().PaddingTop(12).Text("Bill to").SemiBold();
+                column.Item().PaddingTop(12).Text(request.CounterpartyLabel).SemiBold();
                 column.Item().Text(request.Customer);
 
                 if (!string.IsNullOrWhiteSpace(request.ShipTo))

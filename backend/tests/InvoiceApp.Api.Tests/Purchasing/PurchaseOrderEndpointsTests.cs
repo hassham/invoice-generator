@@ -5,11 +5,15 @@ using System.Text.Json.Serialization;
 using InvoiceApp.Api.Tests.Authentication;
 using InvoiceApp.Application.Businesses;
 using InvoiceApp.Application.Customers;
+using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Application.Purchasing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InvoiceApp.Api.Tests.Purchasing;
 
@@ -303,6 +307,160 @@ public class PurchaseOrderEndpointsTests
 
         var repeatDelete = await client.DeleteAsync($"{Endpoint(businessId)}/{po.Id}");
         Assert.Equal(HttpStatusCode.NotFound, repeatDelete.StatusCode);
+    }
+
+    // IG-306: line items were previously accepted, used for totals, then discarded.
+    [Fact]
+    public async Task Persists_line_items_with_their_calculated_line_totals()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-items@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+
+        var created = await CreateAsync(client, businessId, supplierId);
+        var fetched = await client.GetFromJsonAsync<PurchaseOrderDto>($"{Endpoint(businessId)}/{created.Id}", JsonOptions);
+
+        var item = Assert.Single(fetched!.Items);
+        Assert.Equal("Steel bracket", item.Description);
+        Assert.Equal(2m, item.Quantity);
+        Assert.Equal("Each", item.Unit);
+        Assert.Equal(100m, item.UnitPrice);
+        Assert.Equal(10m, item.TaxRate);
+        Assert.Equal(200m, item.LineSubtotal);
+        Assert.Equal(20m, item.TaxAmount);
+        Assert.Equal(220m, item.LineTotal);
+    }
+
+    [Fact]
+    public async Task Returns_line_items_in_the_order_they_were_submitted()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-item-order@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+
+        var command = ValidCommand(supplierId) with
+        {
+            Items =
+            [
+                new PurchaseOrderLineItem("First", 1, null, 10, 0, 0),
+                new PurchaseOrderLineItem("Second", 1, null, 20, 0, 0),
+                new PurchaseOrderLineItem("Third", 1, null, 30, 0, 0),
+            ],
+        };
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId), command);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<PurchaseOrderDto>(JsonOptions);
+        var fetched = await client.GetFromJsonAsync<PurchaseOrderDto>($"{Endpoint(businessId)}/{created!.Id}", JsonOptions);
+
+        Assert.Equal(["First", "Second", "Third"], fetched!.Items.Select(item => item.Description));
+        Assert.Equal(60m, fetched.Subtotal);
+    }
+
+    [Fact]
+    public async Task Generates_a_purchase_order_pdf()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-pdf@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+        var po = await CreateAsync(client, businessId, supplierId);
+
+        var response = await client.GetAsync($"{Endpoint(businessId)}/{po.Id}/pdf");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("PO-20300801-001.pdf", response.Content.Headers.ContentDisposition?.FileName);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
+    }
+
+    /// <summary>
+    /// IG-236 AC: the purchase order renders through the shared document engine and is labelled so
+    /// it cannot be mistaken for an invoice or estimate. Asserted on the mapping rather than by
+    /// extracting PDF text, which this codebase has no tooling for.
+    /// </summary>
+    [Fact]
+    public async Task Maps_a_purchase_order_onto_the_shared_pdf_contract_with_purchase_order_labels()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-pdf-labels@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+        var po = await CreateAsync(client, businessId, supplierId);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userId = await db.Businesses.Where(b => b.Id == businessId).Select(b => b.UserId).SingleAsync();
+        var service = scope.ServiceProvider.GetRequiredService<IPurchaseOrderService>();
+
+        var pdfRequest = await service.GetPdfRequestAsync(userId, businessId, po.Id, CancellationToken.None);
+
+        Assert.Equal("Purchase Order", pdfRequest.DocumentTypeLabel);
+        Assert.Equal("Supplier", pdfRequest.CounterpartyLabel);
+        Assert.Equal("PO-20300801-001", pdfRequest.InvoiceNumber);
+        Assert.Equal("Bolt Supply Co", pdfRequest.Customer);
+        Assert.Equal("Steel bracket", Assert.Single(pdfRequest.Items).Description);
+    }
+
+    /// <summary>Invoices and estimates must be unaffected by the counterparty label IG-306 added.</summary>
+    [Fact]
+    public void Invoice_pdf_requests_still_default_to_bill_to()
+    {
+        var request = new InvoicePdfRequest(
+            "INV-1", IssueDate, DueDate, null, "AUD", "Seller", "Customer", null,
+            [new InvoicePdfLineItem("Consulting", 1, null, 100, 0, 0)],
+            DiscountType.None, null, TaxCalculationMethod.Exclusive,
+            null, null, null, null, null, null, null);
+
+        Assert.Equal("Invoice", request.DocumentTypeLabel);
+        Assert.Equal("Bill to", request.CounterpartyLabel);
+    }
+
+    [Fact]
+    public async Task Does_not_generate_a_pdf_for_a_deleted_purchase_order()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-pdf-deleted@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+        var po = await CreateAsync(client, businessId, supplierId);
+
+        await client.DeleteAsync($"{Endpoint(businessId)}/{po.Id}");
+        var response = await client.GetAsync($"{Endpoint(businessId)}/{po.Id}/pdf");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Does_not_generate_a_pdf_for_another_accounts_purchase_order()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+
+        using var ownerClient = await RegisteredClientAsync(factory, "po-pdf-owner@example.com");
+        var ownerBusinessId = await BusinessIdAsync(ownerClient);
+        var ownerSupplierId = await SupplierIdAsync(ownerClient);
+        var po = await CreateAsync(ownerClient, ownerBusinessId, ownerSupplierId);
+
+        using var otherClient = await RegisteredClientAsync(factory, "po-pdf-other@example.com");
+        var otherBusinessId = await BusinessIdAsync(otherClient);
+
+        var response = await otherClient.GetAsync($"{Endpoint(otherBusinessId)}/{po.Id}/pdf");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Missing_session_cannot_download_a_purchase_order_pdf()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"{Endpoint(Guid.NewGuid())}/{Guid.NewGuid()}/pdf");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     /// <summary>

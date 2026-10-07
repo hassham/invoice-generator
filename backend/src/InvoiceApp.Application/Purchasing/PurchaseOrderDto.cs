@@ -17,8 +17,20 @@ public sealed record PurchaseOrderDto(
     string? Notes,
     string? Terms,
     string? DeliveryInstructions,
+    IReadOnlyList<PurchaseOrderItemDto> Items,
     DateTime CreatedAt,
     DateTime UpdatedAt);
+
+public sealed record PurchaseOrderItemDto(
+    string Description,
+    decimal Quantity,
+    string? Unit,
+    decimal UnitPrice,
+    decimal TaxRate,
+    decimal Discount,
+    decimal LineSubtotal,
+    decimal TaxAmount,
+    decimal LineTotal);
 
 public sealed record CreatePurchaseOrderCommand(
     Guid SupplierId,
@@ -40,16 +52,3 @@ public sealed record PurchaseOrderLineItem(
     decimal UnitPrice,
     decimal TaxRate,
     decimal Discount);
-
-public sealed record PurchaseOrderPdfRequest(
-    string PONumber,
-    DateOnly IssueDate,
-    DateOnly DueDate,
-    List<PurchaseOrderLineItem> Items,
-    decimal Subtotal,
-    decimal TaxAmount,
-    decimal TotalAmount,
-    string Currency,
-    string SupplierName,
-    string BusinessName,
-    string? TemplateCustomization);
