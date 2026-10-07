@@ -1,3 +1,4 @@
+using System.Globalization;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
@@ -147,13 +148,24 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         CancellationToken cancellationToken)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var countToday = await dbContext.CreditNotes
-            .CountAsync(cn => cn.BusinessId == business.Id &&
-                             cn.IssueDate == today &&
-                             !cn.IsDeleted,
-                         cancellationToken);
+        var prefix = $"CN-{business.Id:N}{today.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}";
 
-        return $"CN-{business.Id:N}{today:yyyyMMdd}{countToday + 1:D4}";
+        // Read the sequence back from the numbers already issued, including soft-deleted ones,
+        // rather than counting live rows: a count that filters out IsDeleted hands the next credit
+        // note a number a deleted one already used, so one accounting number would point at two
+        // documents. Backed by the unique (business_id, credit_note_number) index so a genuine
+        // concurrent collision fails loudly instead of duplicating (IG-234).
+        var issued = await dbContext.CreditNotes
+            .Where(cn => cn.BusinessId == business.Id && cn.CreditNoteNumber.StartsWith(prefix))
+            .Select(cn => cn.CreditNoteNumber)
+            .ToListAsync(cancellationToken);
+
+        var nextSequence = issued
+            .Select(number => int.TryParse(number[prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) ? sequence : 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        return $"{prefix}{nextSequence:D4}";
     }
 
     private static CreditNoteDto MapToDto(CreditNote creditNote)

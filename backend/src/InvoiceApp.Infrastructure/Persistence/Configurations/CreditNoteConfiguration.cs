@@ -23,5 +23,9 @@ public sealed class CreditNoteConfiguration : IEntityTypeConfiguration<CreditNot
         builder.HasIndex(cn => cn.InvoiceId);
         builder.HasIndex(cn => cn.CustomerId);
         builder.HasIndex(cn => new { cn.BusinessId, cn.IsDeleted });
+
+        // An accounting number must identify exactly one document. Soft-deleted rows are included
+        // deliberately: a deleted credit note's number must never be reissued (IG-234).
+        builder.HasIndex(cn => new { cn.BusinessId, cn.CreditNoteNumber }).IsUnique();
     }
 }

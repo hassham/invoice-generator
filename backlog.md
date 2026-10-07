@@ -126,7 +126,39 @@ fix made them run, not pass their actual criteria:
   data". The zero case is covered client-side, but **no backend test touches `/reports/revenue`
   at all**, so cross-account isolation is unverified.
 
-**IG-234: Credit notes (FEATURE COMPLETE 2026-10-06)**
+**IG-234: Credit note numbering hardened + first tests — 2026-10-07**
+
+Credit notes were the last document type carrying the Note 23 numbering foot-gun, and their variant
+was the worst of the three: the sequence counted only rows where `IsDeleted` was false, so deleting
+a credit note handed its number straight to the next one — one accounting number, two documents —
+with no unique index to catch it.
+
+- Sequence now reads back from the numbers already issued, soft-deleted rows included, so a number
+  is never reissued.
+- Unique index on `(business_id, credit_note_number)` (migration
+  `20261007102705_AddCreditNoteNumberUniqueIndex`).
+- First automated tests for credit notes at all: 9 endpoint tests in
+  `InvoiceApp.Api.Tests/Invoicing/CreditNoteEndpointsTests.cs`, covering `IG-288`'s amount-validation
+  criterion (over-amount rejected, exactly-amount-due accepted), sequential numbering, the
+  no-reuse-after-delete regression, and account isolation. Backend now 451 (266 API).
+
+Verified against real Postgres, since InMemory cannot prove a unique index: create → `…0001`,
+delete (204), create → `…0002` (not reused), over-amount → 400. A direct duplicate `INSERT` was then
+rejected by Postgres with `duplicate key value violates unique constraint
+ix_credit_notes_business_id_credit_note_number` — and the row it blocked was the **soft-deleted**
+one, confirming deleted numbers stay reserved.
+
+**Deployment note**: this migration adds a UNIQUE index to an existing table. It will fail on any
+database that already contains duplicate `(business_id, credit_note_number)` rows, which the old
+numbering could produce. The local database was empty of credit notes. **Check production for
+duplicates before deploying** — `SELECT business_id, credit_note_number, COUNT(*) FROM
+invoicing.credit_notes GROUP BY 1,2 HAVING COUNT(*) > 1;`
+
+Unchanged and worth knowing: the number format is `CN-{32-hex business guid}{yyyyMMdd}{seq:D4}`,
+inconsistent with `RCP-{yyyyMMdd}-{seq:D3}` and `PO-{yyyyMMdd}-{seq:D3}` and unpleasant for a
+customer to read. Left alone because changing it would alter numbers already issued.
+
+**IG-234 (earlier work, 2026-10-06)**
 
 **IG-234 API work** (commits 16d3a7d + 0addc76):
 - Domain: CreditNote entity (references InvoiceId, CustomerId, tracks Amount, Reason, seller/customer snapshots)
@@ -219,7 +251,7 @@ Standing lessons and conventions, most still directly actionable, none requiring
 20. **`main` has branch protection** (Backend build + Frontend build required, no force-push/delete) but `enforce_admins` is off and no PR-review count is required — direct pushes to `main` by an authenticated owner still work; only PR merges are gated.
 21. **Never hand-write an EF migration — always `dotnet ef migrations add`.** EF identifies a migration by the `[Migration("...")]` attribute that lives in its generated `.Designer.cs`, so a hand-written `.cs` alone is invisible to EF and leaves `ApplicationDbContextModelSnapshot` stale (the next generated migration then re-creates the same table). `dotnet test` will **not** catch this — tests run on EF Core InMemory, which bypasses migrations entirely (note 6). Generating it also gets `EnsureSchema` and this context's PascalCase→snake_case column mapping right, both of which are easy to miss by hand. Cost a full rollback/regenerate cycle on `IG-289` (2026-10-07).
 22. **Check which schema a new table belongs in before adding one.** Schemas here are singular and per-module (`invoice`, `payment`, `business`, `customer`, `estimate`); `invoicing` is an existing Phase-2 inconsistency, not a precedent to copy. `IG-289` initially created a `payments` schema one character off the existing `payment` one — `payment.payments` beside `payments.receipts` is a genuine foot-gun for anyone writing SQL.
-23. **A `CountAsync() + 1` document-number sequence races** — two documents created for one business on the same day can silently receive the same number. Back any such sequence with a unique index on (business_id, number) so a loser fails loudly rather than duplicating an accounting number (added for receipts in `IG-289`; **credit notes (`IG-234`) still have this unguarded** and should get the same treatment). Two further traps, both hit by purchase orders in `IG-291` and fixed in `IG-292`: (a) **the date used to filter the sequence must be the same date embedded in the number** — counting rows by "today" while numbering by the caller's issue date made every backdated document `PO-{today}-001`, so the second one hit the unique index as an unhandled 500, deterministically rather than only under concurrency; (b) **count-based sequences reuse numbers after a soft delete** — derive the next value from the max sequence already present in the stored numbers instead, so a deleted accounting number is never issued twice. Critically, **EF Core InMemory does not enforce unique indexes**, so `dotnet test` can never prove any of this — it happily inserts the duplicate Postgres rejects. The same blind spot as Note 21's migrations: verify a numbering fix against real Postgres (Note 7's fixture, or a live server), which is how `IG-292`'s fix was actually confirmed rather than by the green suite alone.
+23. **A `CountAsync() + 1` document-number sequence races** — two documents created for one business on the same day can silently receive the same number. Back any such sequence with a unique index on (business_id, number) so a loser fails loudly rather than duplicating an accounting number (receipts `IG-289`, purchase orders `IG-291`, credit notes `IG-234` — **all three now have the index**). Two further traps, both hit by purchase orders in `IG-291` and fixed in `IG-292`: (a) **the date used to filter the sequence must be the same date embedded in the number** — counting rows by "today" while numbering by the caller's issue date made every backdated document `PO-{today}-001`, so the second one hit the unique index as an unhandled 500, deterministically rather than only under concurrency; (b) **count-based sequences reuse numbers after a soft delete** — derive the next value from the max sequence already present in the stored numbers instead, so a deleted accounting number is never issued twice. Critically, **EF Core InMemory does not enforce unique indexes**, so `dotnet test` can never prove any of this — it happily inserts the duplicate Postgres rejects. The same blind spot as Note 21's migrations: verify a numbering fix against real Postgres (Note 7's fixture, or a live server), which is how `IG-292`'s fix was actually confirmed rather than by the green suite alone.
 24. **A new itemised document type reuses `InvoicePdfDocument` — do not write a bespoke QuestPDF document.** `InvoicePdfRequest` carries per-document-type labels appended last with defaults (`DocumentTypeLabel = "Invoice"`, `CounterpartyLabel = "Bill to"`), so every existing positional caller is unaffected; the service maps its stored entity onto `InvoicePdfRequest` and passes its own labels (`EstimateService` → `"Estimate"`, `PurchaseOrderService` → `"Purchase Order"`/`"Supplier"`). This is what satisfies "reuses the shared document engine and templates", and it gets template customisation for free. `ReceiptPdfDocument` is **not** the precedent to copy — a receipt is not itemised and genuinely needed its own layout. Caveat: the only free-text slot, `CustomInstructions`, renders under a **"Payment Instructions"** heading, so it cannot carry anything else (purchase order delivery instructions are left off the PDF for this reason) without adding a new section.
 25. **Architecture-boundary tests (`InvoiceApp.ArchitectureTests`) must be validated against Linux CI, not just a Windows dev machine** — a real cross-platform bug in `ProjectFile.cs` sat undetected for several Subtasks because it only manifested on the Ubuntu runner.
 
