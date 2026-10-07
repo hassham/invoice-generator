@@ -20,6 +20,19 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
         var supplier = await dbContext.Customers.FirstOrDefaultAsync(c => c.Id == command.SupplierId && c.BusinessId == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Supplier not found.");
 
+        // IG-307: the create UI enforces all three of these before it posts, but the frontend is
+        // only ever a convenience - AGENTS.md makes the backend authoritative for validation, and
+        // until now this endpoint would happily store an order with no lines at all, or one
+        // required before it was issued.
+        if (command.Items == null || command.Items.Count == 0)
+            throw new InvalidOperationException("A purchase order needs at least one line item.");
+
+        if (string.IsNullOrWhiteSpace(command.Currency))
+            throw new InvalidOperationException("Currency is required.");
+
+        if (command.DueDate < command.IssueDate)
+            throw new InvalidOperationException("Required by date cannot be before the issue date.");
+
         var poNumber = await NextPurchaseOrderNumberAsync(businessId, command.IssueDate, cancellationToken);
 
         var lines = command.Items.Select((item, index) =>

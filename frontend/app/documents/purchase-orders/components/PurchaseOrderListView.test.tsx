@@ -93,7 +93,33 @@ describe("PurchaseOrderListView", () => {
 
     render(<PurchaseOrderListView />);
 
-    expect(await screen.findByText("No purchase orders yet.")).toBeInTheDocument();
+    expect(await screen.findByText(/No purchase orders yet\./)).toBeInTheDocument();
+  });
+
+  // IG-307: the list is the only entry point to the create flow, so the action has to be here
+  // whether or not the account already has purchase orders.
+  it("offers a create action alongside the list", async () => {
+    resolveBusiness();
+    mockedListPurchaseOrders.mockResolvedValue([samplePurchaseOrder]);
+
+    render(<PurchaseOrderListView />);
+
+    expect(await screen.findByRole("link", { name: "New purchase order" })).toHaveAttribute(
+      "href",
+      "/documents/purchase-orders/new"
+    );
+  });
+
+  it("offers a create action from the empty state too", async () => {
+    resolveBusiness();
+    mockedListPurchaseOrders.mockResolvedValue([]);
+
+    render(<PurchaseOrderListView />);
+
+    expect(await screen.findByRole("link", { name: "Raise your first purchase order" })).toHaveAttribute(
+      "href",
+      "/documents/purchase-orders/new"
+    );
   });
 
   it("shows an error message on failure", async () => {

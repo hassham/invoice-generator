@@ -37,7 +37,10 @@ public class PurchaseOrderEndpointsTests
     private static CreatePurchaseOrderCommand ValidCommand(Guid supplierId, DateOnly? issueDate = null) => new(
         SupplierId: supplierId,
         IssueDate: issueDate ?? IssueDate,
-        DueDate: DueDate,
+        // IG-307 rejects a required-by date earlier than the issue date, so this tracks the issue
+        // date instead of a fixed constant - the numbering tests below backdate and forward-date
+        // the issue date, and a pinned DueDate made those commands quietly invalid.
+        DueDate: (issueDate ?? IssueDate).AddDays(14),
         Currency: "AUD",
         Reference: "REQ-9",
         // Quantity 2 x UnitPrice 100 = 200 subtotal, 10% tax = 20, total 220.
@@ -122,6 +125,70 @@ public class PurchaseOrderEndpointsTests
         Assert.Equal(220m, created.TotalAmount);
         Assert.Equal(IssueDate, created.IssueDate);
         Assert.Equal($"{Endpoint(businessId)}/{created.Id}", response.Headers.Location?.OriginalString);
+    }
+
+    /// <summary>
+    /// IG-307 added a create UI, which client-validates before it posts. These three pin the
+    /// backend's own guards, since the frontend is only a convenience and the API is public to any
+    /// authenticated caller - before IG-307 all three of these were accepted and stored.
+    /// </summary>
+    [Fact]
+    public async Task Rejects_a_purchase_order_with_no_line_items()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-no-items@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            ValidCommand(supplierId) with { Items = [] });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("at least one line item", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Rejects_a_required_by_date_earlier_than_the_issue_date()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-bad-dates@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            ValidCommand(supplierId) with { DueDate = IssueDate.AddDays(-1) });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("cannot be before the issue date", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Accepts_a_required_by_date_equal_to_the_issue_date()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-same-day@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            ValidCommand(supplierId) with { DueDate = IssueDate });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Rejects_a_purchase_order_with_no_currency()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "po-no-currency@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var supplierId = await SupplierIdAsync(client);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            ValidCommand(supplierId) with { Currency = "  " });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Currency is required", await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>

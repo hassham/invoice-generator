@@ -46,6 +46,12 @@ export function PurchaseOrderListView() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-950">Purchase Orders</h1>
+        <Link
+          href="/documents/purchase-orders/new"
+          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+        >
+          New purchase order
+        </Link>
       </div>
       <p className="mt-2 text-sm text-slate-600">
         Orders you have placed with your suppliers. These are separate from the invoices you send to
@@ -63,7 +69,13 @@ export function PurchaseOrderListView() {
       ) : null}
 
       {state === "loaded" && items.length === 0 ? (
-        <p className="mt-6 text-sm text-slate-600">No purchase orders yet.</p>
+        <p className="mt-6 text-sm text-slate-600">
+          No purchase orders yet.{" "}
+          <Link href="/documents/purchase-orders/new" className="font-medium text-slate-950 hover:underline">
+            Raise your first purchase order
+          </Link>
+          .
+        </p>
       ) : null}
 
       {state === "loaded" && items.length > 0 ? (

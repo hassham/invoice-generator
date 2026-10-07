@@ -57,8 +57,7 @@ surfaces, and no horizontal overflow at 390px.
 
 **Not done / known gaps:**
 
-- No purchase order create UI — purchase orders are created via API only. The list has no "New
-  Purchase Order" action.
+- ~~No purchase order create UI~~ — resolved by `IG-307` below.
 - No nav entry, consistent with estimates/receipts/credit-notes/recurring/reports, which are all
   reachable by URL only (Engineering Note 27 warns the header has no headroom).
 - Line items and the PDF were still missing at this point; both landed in `IG-306` below.
@@ -94,10 +93,52 @@ are met, but its User Story — "As a registered user, I want to create a purcha
 same tool I use for invoicing" — is not: there is still **no create UI**, so purchase orders can
 only be created through the API. Raised as **`IG-307`**, which `IG-236` now waits on.
 
-**Next**: `IG-307` — purchase order create UI. Note its open question: every Phase 2 document
-surface is URL-only and absent from the nav, which is already at its width limit (Note 27), so a
-create form nobody can navigate to is only a partial fix. That part may belong with `IG-198`.
-**Then**: `IG-237` (document-type filtering) closes out the `IG-210` epic
+**IG-307: Purchase order create UI — COMPLETE 2026-10-07**
+
+Closes the gap above: a purchase order can now be created from the app, and the user lands on it.
+
+- `/documents/purchase-orders/new` — supplier, currency, issue date, required by, reference, line
+  items, delivery instructions, terms and notes. The list gained a "New purchase order" action and
+  an empty-state link; these are the only entry points (see the nav gap below).
+- Reuses the shared `LineItemsSection`/`LineItemRow` and the whole `invoice/create/lib/lineItems`
+  module rather than duplicating them — that module is already document-agnostic, and
+  `CreateEstimateEditor` (IG-220) set the precedent for a non-invoice create flow doing exactly
+  this. Pure draft logic is split into `new/lib/purchaseOrderDraft.ts`.
+- Business defaults drive the form: currency and the line's tax rate come from the business
+  profile, **not** the invoice editor's hard-coded 10% (`resolveTaxRateDefault`, IG-203). Note a
+  freshly registered account's `defaultTaxRate` is **0**, so a new account's first line starts
+  untaxed — verified against the API, and correct per IG-203, but surprising if you expect the
+  FSD's "Australian default: 10% GST".
+- Required by is deliberately left blank rather than defaulted: a delivery deadline is a
+  commitment, and guessing one puts a date on the document the user never chose.
+- Templates are **not** wired in. `CreatePurchaseOrderCommand` accepts a `TemplateId`, but IG-307's
+  scope stops at the listed fields and the PO PDF already renders without one (IG-306).
+
+**Backend validation added beyond the literal scope** (`PurchaseOrderService.CreateAsync`): the
+endpoint previously accepted an order with **no line items at all**, a blank currency, or a
+required-by date earlier than the issue date, and stored all three. The create UI blocks them
+client-side, but AGENTS.md makes the backend authoritative for validation, so three guard clauses
+and four endpoint tests were added. This also made `ValidCommand` in `PurchaseOrderEndpointsTests`
+derive `DueDate` from the issue date — the numbering tests backdate and forward-date the issue date
+against a pinned `DueDate`, which the new guard correctly rejected.
+
+- Tests: backend 455 (270 API, up from 266) — 4 new; frontend 94 files / 736 tests, 30 of them
+  purchase-order (13 new: form behaviour + draft logic).
+
+Verified in Chromium against live Postgres, **44 checks all passing**: create reached by clicking
+from the list, defaults prefilled, empty submit refused with nothing posted, backdated required-by
+refused client-side, totals preview matching the stored figures exactly, landing on the created
+purchase order, `PO-20261007-001` then `-002` through the UI, both listed, itemless and backdated
+POSTs rejected 400 by the API directly, no console errors, no horizontal overflow at 390px.
+
+**Known gap carried forward (unchanged, and the reason this is only a partial fix)**: there is
+still **no nav entry**. Purchase orders — like estimates, receipts, credit notes, recurring and
+reports — are reachable only by URL, and the header is at its width limit (Note 27). A create form
+nobody can navigate to is a partial fix; that belongs with `IG-198`, not here.
+
+**Next**: `IG-237` (`IG-293` document-type filtering, `IG-294` labelling tests) — the last Story
+under `IG-210`, which closes that epic once `IG-236` is transitioned.
+**Also open**: `IG-234` needs a credit note PDF subtask before it can close (see below).
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
@@ -112,8 +153,8 @@ Both had been failing the four-command gate for reasons unrelated to the code un
   assertions are exact dates. Only `Date` is faked — faking the timers `userEvent` relies on makes
   its interactions hang rather than fail (Engineering Note 32).
 
-**The gate is now fully green**: frontend 92 files / 706 tests, backend 442, ESLint clean,
-`next build` clean.
+**The gate is now fully green**: frontend 94 files / 736 tests, backend 455, ESLint clean,
+`next build` clean. (Counts as of IG-307, 2026-10-07.)
 
 These were the test files behind `IG-266` and `IG-268`, but **neither subtask is closeable** — the
 fix made them run, not pass their actual criteria:
@@ -287,7 +328,8 @@ Standing lessons and conventions, most still directly actionable, none requiring
 41. **`waitForLoadState("networkidle")` is unreliable in Next.js dev mode** (HMR/websocket activity keeps it from settling) — prefer `page.waitForURL(pattern)` for cross-page checks and a short fixed `waitForTimeout` for same-page state changes.
 42. **Tailwind's `uppercase` class is reflected in Playwright's `innerText`** — a `<dt class="uppercase">Supplier</dt>` comes back as `"SUPPLIER"`, so a verification script asserting `innerText.includes("Supplier")` fails against correct markup. Match case-insensitively for any CSS-upper-cased label. Equally, assert "this page never says Customer" against the specific table/article, not `body` — `SiteHeader`'s nav has a "Customers" link that makes a whole-page check always fail. Both produced false failures in `IG-292` before the real behaviour was confirmed correct.
 43. **The backend needs `ASPNETCORE_ENVIRONMENT=Development` when started without a launch profile** — the connection string lives only in `appsettings.Development.json`, so `dotnet run --no-launch-profile` dies on startup with "ConnectionStrings:Default is required". Use `ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile --urls http://localhost:5094`. Migrations are **not** applied at startup, so run `dotnet ef database update` first if a migration has just been added.
-44. **Confirm a PID's actual command line before killing it to free a port/lock** (e.g. `Get-CimInstance Win32_Process -Filter 'ProcessId = <pid>'` on Windows) — this machine has had unrelated processes on ports that look like a stale dev-server lock at a glance; a misread has killed the wrong process before. Port 3000 in particular may already be occupied by an unrelated project (Next.js auto-selects the next free port on its own).
+44. **Confirm a PID's actual command line before killing it to free a port/lock** (e.g. `Get-CimInstance Win32_Process -Filter 'ProcessId = <pid>'` on Windows) — this machine has had unrelated processes on ports that look like a stale dev-server lock at a glance; a misread has killed the wrong process before. Port 3000 in particular may already be occupied by an unrelated project (Next.js auto-selects the next free port on its own). A second `next dev` against the same repo also fails outright with "Unable to acquire lock at `frontend/generated/dev/lock`" — check for an already-running dev server before starting one.
+45. **A freshly registered account's `defaultTaxRate` is `0`, not the FSD's "Australian default: 10% GST"** — that 10% is `DEFAULT_TAX_RATE_PRESET`, which applies to *anonymous* invoice drafts only. Any authenticated create flow resolves the rate from the business profile (`resolveTaxRateDefault`, IG-203), so a brand-new account's first line starts at 0%. A verification script that assumes 10% for a just-registered user reports false failures (four of them in `IG-307`, all of which were the script being wrong, not the form). Either set the profile's rate first or choose the rate explicitly in the form.
 
 ## Handoff Update Template
 
