@@ -89,12 +89,14 @@ free-text slot in the shared document (`CustomInstructions`) renders under a "Pa
 Instructions" heading, so putting delivery instructions there would mislabel them. They show on the
 detail page. Needs its own section in the shared document if it is wanted on the PDF.
 
-**`IG-236` is not closeable yet** despite all three subtasks being Done. Its three ACs are met, but
-its User Story — "As a registered user, I want to create a purchase order… using the same tool I
-use for invoicing" — is not: there is still **no create UI**, so purchase orders can only be
-created through the API. Needs a new subtask before the story closes.
+**`IG-236` is not closeable yet** despite `IG-291`/`IG-292`/`IG-306` all being Done. Its three ACs
+are met, but its User Story — "As a registered user, I want to create a purchase order… using the
+same tool I use for invoicing" — is not: there is still **no create UI**, so purchase orders can
+only be created through the API. Raised as **`IG-307`**, which `IG-236` now waits on.
 
-**Next**: a purchase order create UI subtask under `IG-236`
+**Next**: `IG-307` — purchase order create UI. Note its open question: every Phase 2 document
+surface is URL-only and absent from the nav, which is already at its width limit (Note 27), so a
+create form nobody can navigate to is only a partial fix. That part may belong with `IG-198`.
 **Then**: `IG-237` (document-type filtering) closes out the `IG-210` epic
 
 **Two pre-existing frontend test failures, unrelated to this work, currently break the four-command
