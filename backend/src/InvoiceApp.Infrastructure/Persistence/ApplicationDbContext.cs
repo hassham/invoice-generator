@@ -6,6 +6,7 @@ using InvoiceApp.Domain.Documents;
 using InvoiceApp.Domain.Estimates;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Payments;
+using InvoiceApp.Domain.Purchasing;
 using InvoiceApp.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -53,6 +54,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
 
     public DbSet<Receipt> Receipts => Set<Receipt>();
+
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
