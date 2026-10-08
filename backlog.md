@@ -183,10 +183,57 @@ in SQL and cast both status enums to `int`; that is now impossible to miss in th
 - Credit notes and receipts still have no detail page, so those rows link to their list.
 - Still no nav entry — `/documents` joins the other URL-only Phase 2 surfaces (Note 27, `IG-198`).
 
-**Next**: `IG-294` (document-type labelling tests) is the only subtask left under `IG-237`; much
-of its ground is already covered by the 14 frontend tests and the browser run above, so check its
-criteria before assuming new work. `IG-237` closing leaves `IG-210` closeable.
-**Also open**: `IG-234` needs a credit note PDF subtask before it can close (see below).
+**IG-308: Credit note PDF — COMPLETE 2026-10-08**
+
+Raised under `IG-234` and built the same day. One missing PDF had been blocking four things at
+once: `IG-234`'s first AC, `IG-294` (which verifies labelling "on list, detail and PDF" and had no
+credit note PDF to look at), and through `IG-294` both `IG-237` and the `IG-210` epic.
+
+- `GET /api/v1/businesses/{businessId}/credit-notes/{id}/pdf`, authorized, 404 on a soft-deleted
+  or other-account credit note — matching the purchase order endpoint (`IG-306`).
+- Renders through the **existing** `InvoicePdfDocument` with `DocumentTypeLabel = "Credit Note"`.
+  `CounterpartyLabel` stays at its `"Bill to"` default, which is correct here: unlike a purchase
+  order, a credit note really is addressed to the customer.
+- Two things make a credit note the odd one out, both handled without bending the shared document:
+  it has **no line items** (only an `Amount` and a `Reason`, so it renders as a single line — the
+  first type to use the engine without a real line-item collection), and it has **no due date**.
+  The latter added `ShowDueDate = true` to `InvoicePdfRequest`, appended with a default like
+  `DocumentTypeLabel`/`CounterpartyLabel` before it. `IG-306` could handle its equivalent mismatch
+  by simply not mapping a field; that is not available for a required positional parameter, and
+  printing "Due date: <issue date>" would state something untrue on an accounting document.
+- Download action on the credit note list, plus the first frontend tests credit notes have ever
+  had (6).
+
+**Pre-existing defect fixed on the way**: `/credit-notes` and `/receipts` both rendered "Business
+context required. Please access through the main app." unless the caller put `?businessId=` in the
+URL — so both were unreachable by navigation, including from the credit note and receipt rows the
+unified document list had just started linking to (`IG-237`). Both now resolve the account's single
+business from the profile when the parameter is absent; an explicit parameter still wins, which is
+what `IG-211` multi-business will need. **Found by the browser run, not by any test.**
+
+- Tests: backend 479 (294 API, up from 290 — 4 new); frontend 96 files / 756 tests (6 new).
+
+Verified against live Postgres, all checks passing, and then — the part that actually proves the
+AC — **the generated PDF's text was extracted with `pdftotext`**: it reads `CREDIT NOTE` and
+`Bill to`, carries the reason as its line description and the right amount, and contains **no**
+"INVOICE", no "Due date", no "PURCHASE ORDER" and no "Supplier". Magic-byte assertions cannot see
+any of that, which is why this step exists (the `IG-306` precedent).
+
+**New evidence for a known problem**: the credit note number format
+`CN-{32-hex business guid}{yyyyMMdd}{seq:D4}` is 46 characters, and on the rendered PDF it **wraps
+across three lines** in the document-number slot. Previously this was only noted as "unpleasant
+for a customer to read"; it is now visibly broken on the document. Still unchanged here because
+renumbering would alter numbers already issued — but it now warrants its own issue rather than a
+footnote.
+
+**Next**: `IG-294` (document-type labelling tests) is the last subtask under `IG-237`. Its ground
+is now largely covered — every type is labelled on the unified list (14 frontend tests + a browser
+run), and purchase order and credit note PDFs have both had their text extracted and asserted — so
+check what genuinely remains before treating it as fresh work. After that, `IG-237` and then the
+`IG-210` epic can close.
+**Still unresolved on `IG-234`**: its third AC allows exceeding the invoice's amount due "with
+explicit confirmation"; the code hard-rejects with a 400. Stricter than specified, needs a product
+decision rather than code.
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 

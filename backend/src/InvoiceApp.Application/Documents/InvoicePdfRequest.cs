@@ -67,4 +67,11 @@ public sealed record InvoicePdfRequest(
     // IG-306: same reasoning and same append-with-a-default treatment as DocumentTypeLabel above.
     // A purchase order is addressed to the supplier it is ordering from, so "Bill to" is simply
     // wrong on one; invoices and estimates keep the default.
-    string CounterpartyLabel = "Bill to");
+    string CounterpartyLabel = "Bill to",
+    // IG-308: a credit note has no due date - nothing about it falls due. DueDate is positional
+    // and non-nullable, so the value still has to be supplied; this suppresses the line rather
+    // than printing "Due date: <issue date>", which would state something untrue on the document.
+    // Same append-with-a-default treatment as the two labels above, so existing callers are
+    // unaffected. The alternative - not mapping the field at all, as IG-306 did with
+    // DeliveryInstructions - isn't available for a required positional parameter.
+    bool ShowDueDate = true);

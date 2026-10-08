@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
@@ -141,6 +143,78 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// IG-308 / IG-234 AC 1 ("reuses the existing document editor/template engine"): a credit note
+    /// renders through the very same <c>InvoicePdfDocument</c> as invoices, estimates and purchase
+    /// orders, distinguished only by its DocumentTypeLabel - the IG-220/IG-306 precedent.
+    ///
+    /// Two things make a credit note the odd one out, and both are handled here rather than by
+    /// bending the shared document:
+    /// - It has no line items, only an Amount and a Reason, so it renders as a single line. This is
+    ///   the first document type to use the shared engine without a real line-item collection.
+    /// - It has no due date, so the due-date line is suppressed rather than filled with a stand-in.
+    ///
+    /// CounterpartyLabel stays at its "Bill to" default on purpose: unlike a purchase order, a
+    /// credit note really is addressed to the customer.
+    /// </summary>
+    public async Task<InvoicePdfRequest> GetPdfRequestAsync(
+        Guid userId,
+        Guid businessId,
+        Guid creditNoteId,
+        CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses
+            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+
+        if (business == null)
+            throw new InvalidOperationException("Business not found or access denied.");
+
+        var creditNote = await dbContext.CreditNotes
+            .FirstOrDefaultAsync(cn => cn.Id == creditNoteId && cn.BusinessId == businessId && !cn.IsDeleted, cancellationToken);
+
+        if (creditNote == null)
+            throw new InvalidOperationException("Credit note not found.");
+
+        // The snapshots were copied from the invoice at creation, so they carry the invoice's own
+        // payload shape. Declared privately here for the same reason InvoiceService and
+        // EstimateService each declare their own copy rather than sharing one.
+        var seller = JsonSerializer.Deserialize<SellerSnapshotPayload>(creditNote.SellerSnapshot);
+        var customer = JsonSerializer.Deserialize<CustomerSnapshotPayload>(creditNote.CustomerSnapshot);
+
+        return new InvoicePdfRequest(
+            creditNote.CreditNoteNumber,
+            creditNote.IssueDate,
+            // Never rendered - ShowDueDate is false below - but the parameter is positional and
+            // non-nullable, so it has to be something. The issue date is the least surprising
+            // value for anything that reads the request object itself.
+            creditNote.IssueDate,
+            null,
+            creditNote.Currency,
+            seller?.Text ?? string.Empty,
+            customer?.Text ?? string.Empty,
+            null,
+            // The reason the credit was issued is the only description a credit note has, so it
+            // becomes the single line's description and the amount becomes its unit price.
+            [new InvoicePdfLineItem(creditNote.Reason, 1, null, creditNote.Amount, 0, 0)],
+            DiscountType.None,
+            null,
+            TaxCalculationMethod.Exclusive,
+            string.IsNullOrWhiteSpace(creditNote.Notes) ? null : creditNote.Notes,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Credit Note",
+            "Bill to",
+            ShowDueDate: false);
+    }
+
+    private sealed record SellerSnapshotPayload(string Text);
+
+    private sealed record CustomerSnapshotPayload(string Text, string? ShipTo);
 
     private async Task<string> GenerateNextCreditNoteNumberAsync(
         ApplicationDbContext dbContext,

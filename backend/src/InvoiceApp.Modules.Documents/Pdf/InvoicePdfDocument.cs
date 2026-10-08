@@ -82,7 +82,12 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
                 column.Item().PaddingTop(8).Row(row =>
                 {
                     row.RelativeItem().Text($"Issue date: {request.IssueDate:d MMM yyyy}");
-                    row.RelativeItem().Text($"Due date: {request.DueDate:d MMM yyyy}");
+                    // IG-308: omitted entirely for document types that have no due date, rather
+                    // than printed with a stand-in value.
+                    if (request.ShowDueDate)
+                    {
+                        row.RelativeItem().Text($"Due date: {request.DueDate:d MMM yyyy}");
+                    }
                 });
 
                 if (!string.IsNullOrWhiteSpace(request.Reference))

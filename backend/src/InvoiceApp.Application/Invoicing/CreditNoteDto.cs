@@ -1,3 +1,5 @@
+using InvoiceApp.Application.Documents;
+
 namespace InvoiceApp.Application.Invoicing;
 
 public interface ICreditNoteService
@@ -26,6 +28,14 @@ public interface ICreditNoteService
         CancellationToken cancellationToken);
 
     Task DeleteAsync(
+        Guid userId,
+        Guid businessId,
+        Guid creditNoteId,
+        CancellationToken cancellationToken);
+
+    /// <summary>IG-308: maps a stored credit note onto the shared document engine, the same way
+    /// estimates (IG-220) and purchase orders (IG-306) already render.</summary>
+    Task<InvoicePdfRequest> GetPdfRequestAsync(
         Guid userId,
         Guid businessId,
         Guid creditNoteId,

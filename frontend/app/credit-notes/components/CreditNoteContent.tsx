@@ -6,14 +6,45 @@ import { CreateCreditNoteForm } from "./CreateCreditNoteForm";
 import { CreditNoteList } from "./CreditNoteList";
 import { listByBusiness, CreditNote } from "../../lib/creditNotes";
 import { listInvoices, InvoiceListItem } from "../../lib/invoiceList";
+import { getBusinessProfile } from "../../lib/business";
 
 export function CreditNoteContent() {
   const searchParams = useSearchParams();
-  const businessId = searchParams.get("businessId") || "";
+  const businessIdParam = searchParams.get("businessId") || "";
+  const [businessId, setBusinessId] = useState(businessIdParam);
+  const [businessError, setBusinessError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
+
+  // IG-308: this page used to render "Business context required" unless the caller happened to
+  // put ?businessId= in the URL, which made it unreachable from anywhere that does not already
+  // know the id - including the unified document list's credit note rows (IG-237). Every account
+  // has exactly one business today, so the id is resolved from the profile when it is absent;
+  // an explicit parameter still wins, which is what multi-business (IG-211) will need.
+  useEffect(() => {
+    if (businessIdParam) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBusinessId(businessIdParam);
+      return;
+    }
+    let cancelled = false;
+    getBusinessProfile()
+      .then((profile) => {
+        if (!cancelled) {
+          setBusinessId(profile.id);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBusinessError("Failed to load your business profile.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [businessIdParam]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -47,7 +78,13 @@ export function CreditNoteContent() {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-red-600">Business context required. Please access through the main app.</p>
+            {businessError ? (
+              <p role="alert" className="text-red-600">
+                {businessError}
+              </p>
+            ) : (
+              <p className="text-gray-500">Loading credit notes...</p>
+            )}
           </div>
         </div>
       </div>

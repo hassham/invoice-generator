@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using InvoiceApp.Application.Invoicing;
+using InvoiceApp.Modules.Documents.Pdf;
+using QuestPDF.Fluent;
 
 namespace InvoiceApp.Api.Endpoints;
 
@@ -17,6 +19,8 @@ public static class CreditNoteEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/credit-notes/{id:guid}", GetAsync).RequireAuthorization();
         // IG-234: Delete a credit note
         app.MapDelete("/api/v1/businesses/{businessId:guid}/credit-notes/{id:guid}", DeleteAsync).RequireAuthorization();
+        // IG-308: renders through the shared invoice document engine, labelled "Credit Note".
+        app.MapGet("/api/v1/businesses/{businessId:guid}/credit-notes/{id:guid}/pdf", GetPdfAsync).RequireAuthorization();
         return app;
     }
 
@@ -96,6 +100,28 @@ public static class CreditNoteEndpoints
         {
             var creditNote = await creditNoteService.GetAsync(userId, businessId, id, cancellationToken);
             return Results.Ok(creditNote);
+        }
+        catch (InvalidOperationException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> GetPdfAsync(
+        ClaimsPrincipal user,
+        Guid businessId,
+        Guid id,
+        ICreditNoteService creditNoteService,
+        CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            var pdfRequest = await creditNoteService.GetPdfRequestAsync(userId, businessId, id, cancellationToken);
+            var pdfBytes = new InvoicePdfDocument(pdfRequest).GeneratePdf();
+
+            return Results.File(pdfBytes, "application/pdf", $"{pdfRequest.InvoiceNumber}.pdf");
         }
         catch (InvalidOperationException)
         {

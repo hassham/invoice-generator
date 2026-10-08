@@ -6,14 +6,43 @@ import { CreateReceiptForm } from "./CreateReceiptForm";
 import { ReceiptList } from "./ReceiptList";
 import { listByBusiness, Receipt } from "../../lib/receipts";
 import { listInvoices, InvoiceListItem } from "../../lib/invoiceList";
+import { getBusinessProfile } from "../../lib/business";
 
 export function ReceiptContent() {
   const searchParams = useSearchParams();
-  const businessId = searchParams.get("businessId") || "";
+  const businessIdParam = searchParams.get("businessId") || "";
+  const [businessId, setBusinessId] = useState(businessIdParam);
+  const [businessError, setBusinessError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
+
+  // IG-308: same fix as CreditNoteContent - this page was unreachable without ?businessId= in the
+  // URL, including from the unified document list's receipt rows (IG-237). An explicit parameter
+  // still wins; otherwise the account's single business is resolved from the profile.
+  useEffect(() => {
+    if (businessIdParam) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBusinessId(businessIdParam);
+      return;
+    }
+    let cancelled = false;
+    getBusinessProfile()
+      .then((profile) => {
+        if (!cancelled) {
+          setBusinessId(profile.id);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBusinessError("Failed to load your business profile.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [businessIdParam]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -47,9 +76,13 @@ export function ReceiptContent() {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-red-600">
-              Business context required. Please access through the main app.
-            </p>
+            {businessError ? (
+              <p role="alert" className="text-red-600">
+                {businessError}
+              </p>
+            ) : (
+              <p className="text-gray-500">Loading receipts...</p>
+            )}
           </div>
         </div>
       </div>

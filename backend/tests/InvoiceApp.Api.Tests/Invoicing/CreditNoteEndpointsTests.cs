@@ -201,6 +201,70 @@ public class CreditNoteEndpointsTests
         Assert.Empty(listed!);
     }
 
+    // IG-308 / IG-234 AC 1: the credit note must render through the shared document engine.
+    [Fact]
+    public async Task Renders_a_credit_note_as_a_pdf()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-pdf@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+        var created = await CreateAsync(client, businessId, invoiceId, 40m);
+
+        var response = await client.GetAsync($"{Endpoint(businessId)}/{created.Id}/pdf");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        // Magic bytes only - this test cannot see rendered text. That the document actually reads
+        // "CREDIT NOTE" is proven by extracting the text with pdftotext, the IG-306 precedent.
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.Contains(created.CreditNoteNumber, response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Missing_session_cannot_download_a_credit_note_pdf()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"{Endpoint(Guid.NewGuid())}/{Guid.NewGuid()}/pdf");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_deleted_credit_note_has_no_pdf()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-pdf-deleted@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+        var created = await CreateAsync(client, businessId, invoiceId, 10m);
+        await client.DeleteAsync($"{Endpoint(businessId)}/{created.Id}");
+
+        var response = await client.GetAsync($"{Endpoint(businessId)}/{created.Id}/pdf");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Cannot_download_another_accounts_credit_note_pdf()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+
+        using var ownerClient = await RegisteredClientAsync(factory, "cn-pdf-owner@example.com");
+        var ownerBusinessId = await BusinessIdAsync(ownerClient);
+        var ownerInvoiceId = await InvoiceIdAsync(ownerClient);
+        var created = await CreateAsync(ownerClient, ownerBusinessId, ownerInvoiceId, 10m);
+
+        using var otherClient = await RegisteredClientAsync(factory, "cn-pdf-other@example.com");
+
+        var response = await otherClient.GetAsync($"{Endpoint(ownerBusinessId)}/{created.Id}/pdf");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Fact]
     public async Task Lists_only_the_owning_accounts_credit_notes()
     {

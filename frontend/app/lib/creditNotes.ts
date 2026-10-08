@@ -90,6 +90,32 @@ export async function getCreditNote(
   return response.json();
 }
 
+/** IG-308: same blob-download approach as downloadPurchaseOrderPdf. */
+export async function downloadCreditNotePdf(
+  businessId: string,
+  creditNoteId: string,
+  creditNoteNumber: string
+): Promise<void> {
+  const response = await fetch(
+    `${baseUrl()}/api/v1/businesses/${businessId}/credit-notes/${creditNoteId}/pdf`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to download this credit note."));
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${creditNoteNumber}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export async function deleteCreditNote(
   businessId: string,
   creditNoteId: string

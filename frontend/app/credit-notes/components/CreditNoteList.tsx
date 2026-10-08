@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditNote, deleteCreditNote } from "../../lib/creditNotes";
+import { CreditNote, deleteCreditNote, downloadCreditNotePdf } from "../../lib/creditNotes";
 
 interface CreditNoteListProps {
   businessId: string;
@@ -17,6 +17,20 @@ export function CreditNoteList({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  // IG-308: the credit note renders through the shared document engine, labelled "Credit Note".
+  const handleDownload = async (note: CreditNote) => {
+    try {
+      setDownloading(note.id);
+      setError(null);
+      await downloadCreditNotePdf(businessId, note.id, note.creditNoteNumber);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to download this credit note.");
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const handleDelete = async (creditNoteId: string) => {
     try {
@@ -83,6 +97,14 @@ export function CreditNoteList({
             )}
 
             <div className="flex gap-2 pt-4 border-t">
+              <button
+                onClick={() => handleDownload(note)}
+                disabled={downloading === note.id}
+                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50"
+              >
+                {downloading === note.id ? "Preparing…" : "Download PDF"}
+              </button>
+
               <div className="relative flex-1">
                 <button
                   onClick={() =>
