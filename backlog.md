@@ -136,8 +136,56 @@ still **no nav entry**. Purchase orders — like estimates, receipts, credit not
 reports — are reachable only by URL, and the header is at its width limit (Note 27). A create form
 nobody can navigate to is a partial fix; that belongs with `IG-198`, not here.
 
-**Next**: `IG-237` (`IG-293` document-type filtering, `IG-294` labelling tests) — the last Story
-under `IG-210`, which closes that epic once `IG-236` is transitioned.
+**IG-237 / IG-293: Unified document list with type filtering — COMPLETE 2026-10-08**
+
+`IG-237`'s AC is "document list/search/filter supports filtering by document type", but **no
+cross-type list existed** to add a filter to. Five types had five pages and five list endpoints
+with three different route shapes (`/api/v1/invoices`, `/api/v1/estimates`,
+`/api/v1/businesses/{id}/…` for the other three), and only the invoice list had search, filters,
+sorting or paging. User decision 2026-10-08: build the real thing — a backend aggregate endpoint
+plus one list — rather than a client-side hub page or a meaningless filter on the invoice list.
+
+- `GET /api/v1/documents` — `page`, `pageSize`, `search`, `documentType`, `startDate`, `endDate`,
+  `sort`. Returns a common row (type, number, counterparty, issue date, currency, amount, status).
+- `/documents` — one list, type filter, search, date preset, sort, paging, all URL-driven so a
+  filtered view survives a refresh or a shared link. Each row links to its own detail page; credit
+  notes and receipts have none yet, so those rows fall back to their own list.
+- Status is `null` for credit notes, receipts and purchase orders rather than invented. Invoices
+  still compute **Overdue** exactly as the invoice-only list does (IG-50's rule, inlined).
+- The counterparty column is "Customer / Supplier": a purchase order's party is a supplier.
+- **Nothing existing changed.** The five per-type endpoints and pages are untouched; the new one
+  sits alongside them. Pinned by a test and a browser check.
+
+**Pre-existing defect fixed on the way**: `GlobalExceptionHandler` had no case for
+`BadHttpRequestException`, so *every* malformed route or query parameter on *every* endpoint
+returned **500 instead of 400** — wrong for the caller and noise in server-error alerting. Now
+mapped to the status it already carries, with no detail passed through.
+
+- Tests: backend 475 (290 API, up from 270 — 20 new); frontend 95 files / 750 tests (14 new).
+
+Verified in Chromium against live Postgres, **38 checks all passing**: five types unioned and
+rendered, each type filtering to exactly its own document, the filter surviving a reload, search
+matching a counterparty name across types, date-range filtering, both sort directions, correct
+per-type links, clicking through to a real document, the invoice-only list unaffected, another
+account seeing nothing, a malformed type returning 400, no console errors, no overflow at 390px.
+
+**Two EF Core traps cost a debugging round each, and `dotnet test` was green through both** —
+InMemory reproduces neither (Engineering Notes 46 and 47). The first shape of this service unioned
+in SQL and cast both status enums to `int`; that is now impossible to miss in the code comments.
+
+**Known limits, deliberate:**
+
+- The union happens **in memory**, not in SQL — EF cannot translate a set operation after a
+  projection, and there is no shared entity type to `Concat` before projecting. Each type is
+  filtered in its own query, so only matching rows load, but a request still loads every match
+  rather than one page. Fine at hundreds of documents; needs a database view or raw `UNION ALL` if
+  an account ever holds tens of thousands.
+- Credit notes and receipts still have no detail page, so those rows link to their list.
+- Still no nav entry — `/documents` joins the other URL-only Phase 2 surfaces (Note 27, `IG-198`).
+
+**Next**: `IG-294` (document-type labelling tests) is the only subtask left under `IG-237`; much
+of its ground is already covered by the 14 frontend tests and the browser run above, so check its
+criteria before assuming new work. `IG-237` closing leaves `IG-210` closeable.
 **Also open**: `IG-234` needs a credit note PDF subtask before it can close (see below).
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
@@ -330,6 +378,8 @@ Standing lessons and conventions, most still directly actionable, none requiring
 43. **The backend needs `ASPNETCORE_ENVIRONMENT=Development` when started without a launch profile** — the connection string lives only in `appsettings.Development.json`, so `dotnet run --no-launch-profile` dies on startup with "ConnectionStrings:Default is required". Use `ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile --urls http://localhost:5094`. Migrations are **not** applied at startup, so run `dotnet ef database update` first if a migration has just been added.
 44. **Confirm a PID's actual command line before killing it to free a port/lock** (e.g. `Get-CimInstance Win32_Process -Filter 'ProcessId = <pid>'` on Windows) — this machine has had unrelated processes on ports that look like a stale dev-server lock at a glance; a misread has killed the wrong process before. Port 3000 in particular may already be occupied by an unrelated project (Next.js auto-selects the next free port on its own). A second `next dev` against the same repo also fails outright with "Unable to acquire lock at `frontend/generated/dev/lock`" — check for an already-running dev server before starting one.
 45. **A freshly registered account's `defaultTaxRate` is `0`, not the FSD's "Australian default: 10% GST"** — that 10% is `DEFAULT_TAX_RATE_PRESET`, which applies to *anonymous* invoice drafts only. Any authenticated create flow resolves the rate from the business profile (`resolveTaxRateDefault`, IG-203), so a brand-new account's first line starts at 0%. A verification script that assumes 10% for a just-registered user reports false failures (four of them in `IG-307`, all of which were the script being wrong, not the form). Either set the profile's rate first or choose the rate explicitly in the form.
+46. **EF Core cannot union projections, and cannot filter over one** — two separate limits that both bite any "one list across several tables" query. `a.Select(...).Concat(b.Select(...))` fails with *"Unable to translate set operation after client projection has been applied"*, and there is no shared entity type to `Concat` before projecting when the tables are unrelated. Applying `.Where(row => row.SomeProjectedProperty == x)` to a projected queryable fails too (*"The LINQ expression could not be translated"*). So: push every filter into each source query against **real columns**, then merge the materialised results in memory. Hit twice in `IG-237`; `DocumentListService`'s own doc comment carries the detail.
+47. **An enum persisted with `HasConversion<string>()` must never be cast to `int` in a projection** — the column holds `'Draft'`, so Postgres raises `22P02: invalid input syntax for type integer: "Draft"` at read time. Project the enum property itself (EF converts it back), or give each enum its own field when several must share a row shape. The InMemory provider has no column type and passes happily, so `dotnet test` stays green and only a real database shows it — the same trap as Note 23. Both `Invoice.Status` and `Estimate.Status` are string-converted.
 
 ## Handoff Update Template
 
