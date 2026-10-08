@@ -165,6 +165,46 @@ public sealed class ReminderTestHarness : IDisposable
         return rule.Id;
     }
 
+    /// <summary>
+    /// Seeds the real FSD default rule set (3 days before due, on due, 3/7/14 days overdue) through
+    /// the production service rather than hand-rolling it, so a test covering "all configured
+    /// rules" covers the rules a real business actually gets.
+    /// </summary>
+    public async Task SeedDefaultRulesAsync(Guid businessId)
+    {
+        await using var db = NewDbContext();
+        await new ReminderRuleService(db).InitializeDefaultRulesAsync(businessId, CancellationToken.None);
+    }
+
+    public async Task SetInvoiceStatusAsync(Guid invoiceId, InvoiceStatus status)
+    {
+        await using var db = NewDbContext();
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == invoiceId);
+        invoice.Status = status;
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Moves an invoice onto a different rule's trigger day. The job reads the clock directly, so
+    /// advancing the invoice is how a test covers "a later reminder" without faking time.
+    /// </summary>
+    public async Task ShiftDueDateAsync(Guid invoiceId, int dueInDays)
+    {
+        await using var db = NewDbContext();
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == invoiceId);
+        invoice.DueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(dueInDays);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task SoftDeleteInvoiceAsync(Guid invoiceId)
+    {
+        await using var db = NewDbContext();
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == invoiceId);
+        invoice.IsDeleted = true;
+        invoice.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+    }
+
     public async Task<int> SentReminderCountAsync()
     {
         await using var db = NewDbContext();

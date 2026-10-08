@@ -291,7 +291,32 @@ read.
 
 Same measurement after the fix: **3 send attempts over ten runs, one failure row at `RetryCount` 3,
 still unresolved and still on the list.** Pinned by 6 tests in `ReminderFailureHandlingTests`,
-including that exhausting one reminder does not suppress a different healthy one. Backend 501.
+including that exhausting one reminder does not suppress a different healthy one.
+
+**IG-284: Reminders stop on payment/cancellation — COMPLETE 2026-10-09**
+
+14 tests in `ReminderStopOnPaymentTests`, covering `IG-232`'s third AC "across all configured
+rules" as the subtask asks.
+
+**Technique worth reusing**: the job reads `DateTime.UtcNow` directly, so rather than faking the
+clock these tests move the **invoice**. One invoice is positioned on each of the five default
+rules' trigger days (`+3, 0, -3, -7, -14`), so a single run exercises every rule at once — an
+unpaid set produces exactly five reminders, and that is the number paying or cancelling has to
+drive to zero. `ShiftDueDateAsync` moves an invoice onto a later rule's trigger day to simulate
+"a reminder that would have gone out next week".
+
+The default rules are seeded through the **real** `ReminderRuleService.InitializeDefaultRulesAsync`
+rather than hand-rolled, so the test covers the rules a real business actually gets — which also
+puts `IG-232`'s first AC under test for free.
+
+Covered: every default rule fires for an unpaid invoice (the control — without it the "zero
+reminders" assertions would pass even if nothing fired at all); no rule fires for a paid or
+cancelled invoice; paying or cancelling mid-life stops the remaining reminders while leaving the
+already-sent one recorded; a **partially paid** invoice is still chased; a `[Theory]` over all
+seven invoice statuses showing only Paid and Cancelled silence a reminder; and a soft-deleted
+invoice is never chased.
+
+Backend 515 (207 Infrastructure, up from 171 before this run of work).
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
