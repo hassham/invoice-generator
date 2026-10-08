@@ -277,9 +277,21 @@ resolved flags: [True, True, True, False]; rows visible on the failures list: 1
 - AC 3 (deduplication) is genuinely met, and is now the part under test.
 
 A correction to my own earlier comment on `IG-233`, which recorded all three as met from a code
-read. The fix is small — stop overloading `IsResolved` (it means "a human resolved it";
-`ReminderFailureService` sets it from a resolve path) and skip rules whose unresolved failure has
-already hit `MaxRetries` — but it belongs to `IG-233`, not to this test subtask.
+read.
+
+**Both fixed the same day, under `IG-233`:**
+
+- `ProcessRemindersAsync` now loads unresolved failures up front and skips any rule/invoice pair
+  whose `RetryCount >= MaxRetries`. That is what bounds the retries.
+- The service no longer sets `IsResolved` when retries run out. `IsResolved` means "a human dealt
+  with it" — it is what `ReminderFailureService.ResolveAsync` sets and what
+  `ListUnresolvedByBusinessAsync` filters on — so the row now stays visible once it is permanent.
+- Resolving a failure deliberately makes the reminder eligible again: an operator saying "the mail
+  server is fixed" should not require a database edit to retry.
+
+Same measurement after the fix: **3 send attempts over ten runs, one failure row at `RetryCount` 3,
+still unresolved and still on the list.** Pinned by 6 tests in `ReminderFailureHandlingTests`,
+including that exhausting one reminder does not suppress a different healthy one. Backend 501.
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 

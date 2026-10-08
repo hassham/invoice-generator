@@ -74,6 +74,20 @@ public sealed class ReminderSendingService(
             .Select(rs => new { rs.InvoiceId, rs.ReminderRuleId })
             .ToListAsync(cancellationToken);
 
+        // IG-233 AC 1: a reminder that has already exhausted its retries must stop being attempted.
+        // Nothing used to consult this table before sending, so a permanently broken reminder was
+        // retried on every single run, forever. Built from unresolved failures only - if a human
+        // resolves one through ReminderFailureService.ResolveAsync, that is them saying the
+        // underlying problem is fixed, and the reminder becomes eligible again.
+        var openFailures = await dbContext.ReminderFailures
+            .Where(rf => !rf.IsResolved)
+            .Select(rf => new { rf.InvoiceId, rf.ReminderRuleId, rf.RetryCount, rf.MaxRetries })
+            .ToListAsync(cancellationToken);
+
+        var exhausted = new HashSet<(Guid, Guid)>(openFailures
+            .Where(f => f.RetryCount >= f.MaxRetries)
+            .Select(f => (f.InvoiceId, f.ReminderRuleId)));
+
         var sentSet = new HashSet<(Guid, Guid)>(sentReminders.Select(sr => (sr.InvoiceId, sr.ReminderRuleId)));
         var sentCount = 0;
         var failureCount = 0;
@@ -87,6 +101,9 @@ public sealed class ReminderSendingService(
             foreach (var rule in reminderRules.Where(r => r.BusinessId == invoice.BusinessId))
             {
                 if (sentSet.Contains((invoice.Id, rule.Id)))
+                    continue;
+
+                if (exhausted.Contains((invoice.Id, rule.Id)))
                     continue;
 
                 if (!ShouldSendReminder(invoice.DueDate, rule, today))
@@ -155,8 +172,15 @@ public sealed class ReminderSendingService(
 
                         if (existingFailure.RetryCount >= existingFailure.MaxRetries)
                         {
-                            existingFailure.IsResolved = true;
-                            logger.LogError("Reminder for invoice {InvoiceId} failed {Count} times, marking as resolved",
+                            // IG-233 AC 2: deliberately left unresolved. IsResolved means "a human
+                            // dealt with it" - it is what ReminderFailureService.ResolveAsync sets
+                            // and what ListUnresolvedByBusinessAsync filters on. Setting it here
+                            // made a failure disappear from the failures list at the exact moment
+                            // it became permanent, which is the opposite of surfacing it. The row
+                            // now stays visible, and the exhausted-set check above is what stops
+                            // the retries.
+                            logger.LogError(
+                                "Reminder for invoice {InvoiceId} failed {Count} times; giving up until it is resolved",
                                 invoice.Id, existingFailure.RetryCount);
                         }
 
