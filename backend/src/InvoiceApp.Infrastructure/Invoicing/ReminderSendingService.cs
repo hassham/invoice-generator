@@ -45,7 +45,12 @@ public sealed class ReminderSendingService(
         }
     }
 
-    private async Task ProcessRemindersAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// One pass over every due reminder. Public so a test can drive a single run directly:
+    /// <see cref="ExecuteAsync"/> sleeps until 03:00 UTC before its first pass, so going through
+    /// the hosted-service loop would mean waiting hours or faking the clock (IG-286).
+    /// </summary>
+    public async Task ProcessRemindersAsync(CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

@@ -232,8 +232,54 @@ run), and purchase order and credit note PDFs have both had their text extracted
 check what genuinely remains before treating it as fresh work. After that, `IG-237` and then the
 `IG-210` epic can close.
 **Still unresolved on `IG-234`**: its third AC allows exceeding the invoice's amount due "with
-explicit confirmation"; the code hard-rejects with a 400. Stricter than specified, needs a product
-decision rather than code.
+explicit confirmation"; the code hard-rejects with a 400. Product decision 2026-10-08 is to **build
+the confirmation flow** rather than amend the AC — raised as `IG-309`, and `IG-234` stays open
+until it lands.
+
+**IG-286: Reminder deduplication tests — COMPLETE 2026-10-08**
+
+The first tests `ReminderSendingService` has ever had. It emails real customers on a daily timer
+and nothing in the suite touched it.
+
+- `ReminderTestHarness` builds the job against a real `ApplicationDbContext` (InMemory) and a
+  capturing `IEmailSender`, mirroring `AuthenticationTestHarness`. `ProcessRemindersAsync` was made
+  public so a test can drive a single pass — `ExecuteAsync` sleeps until 03:00 UTC before its
+  first run, so going through the hosted-service loop would mean faking the clock.
+- 16 tests: the dedup guard across repeated runs, that the guard is a persisted row and so survives
+  a restart, that it is per rule/invoice **pair** (two rules on one invoice both send; one rule
+  sends for each matching invoice), that a failed send is **not** recorded as sent and does go out
+  on a later run, cross-business isolation, inactive rules, a customer with no email, and a
+  `[Theory]` pinning the exact trigger-day arithmetic for all three trigger types.
+- Backend 495 (187 Infrastructure, up from 171).
+
+**Harness gotcha worth knowing**: `AddDbContext(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()))`
+gives **every context its own isolated store**, because the options lambda runs per instance. The
+seed data was invisible to the job under test and nine tests failed on empty collections. Compute
+the database name once, outside the lambda.
+
+**IG-233 is worse than its earlier status comment said — two of three ACs are broken.** Measured,
+not read: ten runs of the job against a permanently failing mail server produce
+
+```
+send attempts: 10; failure rows: 4; retry counts: [3, 3, 3, 1];
+resolved flags: [True, True, True, False]; rows visible on the failures list: 1
+```
+
+- **AC 1 ("retried a bounded number of times, not indefinitely") — NOT met.** Nothing consults
+  `ReminderFailures` before attempting a send; the only skip is the sent-set. A broken reminder is
+  retried every single run, forever.
+- **AC 2 ("a permanently failing reminder is surfaced, not silently dropped") — NOT met, and
+  inverted.** At `RetryCount >= MaxRetries` the service sets `IsResolved = true`, and
+  `ReminderFailureService.ListAsync` filters `.Where(rf => !rf.IsResolved)`. So a failure is
+  visible *while it is still retrying* and **disappears at the exact moment it becomes permanent**.
+  The next failure then finds no unresolved row and starts a fresh one at `RetryCount = 1`, which
+  is why ten days produce four rows cycling 3/3/3/1.
+- AC 3 (deduplication) is genuinely met, and is now the part under test.
+
+A correction to my own earlier comment on `IG-233`, which recorded all three as met from a code
+read. The fix is small — stop overloading `IsResolved` (it means "a human resolved it";
+`ReminderFailureService` sets it from a resolve path) and skip rules whose unresolved failure has
+already hit `MaxRetries` — but it belongs to `IG-233`, not to this test subtask.
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
