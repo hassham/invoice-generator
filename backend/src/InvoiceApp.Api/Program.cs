@@ -8,6 +8,8 @@ using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Catalog;
 using InvoiceApp.Infrastructure.Configuration;
 using InvoiceApp.Infrastructure.Customers;
+using InvoiceApp.Api.Services;
+using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Infrastructure.Dashboard;
 using InvoiceApp.Infrastructure.Documents;
 using InvoiceApp.Infrastructure.Email;
@@ -57,6 +59,9 @@ builder.Services.AddInfrastructureEmail(builder.Configuration);
 builder.Services.AddInfrastructurePayments(builder.Configuration);
 builder.Services.AddInfrastructurePurchasing();
 builder.Services.AddInfrastructureDocuments();
+// IG-311: registered here rather than in Infrastructure because the implementation needs the PDF
+// renderer and the email message builder, which only the composition root may reference.
+builder.Services.AddScoped<IInvoiceEmailDispatcher, InvoiceEmailDispatcher>();
 builder.Services.AddInfrastructureDashboard();
 builder.Services.AddReportingServices();
 builder.Services.AddInfrastructureRateLimiting(builder.Configuration);
@@ -144,6 +149,7 @@ app.MapInvoiceEndpoints();
 app.MapRecurringScheduleEndpoints();
 app.MapReminderRuleEndpoints();
 app.MapReminderFailureEndpoints();
+app.MapRecurringGenerationFailureEndpoints();
 app.MapCreditNoteEndpoints();
 app.MapEstimateEndpoints();
 app.MapPublicInvoiceEndpoints();

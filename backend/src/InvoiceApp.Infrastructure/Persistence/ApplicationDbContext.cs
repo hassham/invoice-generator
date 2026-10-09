@@ -51,6 +51,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<ReminderFailure> ReminderFailures => Set<ReminderFailure>();
 
+    public DbSet<RecurringGenerationFailure> RecurringGenerationFailures => Set<RecurringGenerationFailure>();
+
     public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
 
     public DbSet<Receipt> Receipts => Set<Receipt>();

@@ -64,30 +64,174 @@ public sealed class RecurringInvoiceGenerationService(
                          (rs.EndDate == null || rs.EndDate >= today))
             .ToListAsync(cancellationToken);
 
+        // IG-311: a schedule that has already exhausted its retries stops being attempted, the
+        // same contract reminders use (IG-233). Unresolved only - resolving a failure is a person
+        // saying the cause is fixed, which makes the schedule eligible again.
+        var openFailures = await dbContext.RecurringGenerationFailures
+            .Where(f => !f.IsResolved)
+            .ToListAsync(cancellationToken);
+
+        var exhausted = openFailures
+            .Where(f => f.RetryCount >= f.MaxRetries)
+            .Select(f => f.RecurringScheduleId)
+            .ToHashSet();
+
         var count = 0;
+        var failureCount = 0;
+        var pendingSends = new List<PendingAutoSend>();
+
         foreach (var schedule in dueSchedules)
         {
+            if (exhausted.Contains(schedule.Id))
+            {
+                continue;
+            }
+
             try
             {
-                if (await GenerateInvoiceFromScheduleAsync(dbContext, schedule, today, cancellationToken))
+                if (await GenerateInvoiceFromScheduleAsync(dbContext, schedule, today, cancellationToken) is { } generated)
                 {
                     count++;
+
+                    if (schedule.AutoSend)
+                    {
+                        // Queued rather than sent here: the invoice row does not exist until the
+                        // SaveChangesAsync below, and the dispatcher reads it back from the
+                        // database to build the PDF and hosted link.
+                        var recipient = await dbContext.Customers
+                            .Where(c => c.Id == schedule.CustomerId)
+                            .Select(c => c.Email)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        var ownerId = await dbContext.Businesses
+                            .Where(b => b.Id == schedule.BusinessId)
+                            .Select(b => b.UserId)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (string.IsNullOrWhiteSpace(recipient))
+                        {
+                            logger.LogWarning(
+                                "Schedule {ScheduleId} has Automatic Send on but its customer has no email address",
+                                schedule.Id);
+                        }
+                        else
+                        {
+                            pendingSends.Add(new PendingAutoSend(
+                                schedule.Id, generated.Id, ownerId, recipient, generated.InvoiceNumber));
+                        }
+                    }
+
+                    // A run that finally succeeds closes out the failure record, so the list shows
+                    // what is actually broken now rather than what once was.
+                    var recovered = openFailures.FirstOrDefault(f => f.RecurringScheduleId == schedule.Id);
+                    if (recovered is not null)
+                    {
+                        recovered.IsResolved = true;
+                        recovered.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
                 }
             }
             catch (Exception ex)
             {
+                failureCount++;
                 logger.LogError(ex, "Error generating invoice for schedule {ScheduleId}", schedule.Id);
+
+                // NextRunDate is deliberately NOT advanced here. Advancing it would silently skip
+                // a billing period on a transient failure; leaving it means the schedule is still
+                // due tomorrow, and the retry bound above is what stops it trying forever.
+                var failure = openFailures.FirstOrDefault(f => f.RecurringScheduleId == schedule.Id);
+                if (failure is null)
+                {
+                    dbContext.RecurringGenerationFailures.Add(new RecurringGenerationFailure
+                    {
+                        Id = Guid.NewGuid(),
+                        RecurringScheduleId = schedule.Id,
+                        FailureReason = ex.Message,
+                        RetryCount = 1,
+                        IsResolved = false,
+                        LastRetryAt = DateTimeOffset.UtcNow,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                        UpdatedAt = DateTimeOffset.UtcNow,
+                    });
+                }
+                else
+                {
+                    failure.RetryCount++;
+                    failure.FailureReason = ex.Message;
+                    failure.LastRetryAt = DateTimeOffset.UtcNow;
+                    failure.UpdatedAt = DateTimeOffset.UtcNow;
+
+                    if (failure.RetryCount >= failure.MaxRetries)
+                    {
+                        logger.LogError(
+                            "Generation for schedule {ScheduleId} failed {Count} times; giving up until it is resolved",
+                            schedule.Id, failure.RetryCount);
+                    }
+                }
             }
         }
 
-        if (count > 0)
+        if (count > 0 || failureCount > 0)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Generated {Count} invoices from recurring schedules", count);
+            logger.LogInformation(
+                "Processed recurring schedules: {Count} generated, {FailureCount} failed", count, failureCount);
+        }
+
+        await SendAutomaticallyAsync(scope, pendingSends, cancellationToken);
+    }
+
+    /// <summary>
+    /// IG-311 / IG-230 AC 2: "if Automatic Send is on, the invoice is emailed automatically using
+    /// the existing send capability (IG-212)". Before this, <c>AutoSend</c> was stored, returned in
+    /// the DTO and never read — switching it on did nothing at all.
+    ///
+    /// Goes through <see cref="IInvoiceEmailDispatcher"/>, the same path the send-email endpoint
+    /// uses, so an automatically sent invoice carries the same PDF and hosted link and lands in the
+    /// invoice's email history exactly like a manual send.
+    /// </summary>
+    private async Task SendAutomaticallyAsync(
+        IServiceScope scope,
+        IReadOnlyList<PendingAutoSend> pendingSends,
+        CancellationToken cancellationToken)
+    {
+        if (pendingSends.Count == 0)
+        {
+            return;
+        }
+
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IInvoiceEmailDispatcher>();
+
+        foreach (var send in pendingSends)
+        {
+            var request = new InvoiceEmailRequest(
+                To: [send.Recipient],
+                Cc: [],
+                Subject: $"Invoice {send.InvoiceNumber}",
+                Message: $"Please find invoice {send.InvoiceNumber} attached.");
+
+            try
+            {
+                await dispatcher.SendAsync(send.UserId, send.InvoiceId, request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // A failed send must not take the others down with it, and must not undo the
+                // generation - the invoice is validly created either way. The dispatcher has
+                // already recorded the failure against the invoice's own email history, which is
+                // where an email problem belongs; a generation failure it is not.
+                logger.LogError(
+                    ex,
+                    "Automatic send failed for invoice {InvoiceId} from schedule {ScheduleId}",
+                    send.InvoiceId, send.ScheduleId);
+            }
         }
     }
 
-    private async Task<bool> GenerateInvoiceFromScheduleAsync(
+    /// <summary>An invoice generated from a schedule that asked for it to be sent automatically.</summary>
+    private sealed record PendingAutoSend(Guid ScheduleId, Guid InvoiceId, Guid UserId, string Recipient, string InvoiceNumber);
+
+    private async Task<Invoice?> GenerateInvoiceFromScheduleAsync(
         ApplicationDbContext dbContext,
         RecurringSchedule schedule,
         DateOnly today,
@@ -97,10 +241,14 @@ public sealed class RecurringInvoiceGenerationService(
             .Include(i => i.Items)
             .FirstOrDefaultAsync(i => i.Id == schedule.InvoiceTemplateId && !i.IsDeleted, cancellationToken);
 
+        // IG-311: these two used to log a warning and return quietly, which meant the most likely
+        // real cause of a broken schedule - somebody deleted the invoice it was built from - left
+        // no failure record, did not advance NextRunDate, and so retried silently every night
+        // forever. They are genuine failures and are surfaced as such.
         if (template == null)
         {
-            logger.LogWarning("Template invoice not found for schedule {ScheduleId}", schedule.Id);
-            return false;
+            throw new InvalidOperationException(
+                "The invoice this schedule generates from no longer exists. Point the schedule at another invoice.");
         }
 
         var business = await dbContext.Businesses
@@ -108,8 +256,7 @@ public sealed class RecurringInvoiceGenerationService(
 
         if (business == null)
         {
-            logger.LogWarning("Business not found for schedule {ScheduleId}", schedule.Id);
-            return false;
+            throw new InvalidOperationException("The business this schedule belongs to no longer exists.");
         }
 
         // IG-312: the generated invoice's figures are recalculated through the very same
@@ -194,7 +341,7 @@ public sealed class RecurringInvoiceGenerationService(
         schedule.UpdatedAt = DateTimeOffset.UtcNow;
 
         logger.LogInformation("Generated invoice from recurring schedule {ScheduleId}", schedule.Id);
-        return true;
+        return newInvoice;
     }
 
     private async Task<string> GenerateNextInvoiceNumberAsync(

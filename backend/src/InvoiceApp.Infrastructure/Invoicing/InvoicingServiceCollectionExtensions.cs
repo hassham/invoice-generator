@@ -11,6 +11,7 @@ public static class InvoicingServiceCollectionExtensions
         services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
         services.AddScoped<IReminderRuleService, ReminderRuleService>();
         services.AddScoped<IReminderFailureService, ReminderFailureService>();
+        services.AddScoped<IRecurringGenerationFailureService, RecurringGenerationFailureService>();
         services.AddScoped<ICreditNoteService, CreditNoteService>();
         services.AddHostedService<RecurringInvoiceGenerationService>();
         services.AddHostedService<ReminderSendingService>();

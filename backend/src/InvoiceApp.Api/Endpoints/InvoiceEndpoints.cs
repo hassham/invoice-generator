@@ -141,32 +141,16 @@ public static class InvoiceEndpoints
         Guid id,
         InvoiceEmailRequest request,
         ClaimsPrincipal user,
-        IInvoiceService invoiceService,
-        IEmailSender emailSender,
-        IConfiguration configuration,
+        IInvoiceEmailDispatcher dispatcher,
         CancellationToken cancellationToken)
     {
         InvoiceEmailRequestValidator.Validate(request);
 
-        var userId = UserId(user);
-        var context = await invoiceService.PrepareInvoiceEmailAsync(userId, id, cancellationToken);
-        var pdfBytes = new InvoicePdfDocument(context.PdfRequest).GeneratePdf();
-        var pdfFileName = InvoiceFilenameGenerator.Generate(context.PdfRequest.InvoiceNumber);
-        var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
-        var hostedLink = $"{frontendBaseUrl}/i/{context.PublicToken}";
-        var message = InvoiceEmailMessageBuilder.Build(request, hostedLink, pdfBytes, pdfFileName, context.BusinessEmail);
-
-        try
-        {
-            await emailSender.SendAsync(message, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await invoiceService.RecordEmailSentAsync(userId, id, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
-            throw;
-        }
-
-        await invoiceService.RecordEmailSentAsync(userId, id, request, InvoiceEmailStatus.Sent, null, cancellationToken);
+        // IG-311: the assembly and send moved into IInvoiceEmailDispatcher so the recurring
+        // generation job's Automatic Send goes through the very same path. The behaviour here is
+        // unchanged - same PDF, same hosted link, same email-history entries on success and
+        // failure.
+        await dispatcher.SendAsync(UserId(user), id, request, cancellationToken);
         return Results.NoContent();
     }
 

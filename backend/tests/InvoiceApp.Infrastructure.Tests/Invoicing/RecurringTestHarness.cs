@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Customers;
 using InvoiceApp.Domain.Invoicing;
@@ -8,6 +9,28 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace InvoiceApp.Infrastructure.Tests.Invoicing;
+
+/// <summary>
+/// Stands in for the real dispatcher, which lives in the Api project and renders a PDF. Records
+/// what the job asked to send so a test can assert on it, and can be made to throw.
+/// </summary>
+public sealed class CapturingInvoiceEmailDispatcher : IInvoiceEmailDispatcher
+{
+    public List<(Guid UserId, Guid InvoiceId, InvoiceEmailRequest Request)> Sent { get; } = [];
+
+    public Func<Guid, Exception?>? FailWith { get; set; }
+
+    public Task SendAsync(Guid userId, Guid invoiceId, InvoiceEmailRequest request, CancellationToken cancellationToken)
+    {
+        if (FailWith?.Invoke(invoiceId) is { } failure)
+        {
+            throw failure;
+        }
+
+        Sent.Add((userId, invoiceId, request));
+        return Task.CompletedTask;
+    }
+}
 
 /// <summary>
 /// IG-282: drives the recurring invoice generation job against a real
@@ -28,6 +51,7 @@ public sealed class RecurringTestHarness : IDisposable
         var services = new ServiceCollection();
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase(databaseName));
+        services.AddSingleton<IInvoiceEmailDispatcher>(Dispatcher);
         provider = services.BuildServiceProvider();
 
         Service = new RecurringInvoiceGenerationService(
@@ -35,6 +59,58 @@ public sealed class RecurringTestHarness : IDisposable
     }
 
     public RecurringInvoiceGenerationService Service { get; }
+
+    public CapturingInvoiceEmailDispatcher Dispatcher { get; } = new();
+
+    /// <summary>The user who owns the seeded business — the identity an automatic send runs as.</summary>
+    public Guid OwnerUserId { get; private set; }
+
+    /// <summary>Makes the next generation attempt for this schedule fail, by removing its template.</summary>
+    public async Task BreakTemplateAsync()
+    {
+        await using var db = NewDbContext();
+        var template = await db.Invoices.SingleAsync(i => i.Id == TemplateInvoiceId);
+        template.IsDeleted = true;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task RestoreTemplateAsync()
+    {
+        await using var db = NewDbContext();
+        var template = await db.Invoices.SingleAsync(i => i.Id == TemplateInvoiceId);
+        template.IsDeleted = false;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task ClearCustomerEmailAsync()
+    {
+        await using var db = NewDbContext();
+        var customer = await db.Customers.SingleAsync(c => c.Id == CustomerId);
+        customer.Email = null;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<List<RecurringGenerationFailure>> FailuresAsync()
+    {
+        await using var db = NewDbContext();
+        return await db.RecurringGenerationFailures.ToListAsync();
+    }
+
+    public async Task ResolveFailuresAsync()
+    {
+        await using var db = NewDbContext();
+        foreach (var failure in await db.RecurringGenerationFailures.ToListAsync())
+        {
+            failure.IsResolved = true;
+        }
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<DateOnly> NextRunDateAsync(Guid scheduleId)
+    {
+        await using var db = NewDbContext();
+        return (await db.RecurringSchedules.SingleAsync(rs => rs.Id == scheduleId)).NextRunDate;
+    }
 
     public ApplicationDbContext NewDbContext() =>
         provider.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -119,6 +195,7 @@ public sealed class RecurringTestHarness : IDisposable
         BusinessId = business.Id;
         CustomerId = customer.Id;
         TemplateInvoiceId = template.Id;
+        OwnerUserId = business.UserId;
     }
 
     /// <summary>Puts a per-line discount on the template's single line (IG-312).</summary>

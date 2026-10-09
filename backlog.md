@@ -398,6 +398,42 @@ corrupting the template's stored totals to 9999 and getting 550; multiple lines 
 and unit; and a second period's invoice is just as complete as the first. Backend 560
 (224 Infrastructure).
 
+**IG-311: Automatic Send wired, generation failures made visible — COMPLETE 2026-10-09**
+
+`IG-230`'s two unbuilt acceptance criteria.
+
+**AC 2 — Automatic Send.** `AutoSend` was persisted, accepted on create and returned in the DTO,
+and **never read**: switching it on did nothing. The blocker was architectural — the job lives in
+Infrastructure, which may not reference `Modules.Documents` (PDF) or `Modules.Invoicing` (message
+builder) under the `ModuleReferenceBoundaryTests` rules. Solved with an Application-level port,
+**`IInvoiceEmailDispatcher`**, implemented in the Api composition root (the one project allowed to
+see all the pieces) and resolved from the job's scope. `InvoiceEndpoints.SendEmailAsync` was
+refactored onto the same port, so an automatically sent invoice is *identical* to a manually sent
+one — same PDF, same hosted link, same `InvoiceEmailLog` entry — rather than a near-copy that
+drifts. Same lesson as `IG-312`: share the path, don't duplicate it.
+
+**AC 3 — failure visibility.** New `RecurringGenerationFailure` entity + migration
+`20261009065951_AddRecurringGenerationFailures` (generated), deliberately the same shape as
+`ReminderFailure`, with `GET /recurring-generation-failures`, its detail route and a resolve
+action mirroring `ReminderFailureEndpoints`. The job now skips schedules whose unresolved failure
+has hit `MaxRetries`, records and increments failures, and **never marks one resolved itself** —
+the `IG-233` lesson.
+
+**Decision recorded: a failed run does not advance `NextRunDate`.** Advancing it would silently
+skip a billing period on a transient failure; not advancing it means the schedule is still due
+tomorrow, and the retry bound is what stops it trying forever.
+
+**A gap in the first cut of this change, caught while writing the tests**: a missing template
+invoice (the most likely real cause — somebody deleted the invoice the schedule was built from)
+returned quietly with a logged warning, so it produced no failure row, did not advance
+`NextRunDate`, and retried silently every night forever. A missing template or business is now a
+real failure with a message that says what to do about it.
+
+12 tests in `RecurringAutoSendAndFailureTests`. Backend 572 (236 Infrastructure). Verified against
+real Postgres: migration applied cleanly, the new endpoint is account-scoped (200/401/404), and
+the refactored send-email endpoint still returns 204 and records `Sent` in the invoice's email
+history.
+
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
 Both had been failing the four-command gate for reasons unrelated to the code under test:
