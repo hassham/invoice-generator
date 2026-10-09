@@ -361,20 +361,42 @@ link and its history (`IG-231` AC 1); resuming generates again; cancelling stops
 further due runs (`IG-231` AC 2); cancelling is a soft delete, not a removal; and pausing one
 schedule does not stop another. Backend 553 (217 Infrastructure).
 
-**Defect found, not fixed — generated invoices lose line-item detail.** Measured: a template line
-of `Unit=Month Discount=0 LineSubtotal=500 TaxAmount=50 LineTotal=550` generates as
+**Defect found here, fixed under `IG-312`** — generated invoices lost line-item detail. Measured:
+a template line of `Unit=Month Discount=0 LineSubtotal=500 TaxAmount=50 LineTotal=550` generated as
 
 ```
 Unit=null Discount=0 LineSubtotal=0 TaxAmount=0 LineTotal=0
 ```
 
-while the invoice header keeps `Subtotal=500 Tax=50 Total=550`. `GenerateInvoiceFromScheduleAsync`
-copies only `Description`, `Quantity`, `UnitPrice`, `TaxRate` and `SortOrder`, so every generated
-invoice has **zeroed line figures that do not add up to its own header**, a dropped unit, and —
-most seriously — a **dropped per-line discount**, meaning a customer on a discounted retainer is
-billed the undiscounted amount. This is `IG-230` AC 1 ("with the schedule's saved details"), which
-is already open and already known to be incomplete; needs to go on `IG-311` or a sibling rather
-than being fixed from a test subtask.
+while the invoice header kept `Subtotal=500 Tax=50 Total=550`.
+
+**IG-312: Generated invoices lose line-item detail — COMPLETE 2026-10-09**
+
+`GenerateInvoiceFromScheduleAsync` copied only `Description`, `Quantity`, `UnitPrice`, `TaxRate`
+and `SortOrder`, and copied the template's stored header totals verbatim. Three consequences, worst
+first:
+
+1. The per-line **`Discount` was dropped**, so a customer on a discounted retainer was billed the
+   undiscounted amount, silently, every period.
+2. `LineSubtotal`, `TaxAmount` and `LineTotal` were all **zero** against a non-zero header, so
+   every generated invoice's lines failed to add up to its own total.
+3. `Unit` and `SourceItemId` were dropped.
+
+**Nothing caught it because the header totals were copied across and therefore always looked
+right** — the invoice list, the dashboard and any total-level assertion all saw correct figures.
+
+Fixed by running generation through the **same `InvoiceCalculator` a manual save uses**, rather
+than copying stored values: the line figures and the header are now both derived from the template's
+line inputs, so the two paths cannot drift apart again. Every line field is carried across. Tax
+method uses the same `Exclusive` fallback `BuildPdfRequestAsync` already assumes, since no
+per-invoice column exists (IG-46's documented gap).
+
+7 tests in `RecurringGenerationFidelityTests`: every line field matches the template; the line
+figures are real; **the lines add up to the header**; a per-line discount is honoured end to end
+(1 × 500 less 100 → 400 + 10% = 440); totals are recalculated rather than trusted, proven by
+corrupting the template's stored totals to 9999 and getting 550; multiple lines keep their order
+and unit; and a second period's invoice is just as complete as the first. Backend 560
+(224 Infrastructure).
 
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 

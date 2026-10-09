@@ -121,6 +121,74 @@ public sealed class RecurringTestHarness : IDisposable
         TemplateInvoiceId = template.Id;
     }
 
+    /// <summary>Puts a per-line discount on the template's single line (IG-312).</summary>
+    public async Task DiscountTemplateLineAsync(decimal discount)
+    {
+        await using var db = NewDbContext();
+        var item = await db.InvoiceItems.SingleAsync(i => i.InvoiceId == TemplateInvoiceId);
+        item.Discount = discount;
+
+        var lineSubtotal = (item.Quantity * item.UnitPrice) - discount;
+        item.LineSubtotal = lineSubtotal;
+        item.TaxAmount = lineSubtotal * (item.TaxRate / 100m);
+        item.LineTotal = item.LineSubtotal + item.TaxAmount;
+
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == TemplateInvoiceId);
+        invoice.Subtotal = item.LineSubtotal;
+        invoice.TaxAmount = item.TaxAmount;
+        invoice.TotalAmount = item.LineTotal;
+        invoice.AmountDue = item.LineTotal;
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Makes the template's stored header totals disagree with its own lines, so a test can prove
+    /// generation recalculates rather than copying them.
+    /// </summary>
+    public async Task CorruptTemplateTotalsAsync(decimal total)
+    {
+        await using var db = NewDbContext();
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == TemplateInvoiceId);
+        invoice.Subtotal = total;
+        invoice.TaxAmount = total;
+        invoice.TotalAmount = total;
+        invoice.AmountDue = total;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddTemplateLineAsync(
+        string description,
+        decimal quantity,
+        string? unit,
+        decimal unitPrice,
+        decimal taxRate,
+        int sortOrder)
+    {
+        await using var db = NewDbContext();
+
+        var lineSubtotal = quantity * unitPrice;
+        var taxAmount = lineSubtotal * (taxRate / 100m);
+
+        db.InvoiceItems.Add(new InvoiceItem
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = TemplateInvoiceId,
+            Description = description,
+            Quantity = quantity,
+            Unit = unit,
+            UnitPrice = unitPrice,
+            TaxRate = taxRate,
+            Discount = 0,
+            LineSubtotal = lineSubtotal,
+            TaxAmount = taxAmount,
+            LineTotal = lineSubtotal + taxAmount,
+            SortOrder = sortOrder,
+        });
+
+        await db.SaveChangesAsync();
+    }
+
     /// <summary>A schedule already due to run today.</summary>
     public async Task<Guid> SeedDueScheduleAsync(
         RecurringScheduleFrequency frequency = RecurringScheduleFrequency.Monthly,

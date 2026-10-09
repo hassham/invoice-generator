@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
@@ -111,6 +112,24 @@ public sealed class RecurringInvoiceGenerationService(
             return false;
         }
 
+        // IG-312: the generated invoice's figures are recalculated through the very same
+        // InvoiceCalculator a manual save uses, rather than copying the template's stored totals.
+        // Copying them is what let the old code produce an invoice whose header said 550 while
+        // every one of its lines said 0 - and, because the per-line Discount was never carried
+        // across at all, bill a discounted retainer at full price. Running the real calculator
+        // means the two paths cannot drift apart again.
+        var templateItems = template.Items.OrderBy(item => item.SortOrder).ToList();
+        var calculation = InvoiceCalculator.Calculate(new InvoiceCalculationRequest(
+            templateItems
+                .Select(item => new InvoiceLineItemCalculationInput(item.Quantity, item.UnitPrice, item.TaxRate, item.Discount))
+                .ToList(),
+            template.DiscountType,
+            template.DiscountValue,
+            // No per-invoice tax-calculation-method column exists (IG-46's documented gap), so this
+            // uses the same Exclusive fallback InvoiceService.BuildPdfRequestAsync already assumes
+            // for a saved invoice.
+            TaxCalculationMethod.Exclusive));
+
         // Clone the template invoice
         var newInvoice = new Invoice
         {
@@ -127,12 +146,12 @@ public sealed class RecurringInvoiceGenerationService(
             SellerSnapshot = template.SellerSnapshot,
             DiscountType = template.DiscountType,
             DiscountValue = template.DiscountValue,
-            Subtotal = template.Subtotal,
-            DiscountAmount = template.DiscountAmount,
-            TaxAmount = template.TaxAmount,
-            TotalAmount = template.TotalAmount,
+            Subtotal = calculation.Subtotal,
+            DiscountAmount = calculation.DiscountAmount,
+            TaxAmount = calculation.TaxAmount,
+            TotalAmount = calculation.TotalAmount,
             AmountPaid = 0,
-            AmountDue = template.TotalAmount,
+            AmountDue = calculation.AmountDue,
             Notes = template.Notes,
             Terms = template.Terms,
             PaymentInstructions = template.PaymentInstructions,
@@ -143,17 +162,27 @@ public sealed class RecurringInvoiceGenerationService(
             UpdatedAt = DateTimeOffset.UtcNow,
         };
 
-        // Clone items
-        foreach (var item in template.Items)
+        // Clone items. Every field the template line carries comes across - Unit, Discount and
+        // SourceItemId used to be dropped silently, and the three line figures left at zero.
+        for (var i = 0; i < templateItems.Count; i++)
         {
+            var item = templateItems[i];
+            var lineResult = calculation.Items[i];
+
             newInvoice.Items.Add(new InvoiceItem
             {
                 Id = Guid.NewGuid(),
                 InvoiceId = newInvoice.Id,
+                SourceItemId = item.SourceItemId,
                 Description = item.Description,
                 Quantity = item.Quantity,
+                Unit = item.Unit,
                 UnitPrice = item.UnitPrice,
                 TaxRate = item.TaxRate,
+                Discount = item.Discount,
+                LineSubtotal = lineResult.LineSubtotal,
+                TaxAmount = lineResult.TaxAmount,
+                LineTotal = lineResult.LineTotal,
                 SortOrder = item.SortOrder,
             });
         }
