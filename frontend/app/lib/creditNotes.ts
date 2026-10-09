@@ -3,6 +3,9 @@ export interface CreateCreditNoteRequest {
   amount: number;
   reason: string;
   notes?: string;
+  /** IG-309: lets the amount exceed the invoice's remaining amount due. The backend refuses
+   * without it, and refuses regardless above the invoice's original total. */
+  confirmedOverAmountDue?: boolean;
 }
 
 export interface CreditNote {

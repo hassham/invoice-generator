@@ -46,7 +46,11 @@ public record CreateCreditNoteCommand(
     Guid InvoiceId,
     decimal Amount,
     string Reason,
-    string? Notes
+    string? Notes,
+    // IG-309 / IG-234 AC 3: "the amount may exceed the invoice's amount due with explicit
+    // confirmation". Appended with a default of false so the refusal stays the default - nothing
+    // that exists today starts silently over-crediting because a caller omitted the flag.
+    bool ConfirmedOverAmountDue = false
 );
 
 public record CreditNoteDto(

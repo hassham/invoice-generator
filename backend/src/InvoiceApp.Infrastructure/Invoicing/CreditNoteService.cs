@@ -29,9 +29,26 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         if (invoice == null)
             throw new InvalidOperationException("Invoice not found.");
 
-        var maxCreditAmount = invoice.AmountDue;
-        if (command.Amount > maxCreditAmount)
-            throw new ArgumentException($"Credit note amount cannot exceed {maxCreditAmount:C}. Invoice amount due is {maxCreditAmount:C}.");
+        // IG-309 / IG-234 AC 3. Two thresholds, deliberately different in kind:
+        //
+        // - Above the invoice's remaining amount due is *allowed with explicit confirmation*. This
+        //   is a real case, not an error: an invoice paid in full has nothing due, and refunding
+        //   it needs a credit note for the full amount.
+        // - Above the invoice's original total is *always refused*. Product decision 2026-10-09:
+        //   confirmation should let someone credit more than is outstanding, never more than the
+        //   document was ever worth. Without that ceiling a mistyped 10,000 against a 500 invoice
+        //   becomes a valid accounting document and the dialog is the only thing standing in the
+        //   way.
+        if (command.Amount <= 0)
+            throw new ArgumentException("Credit note amount must be greater than zero.");
+
+        if (command.Amount > invoice.TotalAmount)
+            throw new ArgumentException(
+                $"Credit note amount cannot exceed the invoice total of {invoice.TotalAmount:C}.");
+
+        if (command.Amount > invoice.AmountDue && !command.ConfirmedOverAmountDue)
+            throw new ArgumentException(
+                $"Credit note amount exceeds the invoice amount due of {invoice.AmountDue:C}. Confirm to credit more than is outstanding.");
 
         var creditNoteNumber = await GenerateNextCreditNoteNumberAsync(dbContext, business, cancellationToken);
 

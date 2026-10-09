@@ -6,8 +6,10 @@ using InvoiceApp.Api.Tests.Authentication;
 using InvoiceApp.Application.Businesses;
 using InvoiceApp.Application.Identity;
 using InvoiceApp.Application.Invoicing;
+using InvoiceApp.Application.Payments;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Domain.Payments;
 
 namespace InvoiceApp.Api.Tests.Invoicing;
 
@@ -103,6 +105,112 @@ public class CreditNoteEndpointsTests
         Assert.Equal("Returned goods", created.Reason);
         Assert.Equal(invoiceId, created.InvoiceId);
         Assert.StartsWith("CN-", created.CreditNoteNumber);
+    }
+
+    /// <summary>Records a payment so the invoice's amount due drops below its total.</summary>
+    private static async Task PayAsync(HttpClient client, Guid invoiceId, decimal amount)
+    {
+        var response = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+            new PaymentRequest(new DateOnly(2030, 8, 2), amount, PaymentMethod.BankTransfer, null, null));
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// IG-309 / IG-234 AC 3: "the amount may exceed the invoice's amount due with explicit
+    /// confirmation". Without the flag the refusal stands, so nothing that already exists starts
+    /// silently over-crediting.
+    /// </summary>
+    [Fact]
+    public async Task Rejects_an_amount_over_the_amount_due_without_confirmation()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-overdue-unconfirmed@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+        // 100 invoice, 60 paid, so 40 is outstanding.
+        await PayAsync(client, invoiceId, 60m);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            new CreateCreditNoteCommand(invoiceId, 50m, "Returned goods", null));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("exceeds the invoice amount due", body);
+        Assert.Contains("Confirm", body);
+    }
+
+    [Fact]
+    public async Task Accepts_an_amount_over_the_amount_due_when_confirmed()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-overdue-confirmed@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+        await PayAsync(client, invoiceId, 60m);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            new CreateCreditNoteCommand(invoiceId, 50m, "Returned goods", null, ConfirmedOverAmountDue: true));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<CreditNoteDto>(JsonOptions);
+        Assert.Equal(50m, created!.Amount);
+    }
+
+    /// <summary>
+    /// The real case this allows: an invoice paid in full has nothing outstanding, and refunding
+    /// it needs a credit note for the whole amount.
+    /// </summary>
+    [Fact]
+    public async Task Allows_crediting_a_fully_paid_invoice_in_full_when_confirmed()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-fully-paid@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+        await PayAsync(client, invoiceId, 100m);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            new CreateCreditNoteCommand(invoiceId, 100m, "Refunded in full", null, ConfirmedOverAmountDue: true));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    /// <summary>
+    /// The ceiling confirmation does **not** lift (product decision 2026-10-09): crediting more
+    /// than the invoice was ever worth stays impossible, so a mistyped amount cannot become a
+    /// valid accounting document.
+    /// </summary>
+    [Fact]
+    public async Task Refuses_an_amount_over_the_invoice_total_even_when_confirmed()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-over-total@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            new CreateCreditNoteCommand(invoiceId, 10_000m, "Fat-fingered", null, ConfirmedOverAmountDue: true));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("cannot exceed the invoice total", body);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-25)]
+    public async Task Refuses_a_zero_or_negative_amount(decimal amount)
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, $"cn-amount-{amount}@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+
+        var response = await client.PostAsJsonAsync(Endpoint(businessId),
+            new CreateCreditNoteCommand(invoiceId, amount, "Nonsense", null, ConfirmedOverAmountDue: true));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("greater than zero", await response.Content.ReadAsStringAsync());
     }
 
     // IG-288's completion criterion.

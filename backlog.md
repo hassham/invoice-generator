@@ -256,10 +256,34 @@ one, so it is not a labelling defect, but it is why the table above has two gaps
 unified list's rows for those two types fall back to their list page (`IG-237`).
 
 Backend 580 (244 Infrastructure).
-**Still unresolved on `IG-234`**: its third AC allows exceeding the invoice's amount due "with
-explicit confirmation"; the code hard-rejects with a 400. Product decision 2026-10-08 is to **build
-the confirmation flow** rather than amend the AC — raised as `IG-309`, and `IG-234` stays open
-until it lands.
+**IG-309: Credit above the amount due, with explicit confirmation — COMPLETE 2026-10-09**
+
+`IG-234`'s third AC allows exceeding the invoice's amount due "with explicit confirmation"; the
+code hard-rejected with a 400. Product decision 2026-10-08 was to build the flow rather than amend
+the AC.
+
+**Two thresholds, deliberately different in kind** (product decision 2026-10-09):
+
+- **Above the remaining amount due → allowed with confirmation.** A real case, not an error: an
+  invoice paid in full has nothing outstanding, and refunding it needs a credit note for the full
+  amount.
+- **Above the invoice's original total → always refused**, confirmation or not. Without that
+  ceiling a mistyped 10,000 against a 500 invoice becomes a valid accounting document and the
+  dialog is the only thing in the way.
+
+`CreateCreditNoteCommand` gained `ConfirmedOverAmountDue`, appended with a default of `false`, so
+the refusal remains the default and no existing caller starts silently over-crediting. A
+zero-or-negative amount is now rejected too, which nothing previously checked.
+
+The form shows both figures against the chosen invoice ("Outstanding: 300.00 AUD · Invoice total:
+500.00 AUD"), warns inline in amber once the amount passes what is outstanding and in red once it
+passes the total, and the confirmation **states the arithmetic** — "300.00 AUD outstanding, you are
+crediting 400.00 AUD, 100.00 AUD more than is owed" — rather than asking a generic "are you sure".
+Changing the amount or the invoice withdraws a pending confirmation, since the figures the user
+agreed to no longer apply.
+
+6 new backend endpoint tests (19 in the file) and 10 frontend tests — the first `CreateCreditNoteForm`
+has ever had. Backend 586 (328 API), frontend 97 files / 766 tests.
 
 **IG-286: Reminder deduplication tests — COMPLETE 2026-10-08**
 
