@@ -318,6 +318,31 @@ invoice is never chased.
 
 Backend 515 (207 Infrastructure, up from 171 before this run of work).
 
+**IG-278: Recurring schedule creation validation — COMPLETE 2026-10-09**
+
+28 endpoint tests in `InvoiceApp.Api.Tests/Invoicing/RecurringScheduleEndpointsTests.cs`. Recurring
+schedules had no coverage at all, despite a daily job generating real invoices from them.
+
+Covered: a valid schedule is created with `NextRunDate == StartDate`; end date before **or equal
+to** the start date is rejected (equal would generate once and never again — a one-off, not a
+schedule); an end date after the start and an absent end date are both accepted; every one of
+`IG-229`'s six advertised frequencies is accepted, in any casing; unknown, archived and
+other-account customers are rejected; unknown, deleted and other-account template invoices are
+rejected; creating under another account's business is refused; and the list is account-isolated.
+
+**Defect found and fixed: the frequency parser accepted numbers.** `Enum.TryParse` also matches a
+enum's underlying value, so `"3"` silently became `Monthly` — and, worse, `"99"` and `"-1"`
+succeeded outright, storing a frequency that is not a real option at all, after which
+`CalculateNextRunDate` would fall through to its monthly default. All three returned `201 Created`.
+Now the parsed value must be defined **and** round-trip to the supplied string, which rejects every
+numeric form while still allowing any casing. Backend 543 (322 API, up from 294).
+
+**Separate latent trap, not fixed** (`IG-229` is closed and this needs a product call):
+`Frequency.Custom` is accepted but `CalculateNextRunDate` treats it as monthly —
+`RecurringScheduleFrequency.Custom => currentDate.AddMonths(1), // Default to monthly for custom`.
+There is no interval field on `RecurringSchedule`, so "custom" cannot mean anything else yet. A
+user choosing Custom silently gets Monthly.
+
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
 Both had been failing the four-command gate for reasons unrelated to the code under test:

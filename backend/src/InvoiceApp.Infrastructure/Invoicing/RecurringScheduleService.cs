@@ -31,8 +31,18 @@ public sealed class RecurringScheduleService(ApplicationDbContext dbContext) : I
         if (template == null)
             throw new InvalidOperationException("Invoice template not found.");
 
-        if (!Enum.TryParse<RecurringScheduleFrequency>(command.Frequency, ignoreCase: true, out var frequency))
+        // IG-278: the frequency arrives as a string and must match one of the defined names.
+        // Enum.TryParse alone is not enough - it also accepts the underlying numbers, so "3"
+        // silently became Monthly, and "99" or "-1" succeeded outright and stored a value that is
+        // not a real option at all (CalculateNextRunDate would then fall through to its monthly
+        // default). Comparing against the parsed value's own name rejects every numeric form while
+        // still allowing any casing.
+        if (!Enum.TryParse<RecurringScheduleFrequency>(command.Frequency, ignoreCase: true, out var frequency)
+            || !Enum.IsDefined(frequency)
+            || !string.Equals(frequency.ToString(), command.Frequency?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
             throw new ArgumentException($"Invalid frequency: {command.Frequency}");
+        }
 
         if (command.EndDate.HasValue && command.EndDate <= command.StartDate)
             throw new ArgumentException("End date must be after start date.");
