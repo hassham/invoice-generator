@@ -46,7 +46,12 @@ public sealed class RecurringInvoiceGenerationService(
         }
     }
 
-    private async Task ProcessRecurringSchedulesAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// One pass over every due schedule. Public so a test can drive a single run directly:
+    /// <see cref="ExecuteAsync"/> sleeps until 02:00 UTC before its first pass, so going through
+    /// the hosted-service loop would mean waiting hours or faking the clock (IG-282).
+    /// </summary>
+    public async Task ProcessRecurringSchedulesAsync(CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

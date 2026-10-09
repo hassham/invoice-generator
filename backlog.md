@@ -343,6 +343,39 @@ numeric form while still allowing any casing. Backend 543 (322 API, up from 294)
 There is no interval field on `RecurringSchedule`, so "custom" cannot mean anything else yet. A
 user choosing Custom silently gets Monthly.
 
+**IG-282: Pause/cancel does not affect existing invoices — COMPLETE 2026-10-09**
+
+10 tests in `RecurringPauseCancelTests`, plus `RecurringTestHarness` (the generation job against a
+real `ApplicationDbContext`, same shape as `ReminderTestHarness`). `ProcessRecurringSchedulesAsync`
+was made public for the same reason — `ExecuteAsync` sleeps until 02:00 UTC. A test makes a run due
+by moving the schedule's `NextRunDate`, not the clock.
+
+The criterion is asserted by snapshotting the generated invoice (id, number, status, both dates,
+total, amount due, deleted flag, item count) and comparing the whole record before and after —
+rather than spot-checking a field or two.
+
+Covered: generation from a due schedule (the control); pausing and cancelling each leave an
+already-generated invoice byte-for-byte unchanged; a cancelled schedule does not soft-delete the
+invoices it produced; pausing stops future generation while keeping the schedule, its template
+link and its history (`IG-231` AC 1); resuming generates again; cancelling stops it across five
+further due runs (`IG-231` AC 2); cancelling is a soft delete, not a removal; and pausing one
+schedule does not stop another. Backend 553 (217 Infrastructure).
+
+**Defect found, not fixed — generated invoices lose line-item detail.** Measured: a template line
+of `Unit=Month Discount=0 LineSubtotal=500 TaxAmount=50 LineTotal=550` generates as
+
+```
+Unit=null Discount=0 LineSubtotal=0 TaxAmount=0 LineTotal=0
+```
+
+while the invoice header keeps `Subtotal=500 Tax=50 Total=550`. `GenerateInvoiceFromScheduleAsync`
+copies only `Description`, `Quantity`, `UnitPrice`, `TaxRate` and `SortOrder`, so every generated
+invoice has **zeroed line figures that do not add up to its own header**, a dropped unit, and —
+most seriously — a **dropped per-line discount**, meaning a customer on a discounted retainer is
+billed the undiscounted amount. This is `IG-230` AC 1 ("with the schedule's saved details"), which
+is already open and already known to be incomplete; needs to go on `IG-311` or a sibling rather
+than being fixed from a test subtask.
+
 **Two broken frontend test files — FIXED 2026-10-07 (commit `e1fc17e`)**
 
 Both had been failing the four-command gate for reasons unrelated to the code under test:
