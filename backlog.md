@@ -226,11 +226,36 @@ for a customer to read"; it is now visibly broken on the document. Still unchang
 renumbering would alter numbers already issued — but it now warrants its own issue rather than a
 footnote.
 
-**Next**: `IG-294` (document-type labelling tests) is the last subtask under `IG-237`. Its ground
-is now largely covered — every type is labelled on the unified list (14 frontend tests + a browser
-run), and purchase order and credit note PDFs have both had their text extracted and asserted — so
-check what genuinely remains before treating it as fresh work. After that, `IG-237` and then the
-`IG-210` epic can close.
+**IG-294: Document-type labelling consistency — COMPLETE 2026-10-09**
+
+The audit found the labelling itself already correct everywhere it exists; what was missing was
+**any automated assertion of it**. Four document types share one `InvoicePdfDocument`,
+distinguished only by `DocumentTypeLabel` and `CounterpartyLabel` — those two strings are the
+entire difference between a purchase order and an invoice on paper — and they were only ever
+verified by generating a PDF and reading it back with `pdftotext`. Convincing, but manual: the
+automated tests could assert magic bytes only, so swapping a label would have failed nothing.
+
+8 tests in `DocumentTypeLabellingTests` pin the labels where they are decided (the producing
+service), including that an invoice gets the **defaults** — it is the one type that sets neither,
+so a careless change to those defaults would silently relabel every invoice — and a final test
+that no two document types share a label.
+
+**Receipt PDF verified by text extraction**, completing the set:
+
+| Type | List | Detail | PDF (pdftotext) |
+| --- | --- | --- | --- |
+| Credit note (`IG-234`) | yes | **no detail page** | `CREDIT NOTE` / `Bill to` |
+| Receipt (`IG-235`) | yes | **no detail page** | `RECEIPT` |
+| Purchase order (`IG-236`) | yes | yes | `PURCHASE ORDER` / `Supplier` |
+
+All three are labelled on their own list and on the unified `/documents` list.
+
+**Gap recorded, not built**: credit notes and receipts have **no detail page** — both are
+reachable only as cards on their own list. That is a missing surface rather than a mislabelled
+one, so it is not a labelling defect, but it is why the table above has two gaps and why the
+unified list's rows for those two types fall back to their list page (`IG-237`).
+
+Backend 580 (244 Infrastructure).
 **Still unresolved on `IG-234`**: its third AC allows exceeding the invoice's amount due "with
 explicit confirmation"; the code hard-rejects with a 400. Product decision 2026-10-08 is to **build
 the confirmation flow** rather than amend the AC — raised as `IG-309`, and `IG-234` stays open
