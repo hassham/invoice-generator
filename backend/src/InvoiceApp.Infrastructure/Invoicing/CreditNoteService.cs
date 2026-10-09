@@ -239,7 +239,18 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         CancellationToken cancellationToken)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var prefix = $"CN-{business.Id:N}{today.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}";
+
+        // IG-310: `CN-{yyyyMMdd}-{seq:D3}`, the same shape as `RCP-` and `PO-`. The old format
+        // embedded the business's 32-character guid, making the number 46 characters long and
+        // unreadable - and, once the credit note PDF existed (IG-308), it wrapped across three
+        // lines in the document-number slot. The guid carried no information for the reader
+        // either: the number is already scoped to one business by the unique index below.
+        //
+        // Numbers already issued are deliberately left as they are. An accounting reference should
+        // not change under someone, and old numbers simply do not match this prefix, so they are
+        // excluded from the sequence rather than colliding with it. The two formats coexist; only
+        // new credit notes get the short one.
+        var prefix = $"CN-{today.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-";
 
         // Read the sequence back from the numbers already issued, including soft-deleted ones,
         // rather than counting live rows: a count that filters out IsDeleted hands the next credit
@@ -256,7 +267,7 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
             .DefaultIfEmpty(0)
             .Max() + 1;
 
-        return $"{prefix}{nextSequence:D4}";
+        return $"{prefix}{nextSequence:D3}";
     }
 
     private static CreditNoteDto MapToDto(CreditNote creditNote)

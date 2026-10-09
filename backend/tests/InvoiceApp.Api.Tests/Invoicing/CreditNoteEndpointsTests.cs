@@ -10,6 +10,8 @@ using InvoiceApp.Application.Payments;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Payments;
+using InvoiceApp.Infrastructure.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InvoiceApp.Api.Tests.Invoicing;
 
@@ -256,6 +258,71 @@ public class CreditNoteEndpointsTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    /// <summary>
+    /// IG-310: the number must be short and readable, the same shape as `RCP-` and `PO-`. The old
+    /// format embedded the business's 32-character guid, giving a 46-character number that wrapped
+    /// across three lines in the PDF's document-number slot.
+    /// </summary>
+    [Fact]
+    public async Task Numbers_a_credit_note_in_the_same_shape_as_the_other_document_types()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-format@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+
+        var created = await CreateAsync(client, businessId, invoiceId, 10m);
+
+        var today = DateTime.UtcNow.ToString("yyyyMMdd");
+        Assert.Equal($"CN-{today}-001", created.CreditNoteNumber);
+        // Short enough to sit on one line of the document, like PO-20300801-001.
+        Assert.Equal(15, created.CreditNoteNumber.Length);
+    }
+
+    /// <summary>
+    /// Numbers already issued in the old 46-character format are deliberately left alone — an
+    /// accounting reference should not change under someone. They simply do not match the new
+    /// prefix, so they neither join the new sequence nor collide with it.
+    /// </summary>
+    [Fact]
+    public async Task An_old_format_number_does_not_disturb_the_new_sequence()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "cn-legacy@example.com");
+        var businessId = await BusinessIdAsync(client);
+        var invoiceId = await InvoiceIdAsync(client);
+
+        // A row in the superseded format, as a database upgraded from before IG-310 would hold.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.CreditNotes.Add(new CreditNote
+            {
+                Id = Guid.NewGuid(),
+                BusinessId = businessId,
+                InvoiceId = invoiceId,
+                CustomerId = Guid.NewGuid(),
+                CreditNoteNumber = $"CN-{businessId:N}{DateTime.UtcNow:yyyyMMdd}0007",
+                IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                Reason = "Legacy",
+                Currency = "AUD",
+                Amount = 5m,
+                Notes = string.Empty,
+                SellerSnapshot = "{}",
+                CustomerSnapshot = "{}",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var created = await CreateAsync(client, businessId, invoiceId, 10m);
+
+        // Starts the new series at 001 rather than continuing the old one's 0007.
+        Assert.EndsWith("-001", created.CreditNoteNumber);
+        Assert.Equal(15, created.CreditNoteNumber.Length);
+    }
+
     [Fact]
     public async Task Numbers_credit_notes_sequentially()
     {
@@ -267,8 +334,8 @@ public class CreditNoteEndpointsTests
         var first = await CreateAsync(client, businessId, invoiceId, 10m);
         var second = await CreateAsync(client, businessId, invoiceId, 10m);
 
-        Assert.EndsWith("0001", first.CreditNoteNumber);
-        Assert.EndsWith("0002", second.CreditNoteNumber);
+        Assert.EndsWith("-001", first.CreditNoteNumber);
+        Assert.EndsWith("-002", second.CreditNoteNumber);
         Assert.NotEqual(first.CreditNoteNumber, second.CreditNoteNumber);
     }
 
@@ -291,7 +358,7 @@ public class CreditNoteEndpointsTests
         var second = await CreateAsync(client, businessId, invoiceId, 10m);
 
         Assert.NotEqual(first.CreditNoteNumber, second.CreditNoteNumber);
-        Assert.EndsWith("0002", second.CreditNoteNumber);
+        Assert.EndsWith("-002", second.CreditNoteNumber);
     }
 
     [Fact]

@@ -549,9 +549,26 @@ is also only partly met — the amount is hard-rejected above the invoice's amou
 AC allows exceeding it "with explicit confirmation"; stricter than asked, but a deviation worth a
 product decision.
 
-Unchanged and worth knowing: the number format is `CN-{32-hex business guid}{yyyyMMdd}{seq:D4}`,
-inconsistent with `RCP-{yyyyMMdd}-{seq:D3}` and `PO-{yyyyMMdd}-{seq:D3}` and unpleasant for a
-customer to read. Left alone because changing it would alter numbers already issued.
+**IG-310: Readable credit note number — COMPLETE 2026-10-09**
+
+The old format `CN-{32-hex business guid}{yyyyMMdd}{seq:D4}` was 46 characters and, once the PDF
+existed (`IG-308`), **wrapped across three lines** in the document-number slot. The guid carried no
+information for the reader either: the number is already scoped to one business by the unique
+index.
+
+Now `CN-{yyyyMMdd}-{seq:D3}` — 15 characters, the same shape as `RCP-` and `PO-`. Verified on the
+rendered PDF by text extraction: `CN-20261009-001` on **one line**.
+
+**Numbers already issued are deliberately not migrated.** An accounting reference should not
+change under someone. Old numbers simply do not match the new prefix, so they are excluded from
+the new sequence rather than colliding with it, and the two formats coexist. Checked the database
+first: 9 credit notes existed, all in the old format and all created by this session's own
+verification runs, so there was no real data at stake either way. A test seeds an old-format row
+and proves the new series still starts at `-001` rather than continuing from it.
+
+`IG-288`'s guarantee is untouched: the sequence still reads back from the numbers already issued
+including soft-deleted rows, behind the unique `(business_id, credit_note_number)` index, so a
+deleted number is never reissued.
 
 **IG-234 (earlier work, 2026-10-06)**
 
