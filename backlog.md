@@ -22,14 +22,14 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Current Focus / Next Task
 
-**IG-296 phase 3: Stripe connect scoped, cross-business isolation tests, Postgres run — DONE in code 2026-10-11 (uncommitted; IG-296 In Progress in Jira as of 2026-10-11)**
+**IG-296 phase 3: Stripe connect scoped, cross-business isolation tests, Postgres run — DONE 2026-10-11 (committed 33678a0, pushed to origin/main; Done in Jira)**
 
 - Stripe: `GET /api/v1/businesses/{businessId}/stripe/connect` and `POST .../stripe/disconnect`. The state cookie carries `state.businessId`; the callback path `/api/v1/business/stripe/callback` is unchanged (registered with Stripe). Frontend `stripeConnectUrl(id)` / `disconnectStripe(id)`.
 - Tests: `BusinessScopedOtherAreasTests` (6: items, estimates, documents/outstanding report, cross-account 404 across areas, Stripe connect), `BusinessScopedPostgresTests` (2, run against local Postgres: same invoice number in two businesses of one account is allowed; duplicate within one business rejected).
 - Verification: backend solution Architecture 14/14, Infrastructure 252/252, API 409/409 (incl. Postgres tests). Frontend vitest 786/786, tsc and eslint clean.
 - Payments route moved to `/api/v1/businesses/{businessId}/invoices/{invoiceId}/payments` (frontend `lib/payments.ts` uses it too).
 - Next: review and commit the IG-296 work (not yet committed); then decide with the user whether to move the payments route; then Jira transitions only on explicit approval.
-**IG-296 phase 2: catalog items, estimates, documents, dashboard and reports scoped to the selected business — DONE in code 2026-10-11 (uncommitted; IG-296 In Progress in Jira as of 2026-10-11)**
+**IG-296 phase 2: catalog items, estimates, documents, dashboard and reports scoped to the selected business — DONE in code 2026-10-11 (uncommitted; IG-296 Done in Jira 2026-10-11)**
 
 Routes now under `/api/v1/businesses/{businessId}/`: `items`, `estimates` (incl. send-email, email-history, convert-to-invoice), `documents`, `dashboard/summary`, `reports/*` (incl. CSV and PDF exports). Public token routes and `/invoices/calculate` and `/invoices/pdf` unchanged. Payments route still `/api/v1/invoices/{id}/payments`; it accepts any invoice in a business the caller owns.
 
