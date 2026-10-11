@@ -37,12 +37,12 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 | `IG-304` | Test combined report accuracy across currencies | To Do | Not started. |
 | `IG-315` | An invoice has no stored signal that it was ever issued (under `IG-213`) | To Do | Not built. `Invoice` has no issued marker. Needs a product decision (three options written up in `IG-315`). |
 | `IG-246` | Test delivery/opened status tracking (under `IG-213`) | To Do | Delivery tests exist (`InvoiceEmailHistoryEndpointTests`). Opened tracking is explicitly out of scope in code. Blocked on `IG-315`, per the notes there. |
-| `IG-266` | Test conversion data integrity and traceability (under `IG-223`) | Done (2026-10-12) | Estimate records its converted invoice; conversion is one transaction with a race-safe claim. Code uncommitted. |
+| `IG-266` | Test conversion data integrity and traceability (under `IG-223`) | Done (2026-10-12) | Estimate records its converted invoice; conversion is one transaction with a race-safe claim. Committed and pushed as `2651fee`. |
 | `IG-276` | Test export correctness across filters (under `IG-228`) | To Do | Partial. `ReportPdfExportEndpointsTests` covers CSV/PDF parity, filenames, tenant isolation and outstanding figures. Not confirmed that every filter combination is asserted; check before closing. |
 
 ## Current Focus / Next Task
 
-**IG-266 (Subtask under `IG-223`): estimate records its converted invoice, and conversion is atomic and race-safe. DONE in Jira 2026-10-12 (transitioned To Do → In Progress → Done with a completion comment, approved by the user). Code uncommitted.**
+**IG-266 (Subtask under `IG-223`): estimate records its converted invoice, and conversion is atomic and race-safe. DONE in Jira 2026-10-12 (transitioned To Do → In Progress → Done with a completion comment, approved by the user). Committed and pushed as `2651fee`.**
 
 Changes:
 
@@ -64,7 +64,7 @@ Not done:
 - No test forces an invoice-save failure inside the transaction to prove rollback. The rollback path relies on EF/Npgsql transaction disposal and is not directly tested.
 - The Postgres stub writes its invoice on a separate connection, so it tests the claim race but not invoice rollback.
 
-**Exact next task:** (1) Decide whether to commit the IG-266 changes locally. (2) Decide whether the estimate page should show the converted invoice link; that is UI scope beyond IG-266's criterion. (3) Pick the next open Jira item; none is claimed.
+**Exact next task:** (1) Decide whether the estimate page should show the converted invoice link; that is UI scope beyond IG-266's criterion. (3) Pick the next open Jira item; none is claimed.
 
 **Blockers and decisions:**
 
