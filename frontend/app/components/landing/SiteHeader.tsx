@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentSession, logout, type LoggedInAccount } from "../../lib/auth";
+import { BusinessSwitcher } from "../business/BusinessSwitcher";
 
 const navLinks = [
   { href: "/invoice/create", label: "Invoice Generator" },
@@ -105,6 +106,7 @@ export function SiteHeader() {
         <div className="hidden items-center gap-4 xl:flex">
           {account ? (
             <>
+              <BusinessSwitcher />
               <span className="text-sm font-medium text-slate-600">{account.name ?? account.email}</span>
               <button
                 type="button"

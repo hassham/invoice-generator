@@ -357,3 +357,16 @@ export async function businessRoute(path: string): Promise<string> {
 export async function businessApiBase(): Promise<string> {
   return `${baseUrl()}/api/v1/businesses/${await getActiveBusinessId()}`;
 }
+
+/** IG-238: stores the business the user picked. The header switcher uses this directly, so it works
+ * on any page without needing BusinessProvider in the tree. */
+export function setSelectedBusinessId(businessId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(SELECTED_BUSINESS_STORAGE_KEY, businessId);
+  } catch {
+    // Storage can be blocked; the switch then only lasts for this page load.
+  }
+}
