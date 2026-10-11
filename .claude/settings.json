@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "mcp__plugin_productivity_atlassian__addCommentToJiraIssue"
+      "mcp__plugin_productivity_atlassian__addCommentToJiraIssue",
+      "Bash(python -c \"import pypdf; print\\('pypdf OK'\\)\")",
+      "Bash(python -c \"import fitz; print\\('pymupdf OK'\\)\")",
+      "Bash(node verify-po-items-pdf.mjs)",
+      "Bash(pdftotext -layout po-306.pdf -)",
+      "Bash(pdftotext po-306.pdf -)"
     ]
   }
 }
