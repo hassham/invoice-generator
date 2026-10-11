@@ -46,7 +46,7 @@ export function BusinessSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="ml-4 flex items-center gap-2">
       <label htmlFor="business-switcher" className="sr-only">
         Business
       </label>
@@ -62,7 +62,7 @@ export function BusinessSwitcher() {
           </option>
         ))}
       </select>
-      <Link href="/businesses" className="text-sm font-medium text-indigo-700 hover:text-indigo-900">
+      <Link href="/businesses" className="whitespace-nowrap text-sm font-medium text-indigo-700 hover:text-indigo-900">
         Manage
       </Link>
     </div>
