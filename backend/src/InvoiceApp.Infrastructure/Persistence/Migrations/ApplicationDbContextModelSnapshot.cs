@@ -572,6 +572,10 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("business_id");
 
+                    b.Property<Guid?>("ConvertedInvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("converted_invoice_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -689,6 +693,9 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BusinessId")
                         .HasDatabaseName("ix_estimates_business_id");
+
+                    b.HasIndex("ConvertedInvoiceId")
+                        .HasDatabaseName("ix_estimates_converted_invoice_id");
 
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("ix_estimates_customer_id");
@@ -2160,6 +2167,12 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_estimates_businesses_business_id");
+
+                    b.HasOne("InvoiceApp.Domain.Invoicing.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("ConvertedInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_estimates_invoices_converted_invoice_id");
 
                     b.HasOne("InvoiceApp.Domain.Customers.Customer", null)
                         .WithMany()

@@ -324,7 +324,10 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
     /// <summary>IG-223: convert an Accepted estimate into a new invoice. Reuses the entire
     /// invoice creation/calculation pipeline: the new invoice starts as Draft with all line
     /// items, totals, customer data copied from the estimate. Estimate transitions to Converted.
-    /// Only valid from Accepted; other statuses reject with a 409 ConflictException.</summary>
+    /// Only valid from Accepted; other statuses reject with a 409 ConflictException.
+    /// IG-266: the Converted status, the link to the new invoice and the invoice itself are one
+    /// transaction - none persists without the others - and a conditional claim stops two
+    /// concurrent conversions of the same estimate both creating an invoice.</summary>
     public async Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken)
     {
         await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
@@ -333,6 +336,34 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         if (estimate.Status != EstimateStatus.Accepted)
         {
             throw new ConflictException("Only accepted estimates can be converted to invoices.");
+        }
+
+        // Database.IsRelational() gates the transaction and the conditional claim: the InMemory
+        // provider used by the API tests supports neither, and it cannot race anyway. Same precedent
+        // as AccountRegistrationService.
+        var useTransaction = dbContext.Database.IsRelational();
+        await using var transaction = useTransaction
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        if (useTransaction)
+        {
+            // The UPDATE takes the row lock. A concurrent second conversion blocks here, then
+            // re-checks Status under READ COMMITTED, matches zero rows and is refused before any
+            // invoice is created. The tracked estimate below still reads Accepted, so the claim is
+            // the only thing that stops a double conversion.
+            var claimed = await dbContext.Estimates
+                .Where(e => e.Id == estimateId && e.BusinessId == businessId && !e.IsDeleted && e.Status == EstimateStatus.Accepted)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(e => e.Status, EstimateStatus.Converted)
+                        .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                    cancellationToken);
+
+            if (claimed == 0)
+            {
+                throw new ConflictException("Only accepted estimates can be converted to invoices.");
+            }
         }
 
         var seller = JsonSerializer.Deserialize<SellerSnapshotPayload>(estimate.SellerSnapshot);
@@ -373,6 +404,7 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         var createdInvoice = await invoiceService.SaveAsync(userId, estimate.BusinessId, null, invoiceRequest, cancellationToken);
 
         estimate.Status = EstimateStatus.Converted;
+        estimate.ConvertedInvoiceId = createdInvoice.Id;
         estimate.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -384,6 +416,11 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
             "Estimate converted to invoice",
             new { estimate.EstimateNumber, invoiceId = createdInvoice.Id },
             cancellationToken);
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
 
         return createdInvoice.Id;
     }
@@ -640,7 +677,8 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
             estimate.TaxAmount,
             estimate.TotalAmount,
             estimate.CreatedAt,
-            estimate.UpdatedAt);
+            estimate.UpdatedAt,
+            estimate.ConvertedInvoiceId);
     }
 
     private sealed record SellerSnapshotPayload(string Text);

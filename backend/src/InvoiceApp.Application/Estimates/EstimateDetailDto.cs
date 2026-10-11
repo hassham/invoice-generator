@@ -39,4 +39,5 @@ public sealed record EstimateDetailDto(
     decimal TaxAmount,
     decimal TotalAmount,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    Guid? ConvertedInvoiceId);

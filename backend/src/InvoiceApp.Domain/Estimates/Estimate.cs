@@ -62,6 +62,11 @@ public sealed class Estimate
     /// as Invoice.PublicToken's own doc comment.</summary>
     public string? PublicToken { get; set; }
 
+    /// <summary>IG-266: the invoice this estimate was converted into. Written in the same
+    /// transaction as the Converted status change, so a Converted estimate always names its invoice
+    /// and a non-converted one never does.</summary>
+    public Guid? ConvertedInvoiceId { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTimeOffset? DeletedAt { get; set; }

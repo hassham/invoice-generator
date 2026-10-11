@@ -8,85 +8,71 @@ Jira project `IG` is the authoritative delivery backlog. This file is a local ha
 
 Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects/IG>
 
-## Current Status (as of 2026-10-11)
+## Current Status (as of 2026-10-12)
 
-- **Original MVP backlog is Done**: Epics `IG-1`-`IG-12` (all 12), their Stories (`IG-13`-`IG-72`, 60) and Subtasks (`IG-73`-`IG-192`, 120+) are all Done.
-- **Phase 2 delivery progressing**: `IG-205`-`IG-208` (Email, Payments, Estimates, Reporting) all Done. `IG-209` (Recurring Invoices) **COMPLETE END-TO-END**, now moving to `IG-210` (Billing Documents).
-- **IG-209 epic fully complete** (2026-10-06): All 5 stories delivered and integrated end-to-end. Daily background jobs for invoice generation and payment reminders. Email integration wired. Failure tracking with bounded retries. Tests passing, no build errors.
-- **IG-234 (Credit Notes) API layer complete** (2026-10-06): Domain, service, and CRUD endpoints ready. Frontend components still needed.
-- **107+ backlog issues created in Phase 2+ roadmap**:
-  - `IG-198` (new Epic, "In-App Navigation and Layout UX Polish") with `IG-199`-`IG-202` under it (fixed top bar, Invoice Generator back button + fixed preview panel, fixed action buttons, hide public nav links once authenticated); `IG-203` under existing `IG-8` (default tax setting); `IG-204` under existing `IG-6` (dedicated Templates view). User-requested UI/UX items, "we will pick those later." No Subtasks decomposed under these 7 yet.
-  - `IG-205`-`IG-211`: PRD Phase 2+ roadmap Epics — `docs/PRD.md` §34's own "Phase 2 — SaaS" is already fully delivered by the original backlog; these 7 are what `docs/EPICS.md` §3 already had scoped as the genuinely-next phase (`EPIC-13`-`EPIC-19`), just never published to Jira before now: `IG-205` Email Delivery and Hosted Invoice Experience (P1), `IG-206` Online Payments/Stripe (P1, depends on `IG-205`), `IG-207` Estimates and Estimate Conversion (P1), `IG-208` Reporting and Data Export (P1), `IG-209` Recurring Invoices and Payment Reminders (P2), `IG-210` Expanded Billing Documents (P2), `IG-211` Multi-Business/Teams/International (P2). Recommended starting point: `IG-205`.
-  - `IG-212`-`IG-242` (31 Stories decomposed under `IG-205`-`IG-211`, same "User Story"/"Acceptance Criteria" format as the original `docs/STORIES.md`, each grounded in the same PRD sections cited on its parent Epic): `IG-205` → `IG-212`-`IG-215` (send by email, email history, hosted page, secure tokens); `IG-206` → `IG-216`-`IG-219` (Stripe Checkout, webhook reconciliation, receipt, per-business Stripe config); `IG-207` → `IG-220`-`IG-223` (create/send/accept estimate, convert to invoice); `IG-208` → `IG-224`-`IG-228` (revenue, outstanding/overdue, by-customer, tax summary, CSV/PDF export); `IG-209` → `IG-229`-`IG-233` (create/generate/pause schedule, configure reminders, safe reminder failure handling); `IG-210` → `IG-234`-`IG-237` (credit note, receipt, purchase order, document-type filtering); `IG-211` → `IG-238`-`IG-242` (multi-business switching, team invites, role restrictions, language selection, cross-business reports).
-  - `IG-243`-`IG-304` (62 Subtasks, 2 per Story, same "Implement X" / "Test Y" split and "Completion Criteria" format as the original `docs/TASKS.md`) — every one of `IG-212`-`IG-242`'s 31 Stories now has exactly 2 Subtasks. This is now decomposed to the same depth as the original `IG-1`-`IG-12` backlog (Epic → Story → Subtask), ready to be picked up and claimed directly.
+Code and Jira were reconciled on 2026-10-12 (read-only Jira query: 14 non-Done issues in project `IG`; no Jira writes).
+
+- Original MVP (`IG-1`-`IG-12`) is Done. Phase 2 Epics `IG-205`-`IG-209` are Done (`IG-209` Recurring Invoices complete end-to-end).
+- `IG-295` and `IG-296` are Done in Jira and in code (business-scoped invoices, customers, catalog, documents, estimates, dashboard, reports, Stripe connect, isolation tests including real Postgres).
+- `IG-314` (tax summary excludes Draft/Cancelled) is Done in Jira. Its draft-half follow-up is `IG-315`.
+
+## Open Jira Work vs Code
+
+Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed with their Jira status.
+
+| Jira | Summary | Jira status | Code state (verified 2026-10-12) |
+|---|---|---|---|
+| `IG-238` | Create and switch between multiple businesses (Story) | In Progress | Code complete: create/list/switch, header switcher (`717b07d`, `3591c30`). Waiting for user acceptance before Done. |
+| `IG-239` | Invite a team member to a business (Story) | To Do | Not started. No invitation or membership model in backend or frontend. |
+| `IG-297` | Implement team member invitations | To Do | Not started. |
+| `IG-298` | Test invite lifecycle | To Do | Not started. |
+| `IG-240` | Control what a team member can do (Story) | To Do | Not started. No roles or permission model. |
+| `IG-299` | Implement role-based permission enforcement | To Do | Not started. |
+| `IG-300` | Test permission boundaries are enforced server-side | To Do | Not started. |
+| `IG-241` | Use the app in another language (Story) | To Do | Not started. No i18n library or message catalogue in `frontend/package.json` or the app tree. |
+| `IG-301` | Implement text externalisation for translation | To Do | Not started. |
+| `IG-302` | Test language selection and switching | To Do | Not started. |
+| `IG-242` | View advanced cross-business reports (Story) | To Do | Not started. Reports are per-business only (`/businesses/{businessId}/reports/*`); there is no combined endpoint. |
+| `IG-303` | Implement per-business and combined report scoping | To Do | Not started. |
+| `IG-304` | Test combined report accuracy across currencies | To Do | Not started. |
+| `IG-315` | An invoice has no stored signal that it was ever issued (under `IG-213`) | To Do | Not built. `Invoice` has no issued marker. Needs a product decision (three options written up in `IG-315`). |
+| `IG-246` | Test delivery/opened status tracking (under `IG-213`) | To Do | Delivery tests exist (`InvoiceEmailHistoryEndpointTests`). Opened tracking is explicitly out of scope in code. Blocked on `IG-315`, per the notes there. |
+| `IG-266` | Test conversion data integrity and traceability (under `IG-223`) | Done (2026-10-12) | Estimate records its converted invoice; conversion is one transaction with a race-safe claim. Code uncommitted. |
+| `IG-276` | Test export correctness across filters (under `IG-228`) | To Do | Partial. `ReportPdfExportEndpointsTests` covers CSV/PDF parity, filenames, tenant isolation and outstanding figures. Not confirmed that every filter combination is asserted; check before closing. |
 
 ## Current Focus / Next Task
 
-**IG-296 phase 3: Stripe connect scoped, cross-business isolation tests, Postgres run — DONE 2026-10-11 (committed 33678a0, pushed to origin/main; Done in Jira)**
+**IG-266 (Subtask under `IG-223`): estimate records its converted invoice, and conversion is atomic and race-safe. DONE in Jira 2026-10-12 (transitioned To Do → In Progress → Done with a completion comment, approved by the user). Code uncommitted.**
 
-- Stripe: `GET /api/v1/businesses/{businessId}/stripe/connect` and `POST .../stripe/disconnect`. The state cookie carries `state.businessId`; the callback path `/api/v1/business/stripe/callback` is unchanged (registered with Stripe). Frontend `stripeConnectUrl(id)` / `disconnectStripe(id)`.
-- Tests: `BusinessScopedOtherAreasTests` (6: items, estimates, documents/outstanding report, cross-account 404 across areas, Stripe connect), `BusinessScopedPostgresTests` (2, run against local Postgres: same invoice number in two businesses of one account is allowed; duplicate within one business rejected).
-- Verification: backend solution Architecture 14/14, Infrastructure 252/252, API 409/409 (incl. Postgres tests). Frontend vitest 786/786, tsc and eslint clean.
-- Payments route moved to `/api/v1/businesses/{businessId}/invoices/{invoiceId}/payments` (frontend `lib/payments.ts` uses it too).
-- Next: review and commit the IG-296 work (not yet committed); then decide with the user whether to move the payments route; then Jira transitions only on explicit approval.
-**IG-296 phase 2: catalog items, estimates, documents, dashboard and reports scoped to the selected business — DONE in code 2026-10-11 (uncommitted; IG-296 Done in Jira 2026-10-11)**
+Changes:
 
-Routes now under `/api/v1/businesses/{businessId}/`: `items`, `estimates` (incl. send-email, email-history, convert-to-invoice), `documents`, `dashboard/summary`, `reports/*` (incl. CSV and PDF exports). Public token routes and `/invoices/calculate` and `/invoices/pdf` unchanged. Payments route still `/api/v1/invoices/{id}/payments`; it accepts any invoice in a business the caller owns.
+- Domain: `Estimate.ConvertedInvoiceId` (`Guid?`). EF FK to `invoice.invoices` with Restrict, so a hard-deleted invoice cannot erase the trail.
+- Migration `20261011232418_AddEstimateConvertedInvoiceId`, generated with `dotnet ef migrations add`. Applied to the local dev database.
+- `EstimateService.ConvertToInvoiceAsync`: on Postgres it runs in one transaction. A conditional `UPDATE ... WHERE status = 'Accepted'` takes the row lock, so a concurrent second conversion matches zero rows and is refused before any invoice is created. Then the invoice is saved, the estimate gets Converted plus the link, the audit entry is written, and the transaction commits. The InMemory path skips the transaction and the claim (`IsRelational()` gate, same as `AccountRegistrationService`).
+- `EstimateDetailDto.ConvertedInvoiceId` is returned on the estimate detail GET.
 
-Frontend: `lib/items.ts`, `lib/estimate.ts`, `lib/estimateEmail.ts`, `lib/documents.ts` use `businessRoute()`; `lib/dashboard.ts` uses `businessApiBase()`.
+Tests:
 
-Verification: backend `dotnet test InvoiceApp.sln` — Architecture 14/14, Infrastructure 252/252, API 401/401. Frontend vitest 786/786, tsc and eslint clean.
+- `tests/InvoiceApp.Api.Tests/Estimates/EstimateConversionEndpointsTests.cs` (4, InMemory): accepted estimate converts and records the invoice; draft refused; sent-but-not-accepted refused; second conversion refused, still one invoice, first link kept.
+- `tests/InvoiceApp.Infrastructure.Tests/Estimates/EstimateConversionConcurrencyTests.cs` (1, real Postgres): two concurrent conversions produce exactly one invoice and one 409. **Mutation check:** removing the status condition from the claim made it fail with two winners. The fix was restored and the file re-verified.
 
-Still on the default business: Stripe connect/disconnect (`/api/v1/business/stripe/*`). Gaps: no isolation tests yet for items, estimates, documents or reports across businesses; nothing run against real Postgres.
+Verification (2026-10-12): `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 253/253, API 416/416, all passing. Docker Desktop was not running, so it was started and the `invoiceapp-postgres` container (port 5433) was used for the Postgres test. No frontend files changed, so the frontend gate was not re-run.
 
-**Exact next task:** add cross-business isolation tests for items, estimates, documents and reports; move Stripe connect to business scope (state must carry the business id); then run IG-296 against real Postgres. No commit or Jira transition yet.
-**IG-296 phase 1: invoices and customers scoped to the selected business — DONE in code 2026-10-11 (uncommitted; IG-296 still To Do in Jira)**
+Not done:
 
-Decision taken: business-scoped routes (`/api/v1/businesses/{businessId}/...`), matching credit notes and receipts.
+- The estimate detail page does not show or link the converted invoice yet. The field is in the API response only.
+- No test forces an invoice-save failure inside the transaction to prove rollback. The rollback path relies on EF/Npgsql transaction disposal and is not directly tested.
+- The Postgres stub writes its invoice on a separate connection, so it tests the claim race but not invoice rollback.
 
-- Customers: `GET/POST /businesses/{businessId}/customers`, `GET/PUT/DELETE .../customers/{id}`. Service methods take `businessId`; `EnsureOwnedBusinessAsync` returns 404 for another account's business.
-- Invoices: `GET/POST /businesses/{businessId}/invoices`, `GET/PUT .../invoices/{id}`, `cancel`, `delete`, `duplicate`, `send-email`, `email-history`. `/api/v1/invoices/calculate` and `/api/v1/invoices/pdf` (anonymous) unchanged. Public token routes unchanged.
-- Recurring auto-send carries the schedule's `BusinessId` through `IInvoiceEmailDispatcher`.
-- Payments still at `/api/v1/invoices/{id}/payments`; ownership now checks the invoice's business belongs to the caller (any of their businesses).
-- Frontend: `businessRoute()` / `getActiveBusinessId()` in `app/lib/business.ts` resolve the stored selection (falling back to the account default). Invoice and customer libs use it, so component call sites are unchanged. Logout clears the stored selection.
+**Exact next task:** (1) Decide whether to commit the IG-266 changes locally. (2) Decide whether the estimate page should show the converted invoice link; that is UI scope beyond IG-266's criterion. (3) Pick the next open Jira item; none is claimed.
 
-Files: backend `Api/Endpoints/{InvoiceEndpoints,CustomerEndpoints}.cs`, `Api/Services/InvoiceEmailDispatcher.cs`, `Application/{Invoicing/IInvoiceService,Invoicing/IInvoiceEmailDispatcher,Customers/ICustomerService}.cs`, `Infrastructure/{Invoicing/InvoiceService,Invoicing/RecurringInvoiceGenerationService,Customers/CustomerService,Estimates/EstimateService,Payments/PaymentService}.cs`; tests across ~20 files under `tests/InvoiceApp.Api.Tests` (new: `Businesses/BusinessScopedInvoicesAndCustomersTests.cs`, `Authentication/DefaultBusinessRoutes.cs`); frontend `app/lib/{business,auth,customers,invoiceDetail,invoiceEmail,invoiceList,BusinessContext}.ts(x)`, `app/invoice/create/lib/invoiceSave.ts`, plus their tests.
+**Blockers and decisions:**
 
-Verification (2026-10-11): backend `dotnet test InvoiceApp.sln` — Architecture 14/14, Infrastructure 252/252, API 401/401. Frontend `tsc` and `eslint` clean; vitest 786 tests (3 `invoiceList.test.ts` failures fixed after the full run; that file re-run 5/5).
+- `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
+- `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Known gap — the inconsistency this creates:** dashboard, reports (incl. exports), document list, estimates, catalog items, and Stripe connect still act on the account's default business. With a second business selected, invoices and customers go to it, while totals, reports and the document list show the default. Phase 2 must move these before multi-business is usable.
+**Jira sync state (2026-10-12):** `IG-266` transitioned To Do → In Progress → Done, with a completion comment (comment id 10329), both writes approved by the user. `IG-211` and `IG-238` are In Progress. `IG-239`-`IG-242` and the other open subtasks are To Do. `IG-295` and `IG-296` are Done.
 
-**Exact next task:** phase 2 — dashboard/reports/documents/estimates/catalog/payments routes to business scope, then IG-296 isolation tests against real Postgres. Do not transition Jira to Done yet; no commit made.
-**IG-295: Implement multiple businesses per account — IN PROGRESS 2026-10-11 (not Done; uncommitted)**
-
-Hierarchy: `IG-211` (Epic, Multi-Business, Teams and International Growth, In Progress) → `IG-238` (Story, Create and switch between multiple businesses, In Progress) → `IG-295` (Subtask, In Progress). Sibling Subtask `IG-296` (Test business-switching data isolation) is To Do.
-
-Delivered this execution:
-
-- Backend: `GET`/`POST /api/v1/businesses` and `GET`/`PUT /api/v1/businesses/{businessId}`. Create validates through `BusinessProfileRequestValidator.ValidateNew` (same rules as profile update, plus estimate prefix/padding). Another account's business id returns 404 (`FindOwnedAsync` filters by UserId and Id together). Legacy `/api/v1/business` routes are unchanged.
-- **Fixed a regression this change would otherwise have caused:** account-level lookups used `SingleAsync` on the user's businesses, so a second business made the dashboard, invoices, customers, catalog, documents, estimates, payments and the legacy profile route throw. They now resolve to the account's earliest business (`OrderBy(CreatedAt).First`), which is the default business.
-- Frontend: `/businesses` page (list, "Use X" to select, "Edit profile", inline "New business" form). `BusinessProvider` mounted in the root layout. `BusinessContext` now reads the stored selection through `useSyncExternalStore`, so SSR and hydration both start from `null`. `/settings/business` loads and saves the selected business (`getBusinessProfileById` / `updateBusinessProfileById`), falling back to the legacy calls when nothing is selected.
-
-Files changed (all uncommitted):
-
-- Backend: `Api/Endpoints/BusinessEndpoints.cs`, `Application/Businesses/IBusinessService.cs`, `Application/Businesses/CreateBusinessRequest.cs` (new), `Infrastructure/Businesses/BusinessService.cs`, `Modules.Businesses/BusinessProfileRequestValidator.cs`, `Infrastructure/{Catalog/CatalogItemService, Customers/CustomerService, Dashboard/DashboardService, Documents/DocumentListService, Estimates/EstimateService, Invoicing/InvoiceService, Payments/PaymentService}.cs` (first-business resolution), `tests/InvoiceApp.Api.Tests/Businesses/BusinessCollectionEndpointsTests.cs` (new, 13 tests).
-- Frontend: `app/lib/business.ts`, `app/lib/BusinessContext.tsx` (new), `app/lib/BusinessContext.test.tsx` (new, 6 tests), `app/layout.tsx`, `app/businesses/page.tsx` and `app/businesses/components/BusinessesPage.tsx` (new), `app/businesses/components/BusinessesPage.test.tsx` (new, 5 tests), `app/settings/business/components/BusinessProfileSettings.tsx` and its test (+1 test), `app/reports/components/ReportPdfExport.test.tsx` (removed a stray `daysOverdue` field from an IG-275 fixture that failed `tsc`).
-
-Verification (2026-10-11):
-
-- Backend `dotnet test InvoiceApp.sln`: exit 0. Architecture 14/14, Infrastructure 252/252, API 397/397 (includes the 13 new tests).
-- Frontend: `vitest run` 100 files / 786 tests pass; `tsc --noEmit` exit 0; `eslint .` exit 0; `npm run build` exit 0.
-- Not yet verified: manual browser pass of `/businesses` and `/settings/business` at phone width, and any real-Postgres run of the new paths (only the InMemory-backed tests ran).
-
-Known gaps (not done, deliberately out of this slice):
-
-- Invoices, customers, catalog, documents, estimates, payments, recurring schedules and the dashboard are still account-scoped and use the **earliest** business. The selected business does not yet drive them, so a second business has no independent customers, numbering or documents yet. This is the bulk of `IG-296` and needs a product decision on how the invoice editor picks its business.
-- The invoice and estimate editors' seller defaults and the Stripe connect/disconnect flow (`/api/v1/business/stripe/*`) still act on the earliest business, not the selected one. So the settings page can show the selected business while Stripe connects the earliest one.
-- No business switcher in the app header; the switch lives on `/businesses` only.
-
-**Exact next task:** decide with the user how invoice/customer/numbering scope follows the selected business, then take `IG-296` (isolation tests against real Postgres). Do not transition IG-295, IG-238 or IG-211 to Done until that is accepted; no commit or push has been made.
-
-**Jira sync state (2026-10-11):** IG-211, IG-238 and IG-295 are In Progress (transitioned with the user's approval earlier in this session). IG-296 is To Do. No Jira writes since then. Jira was not re-queried in this execution.
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**
 

@@ -2,6 +2,7 @@ using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Customers;
 using InvoiceApp.Domain.Documents;
 using InvoiceApp.Domain.Estimates;
+using InvoiceApp.Domain.Invoicing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -56,6 +57,13 @@ public sealed class EstimateConfiguration : IEntityTypeConfiguration<Estimate>
             .WithMany()
             .HasForeignKey(estimate => estimate.TemplateId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // IG-266: invoices are soft-deleted, so a converted estimate's link normally stays valid.
+        // Restrict (not SetNull) so a hard delete of the invoice cannot silently erase the trail.
+        builder.HasOne<Invoice>()
+            .WithMany()
+            .HasForeignKey(estimate => estimate.ConvertedInvoiceId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(estimate => estimate.Items)
             .WithOne()
