@@ -632,7 +632,7 @@ and the `/receipts` page creating a receipt end to end.
   - 🔄 IG-236: Purchase order — `IG-291` ✅, `IG-292` ✅, `IG-306` ✅; blocked on a create UI
   - ⬜ IG-237: Document-type filtering
 
-**IG-313: Revenue report is now cash basis — COMPLETE 2026-10-11**
+**IG-313: Revenue report is now cash basis — COMPLETE 2026-10-11, Done in Jira**
 
 The defect `IG-268` uncovered: `GetRevenueReportAsync` summed **payments** but grouped and
 range-filtered on the **invoice's issue date**. Decision taken — **cash basis**. Revenue is money
@@ -813,7 +813,7 @@ scope notes: `GetRevenueByCustomerAsync` and the tax summary may share the defec
 `/reports/outstanding` and `/reports/overdue` are invoice-state reports and are unaffected; the
 chosen basis belongs in `docs/FSD.md` so a reader can tell which numbers they are looking at.
 
-`IG-268` transitioned to **Done** in Jira 2026-10-11. The closing comment summarising the two
-criteria and the `IG-313` carve-out could not be posted from this session (tool permission), so
-the issue is Done without it.
+`IG-268` transitioned to **Done** in Jira 2026-10-11, and the closing comment is now on the issue
+(the first attempt was refused by a tool permission; a later retry went through, so commenting is
+not categorically blocked in this setup).
 
