@@ -274,4 +274,141 @@ public class RevenueReportEndpointsTests
         Assert.Equal("AUD", report.Currency);
         Assert.Equal("month", report.PeriodType);
     }
+
+    // IG-313: cash basis. Every test above issues and pays inside one month, where cash and
+    // accrual agree - which is exactly why the mixed basis survived this long. The tests below
+    // separate the two dates, so each one fails under the old issue-date attribution.
+
+    [Fact]
+    public async Task Revenue_lands_in_the_month_the_payment_was_received()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-month@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "INV-CROSS", new DateOnly(2030, 9, 10), 1_000);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 10, 5), 1_000);
+
+        var report = await ReportAsync(client, "?periodType=month&startDate=2030-09-01&endDate=2030-10-31");
+
+        Assert.Equal(0m, RevenueIn(report, "2030-09"));
+        Assert.Equal(1_000m, RevenueIn(report, "2030-10"));
+    }
+
+    [Fact]
+    public async Task A_payment_received_in_range_counts_even_when_its_invoice_predates_the_range()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-old-invoice@example.com");
+
+        // The case that silently lost money: a long-running engagement invoiced months before the
+        // window being asked about. Filtering on issue date dropped the payment from the report
+        // altogether, so "what did I earn in October" answered zero while 1,000 had arrived.
+        var invoiceId = await InvoiceAsync(client, "INV-LONG-RUN", new DateOnly(2030, 6, 1), 1_000);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 10, 20), 1_000);
+
+        var report = await ReportAsync(client, "?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
+
+        Assert.Equal(1_000m, RevenueIn(report, "2030-10"));
+    }
+
+    [Fact]
+    public async Task A_payment_received_after_the_range_is_excluded()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-future@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "INV-PAID-LATER", new DateOnly(2030, 10, 2), 1_000);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 11, 3), 1_000);
+
+        var report = await ReportAsync(client, "?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
+
+        Assert.Equal(0m, RevenueIn(report, "2030-10"));
+    }
+
+    [Fact]
+    public async Task Part_payments_split_across_months_are_reported_in_their_own_months()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-split@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "INV-SPLIT", new DateOnly(2030, 9, 10), 1_000);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 9, 20), 400);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 10, 20), 600);
+
+        var report = await ReportAsync(client, "?periodType=month&startDate=2030-09-01&endDate=2030-10-31");
+
+        Assert.Equal(400m, RevenueIn(report, "2030-09"));
+        Assert.Equal(600m, RevenueIn(report, "2030-10"));
+    }
+
+    [Fact]
+    public async Task Revenue_crossing_a_quarter_boundary_lands_in_the_payments_quarter()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-quarter@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "INV-QX", new DateOnly(2030, 9, 25), 800);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 10, 2), 800);
+
+        var report = await ReportAsync(client, "?periodType=quarter&startDate=2030-07-01&endDate=2030-12-31");
+
+        Assert.Equal(0m, RevenueIn(report, "2030-Q3"));
+        Assert.Equal(800m, RevenueIn(report, "2030-Q4"));
+    }
+
+    [Fact]
+    public async Task Revenue_crossing_a_year_boundary_lands_in_the_payments_year()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-year@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "INV-YX", new DateOnly(2030, 12, 20), 900);
+        await PayAsync(client, invoiceId, new DateOnly(2031, 1, 8), 900);
+
+        var report = await ReportAsync(client, "?periodType=year&startDate=2030-01-01&endDate=2031-12-31");
+
+        Assert.Equal(0m, RevenueIn(report, "2030"));
+        Assert.Equal(900m, RevenueIn(report, "2031"));
+    }
+
+    [Fact]
+    public async Task Cross_account_isolation_still_holds_on_the_payment_date()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+
+        // The join that scopes payments to a business moved under IG-313 (payments carry no
+        // business id of their own), so IG-268's isolation guarantee is re-proved here with the
+        // dates separated - the shape that now drives the query.
+        using var owner = await RegisteredClientAsync(factory, "rev-basis-owner@example.com");
+        var ownerInvoice = await InvoiceAsync(owner, "INV-B-OWNER", new DateOnly(2030, 9, 10), 500);
+        await PayAsync(owner, ownerInvoice, new DateOnly(2030, 10, 5), 500);
+
+        using var other = await RegisteredClientAsync(factory, "rev-basis-other@example.com");
+        var otherInvoice = await InvoiceAsync(other, "INV-B-OTHER", new DateOnly(2030, 9, 10), 9_000);
+        await PayAsync(other, otherInvoice, new DateOnly(2030, 10, 5), 9_000);
+
+        var report = await ReportAsync(owner, "?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
+
+        Assert.Equal(500m, RevenueIn(report, "2030-10"));
+    }
+
+    [Fact]
+    public async Task A_deleted_invoices_payment_is_excluded_on_the_payment_date_too()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "rev-basis-deleted@example.com");
+
+        // Deleting an invoice does not delete its payment rows, and the IG-313 query starts from
+        // Payments rather than Invoices - so the invoice join is the only thing keeping a
+        // soft-deleted invoice's money out of the report.
+        var kept = await InvoiceAsync(client, "INV-B-KEPT", new DateOnly(2030, 9, 10), 200);
+        await PayAsync(client, kept, new DateOnly(2030, 10, 5), 200);
+        var removed = await InvoiceAsync(client, "INV-B-GONE", new DateOnly(2030, 9, 10), 800);
+        await PayAsync(client, removed, new DateOnly(2030, 10, 5), 800);
+        (await client.DeleteAsync($"/api/v1/invoices/{removed}")).EnsureSuccessStatusCode();
+
+        var report = await ReportAsync(client, "?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
+
+        Assert.Equal(200m, RevenueIn(report, "2030-10"));
+    }
 }

@@ -632,6 +632,47 @@ and the `/receipts` page creating a receipt end to end.
   - 🔄 IG-236: Purchase order — `IG-291` ✅, `IG-292` ✅, `IG-306` ✅; blocked on a create UI
   - ⬜ IG-237: Document-type filtering
 
+**IG-313: Revenue report is now cash basis — COMPLETE 2026-10-11**
+
+The defect `IG-268` uncovered: `GetRevenueReportAsync` summed **payments** but grouped and
+range-filtered on the **invoice's issue date**. Decision taken — **cash basis**. Revenue is money
+received: both the range filter and the period key now come from `Payment.PaymentDate`.
+
+Why cash rather than accrual, since it was a genuine choice: `/reports/outstanding` and
+`/reports/overdue` already report what has been invoiced and not paid. On an accrual basis the
+revenue report would restate that same money, and one invoice would read as earned revenue and an
+outstanding debt simultaneously. Cash basis gives each report exactly one question to answer.
+
+`GetRevenueByCustomerAsync` had the identical mix and was changed the same way, so revenue per
+customer sums to the revenue report over the same range. Both queries now start from `Payments` and
+**join** `Invoices` — payments carry no `BusinessId` of their own, so that join is the only thing
+scoping figures to the business, its default currency and non-deleted invoices. The date predicate
+sits on `Payments` before the join, keeping it on a real column (Note 46).
+
+The **tax summary was deliberately left alone**. It totals tax on invoices *issued* in the range,
+paid or not — accrual, but internally consistent, so not the same defect. It will not tie out
+against the revenue report, which is now documented rather than fixed: when tax becomes payable is
+a tax question, not a reporting preference.
+
+`docs/FSD.md` §142 states the chosen basis, the worked example, the per-report basis table and the
+rule that any new report must declare its basis.
+
+Verification:
+
+- 8 new tests in `RevenueReportEndpointsTests`, each separating issue date from payment date.
+  **Proved they pin the fix**: reverted `ReportingService.cs` to HEAD and re-ran — exactly 8 fail,
+  and all 15 of `IG-268`'s pass under both implementations. Every pre-existing test issued and paid
+  inside one month, where the two bases agree, which is why the mix survived this long.
+- Backend 611 (14 / 244 / 353).
+- **Real Postgres**, not just InMemory, because the queries were rewritten and InMemory cannot
+  prove SQL translation: invoice issued 2030-09-10 for 1,000 and paid 2030-10-05 returns
+  September 0 / October 1,000, by-customer October 1,000 against Acme, and the `IG-228` CSV export
+  inherits it — `2030-10,1000.00`.
+
+**Found while here, NOT fixed:** `GetTaxSummaryAsync` aggregates **every** invoice in the range
+regardless of status — it selects `i.Status` and then never uses it — so a Draft or Cancelled
+invoice's tax counts as tax collected. Separate from the basis question and not yet raised.
+
 ## Deferred Decisions
 
 Things knowingly left undone, with the condition that should bring them back up. Raise each one

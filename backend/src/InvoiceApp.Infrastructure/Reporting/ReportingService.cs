@@ -24,26 +24,27 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         var effectiveStart = startDate ?? new DateOnly(now.Year, now.Month, 1);
         var effectiveEnd = endDate ?? now;
 
-        var invoices = await dbContext.Invoices
-            .AsNoTracking()
-            .Where(i => i.BusinessId == business.Id && i.Currency == business.DefaultCurrency && !i.IsDeleted)
-            .Where(i => i.IssueDate >= effectiveStart && i.IssueDate <= effectiveEnd)
-            .Select(i => i.Id)
-            .ToListAsync(cancellationToken);
-
+        // IG-313: cash basis - a payment is revenue in the period it was RECEIVED, so both the
+        // range filter and the period grouping key come from Payment.PaymentDate, never from the
+        // invoice's IssueDate. Filtering on the payment date before the join keeps the predicate
+        // on a real column (Engineering Note 46). The join to Invoices is what scopes the figures
+        // to this business, its default currency and non-deleted invoices - payments carry no
+        // business id of their own.
         var payments = await dbContext.Payments
             .AsNoTracking()
-            .Where(p => invoices.Contains(p.InvoiceId))
+            .Where(p => p.PaymentDate >= effectiveStart && p.PaymentDate <= effectiveEnd)
+            .Join(
+                dbContext.Invoices
+                    .Where(i => i.BusinessId == business.Id
+                        && i.Currency == business.DefaultCurrency
+                        && !i.IsDeleted),
+                payment => payment.InvoiceId,
+                invoice => invoice.Id,
+                (payment, invoice) => new { payment.PaymentDate, payment.Amount })
             .ToListAsync(cancellationToken);
 
-        var invoiceDateMap = await dbContext.Invoices
-            .AsNoTracking()
-            .Where(i => invoices.Contains(i.Id))
-            .Select(i => new { i.Id, i.IssueDate })
-            .ToDictionaryAsync(x => x.Id, x => x.IssueDate, cancellationToken);
-
         var revenueByPeriod = payments
-            .GroupBy(p => GetPeriodKey(invoiceDateMap[p.InvoiceId], periodType))
+            .GroupBy(p => GetPeriodKey(p.PaymentDate, periodType))
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
         var periods = GenerateAllPeriods(effectiveStart, effectiveEnd, periodType)
@@ -202,16 +203,21 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
             .Select(c => new { c.Id, c.BusinessName, c.ContactName })
             .ToListAsync(cancellationToken);
 
-        // Get revenue for each customer in the period
-        var revenueByCustomer = await dbContext.Invoices
+        // IG-313: cash basis, the same as GetRevenueReportAsync - the period is filtered on when
+        // each payment was received, not on when the invoice was issued. Keeping the two methods
+        // on one basis is the point of IG-313: a customer's revenue has to add up to the revenue
+        // report over the same range, and before this it did not.
+        var revenueByCustomer = await dbContext.Payments
             .AsNoTracking()
-            .Where(i => i.BusinessId == business.Id && !i.IsDeleted && i.Currency == business.DefaultCurrency)
-            .Where(i => i.IssueDate >= effectiveStart && i.IssueDate <= effectiveEnd)
+            .Where(p => p.PaymentDate >= effectiveStart && p.PaymentDate <= effectiveEnd)
             .Join(
-                dbContext.Payments,
-                invoice => invoice.Id,
+                dbContext.Invoices
+                    .Where(i => i.BusinessId == business.Id
+                        && !i.IsDeleted
+                        && i.Currency == business.DefaultCurrency),
                 payment => payment.InvoiceId,
-                (invoice, payment) => new { invoice.CustomerId, payment.Amount })
+                invoice => invoice.Id,
+                (payment, invoice) => new { invoice.CustomerId, payment.Amount })
             .GroupBy(x => x.CustomerId)
             .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Amount), cancellationToken);
 

@@ -9,6 +9,8 @@ public interface IReportingService
     /// IG-224: Get revenue aggregated by period (month, quarter, or year).
     /// Returns all periods from the start date to the end date, including those with zero revenue.
     /// Defaults to the current month if startDate/endDate are null.
+    /// IG-313: cash basis - both the range filter and the period a payment lands in are taken from
+    /// the payment date, not the invoice's issue date.
     /// </summary>
     Task<RevenueReportDto> GetRevenueReportAsync(
         Guid userId,
@@ -34,6 +36,7 @@ public interface IReportingService
     /// <summary>
     /// IG-226: Get revenue aggregated by customer over a period.
     /// Includes all customers, with zero revenue shown explicitly.
+    /// IG-313: cash basis, matching GetRevenueReportAsync over the same range.
     /// </summary>
     Task<List<RevenueByCustomerDto>> GetRevenueByCustomerAsync(
         Guid userId,

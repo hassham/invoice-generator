@@ -3219,3 +3219,43 @@ After this FSD, development documentation should be produced in this order:
 8. `DEPLOYMENT_ARCHITECTURE.md`
 
 These documents together should provide sufficient detail for AI-assisted or traditional implementation.
+
+---
+
+# 142. Reporting — Accounting Basis
+
+This section was added under `IG-313`. It applies to the Phase 2 reporting module (`IG-208`), which postdates the original MVP scope above.
+
+## Revenue reporting is cash basis
+
+Revenue is money **received**, not money **invoiced**.
+
+- A payment counts towards the period in which it was received.
+- A requested date range is matched against the **payment date**.
+- The invoice's issue date does not affect which period a payment appears in, or whether it appears at all.
+
+Worked example. An invoice is issued 10 September and paid 5 October:
+
+- A September query reports zero revenue.
+- An October query reports the full amount.
+
+Unpaid invoices are not revenue. A part-paid invoice contributes only the amount actually received, and the remainder appears as revenue later, in the period it is paid.
+
+This applies to both the revenue-by-period report and the revenue-by-customer report. Revenue per customer over a range therefore sums to total revenue over that same range.
+
+## Why cash basis and not accrual
+
+What is still owed is already reported, separately, by the outstanding and overdue reports. If revenue were accrual it would restate the same money those reports cover, and a single invoice would read as both earned revenue and an outstanding debt at the same time. Keeping revenue on a cash basis means each report answers exactly one question:
+
+| Report | Question | Basis |
+| --- | --- | --- |
+| Revenue | What did I actually receive? | Cash — payment date |
+| Outstanding | What am I still owed? | Invoice state |
+| Overdue | What am I owed late? | Invoice state |
+| Tax summary | What tax did I charge? | Accrual — issue date |
+
+## The tax summary is deliberately different
+
+The tax summary totals tax on invoices **issued** in the range, paid or not. It is accrual, and it is internally consistent, but it will **not** tie out against the revenue report over the same range. That is expected rather than a defect: when tax becomes payable is a tax question and varies by jurisdiction and registration, so it is not settled here.
+
+Any report added later must state its basis in this section. Two reports on different bases are acceptable; one report mixing both is not — that was the `IG-313` defect.
