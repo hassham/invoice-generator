@@ -632,6 +632,20 @@ and the `/receipts` page creating a receipt end to end.
   - 🔄 IG-236: Purchase order — `IG-291` ✅, `IG-292` ✅, `IG-306` ✅; blocked on a create UI
   - ⬜ IG-237: Document-type filtering
 
+## Deferred Decisions
+
+Things knowingly left undone, with the condition that should bring them back up. Raise each one
+when its trigger fires rather than acting on it unprompted.
+
+- **`main` branch protection — raise when the current Jira set closes out.** `main` requires the
+  "Backend build" and "Frontend build" checks (`strict: true`, `enforce_admins: false`), so every
+  direct push logs "Bypassed rule violations ... 2 of 2 required status checks are expected". The
+  checks only start after the ref moves, so a direct push can never satisfy them; no repo change
+  removes the warning. CI is healthy and passes on every push — the gate is cosmetic, not broken.
+  The user decided 2026-10-11 to defer this and be reminded once the remaining Jira items are done,
+  intending then to implement the checks properly via a PR-based flow rather than removing them.
+  Until then: keep pushing to `main` on request, and do not alter branch protection.
+
 ## Engineering Notes
 
 Standing lessons and conventions, most still directly actionable, none requiring re-reading old execution history to understand:
