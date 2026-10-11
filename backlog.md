@@ -669,9 +669,23 @@ Verification:
   September 0 / October 1,000, by-customer October 1,000 against Acme, and the `IG-228` CSV export
   inherits it — `2030-10,1000.00`.
 
-**Found while here, NOT fixed:** `GetTaxSummaryAsync` aggregates **every** invoice in the range
-regardless of status — it selects `i.Status` and then never uses it — so a Draft or Cancelled
-invoice's tax counts as tax collected. Separate from the basis question and not yet raised.
+**Found while here, NOT fixed — raised as `IG-314` under `IG-227`.** `GetTaxSummaryAsync`
+aggregates **every** invoice in the range regardless of status — it selects `i.Status` and then
+never uses it — so a Draft or Cancelled invoice's tax counts as tax collected. Measured on local
+Postgres, 10% tax, a brand-new account, range 2030-08:
+
+```
+no invoices                                   taxCollected = 0    taxable = 0
++ 1 DRAFT invoice, 1,000 @ 10% (never sent)   taxCollected = 100  taxable = 1,000
++ 1 CANCELLED invoice, 2,000 @ 10%            taxCollected = 300  taxable = 3,000
+```
+
+The revenue report over that range correctly says 0. This is the figure a user copies onto a BAS
+or VAT return, so overstating it overstates what they owe. Wrong under cash *and* accrual, so it
+is not an `IG-313` leftover. `IG-314` also records a second finding in the same method:
+`taxesByRate` does not group by rate at all — it emits one synthetic "average" rate derived from
+`totalTaxCollected / totalTaxable`, which matches no actual rate once an account mixes 0% and 10%
+lines, and fixing it properly may need a read-model change.
 
 ## Deferred Decisions
 
