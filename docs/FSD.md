@@ -3258,4 +3258,25 @@ What is still owed is already reported, separately, by the outstanding and overd
 
 The tax summary totals tax on invoices **issued** in the range, paid or not. It is accrual, and it is internally consistent, but it will **not** tie out against the revenue report over the same range. That is expected rather than a defect: when tax becomes payable is a tax question and varies by jurisdiction and registration, so it is not settled here.
 
-Any report added later must state its basis in this section. Two reports on different bases are acceptable; one report mixing both is not — that was the `IG-313` defect.
+## Which invoices count
+
+Added under `IG-314`.
+
+The tax summary excludes **`Cancelled`** invoices. Every other status counts, `Draft` included. Payment state is irrelevant to the tax summary, because it is accrual — an issued but unpaid invoice still charged tax.
+
+A cancellation is the clearest available statement that the sale did not happen, so it is not a taxable supply. This figure is what a user transcribes onto a BAS or VAT return, and counting voided sales overstates the tax they owe.
+
+### Why `Draft` still counts, although it should not
+
+A never-issued invoice is not a taxable supply either, but the stored data cannot currently identify one. **Nothing in this codebase ever assigns `InvoiceStatus.Sent` or `Viewed`**, and `Invoice` has no `SentAt` column, so an invoice that has been saved and emailed to a customer sits at `Draft` exactly like one that was abandoned half-written. `Draft` therefore means "unpaid", not "not issued".
+
+Filtering `Draft` out would drop real taxable supplies and **under**-report tax, which is the more dangerous error of the two. So it is left in, knowingly, until there is a stored signal for "this invoice was issued" — a data-model change, not a query change. Until then the tax summary may overstate tax on abandoned drafts.
+
+This is the same missing signal behind the `Sent`/`Viewed` statuses existing in the enum but never being reachable.
+
+The revenue reports need no equivalent rule, and this was checked rather than assumed:
+
+- A payment cannot be recorded against a `Cancelled` invoice at all, and recording a payment against a `Draft` moves it to `Partially Paid` or `Paid`. So no payment ever belongs to a draft or to an invoice cancelled before it was paid.
+- A **partially paid** invoice *can* be cancelled afterwards, and its payment still counts as revenue. That is deliberate and correct on a cash basis: the money genuinely arrived. Money returned to the customer is a separate event — a credit note or a refund — not a reason to retrospectively unmake the receipt.
+
+Any report added later must state its basis **and** which invoices it counts in this section. Two reports on different bases are acceptable; one report mixing both is not — that was the `IG-313` defect.

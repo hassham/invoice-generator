@@ -687,6 +687,45 @@ is not an `IG-313` leftover. `IG-314` also records a second finding in the same 
 `totalTaxCollected / totalTaxable`, which matches no actual rate once an account mixes 0% and 10%
 lines, and fixing it properly may need a read-model change.
 
+**IG-314: Tax summary no longer counts cancelled invoices — PARTIAL 2026-10-11**
+
+`GetTaxSummaryAsync` selected `i.Status` and never read it, so every invoice in the issue-date
+range contributed its tax. Now filters `Status != Cancelled`. Measured before and after on local
+Postgres, 10% tax, new account, range 2030-08:
+
+```
+                                             before            after
+no invoices                                  0 on 0            0 on 0
++ 1 DRAFT invoice, 1,000 @ 10%               100 on 1,000      100 on 1,000
++ 1 CANCELLED invoice, 2,000 @ 10%           300 on 3,000      100 on 1,000
+```
+
+12 new tests in `InvoiceApp.Api.Tests/Reporting/TaxSummaryEndpointsTests.cs` — the endpoint had
+**none at all** before, which is how the unused `i.Status` survived. 3 of the 12 fail without the
+fix (the cancelled cases); the other 9 pin behaviour that was already right. Backend 623
+(14 / 244 / **365**).
+
+**The criterion is only HALF met, and the other half is not a query change.** `IG-314` asks for
+invoices "never issued" to be excluded too. They cannot be identified: **nothing in this codebase
+ever assigns `InvoiceStatus.Sent` or `Viewed`** (grep returns nothing outside build output), and
+`Invoice` has no `SentAt` column. A saved invoice sits at `Draft` whether it was emailed to the
+customer or abandoned half-written — so `Draft` means *unpaid*, not *not issued*. Filtering it out
+would drop real taxable supplies and **under**-report tax, which is the worse direction, so it is
+knowingly left in. One test pins that explicitly and says to change it only alongside a stored
+"issued" signal.
+
+That missing signal is probably also why **`IG-246`** ("Test delivery/opened status tracking",
+still To Do under a Done `IG-213`) cannot be met: `InvoiceEmailLog`/`InvoiceEmailStatus` record
+email delivery, but nothing feeds that back into the invoice's own status. Worth treating as one
+piece of work rather than two.
+
+Verified while here, no change needed: the revenue reports do **not** share this oversight. A
+payment cannot be recorded against a `Cancelled` invoice, and paying a `Draft` moves it off Draft,
+so no payment belongs to a draft. A *partially* paid invoice can be cancelled afterwards and its
+payment still counts as revenue — correct on a cash basis, since the money did arrive; returning
+it is a credit note, not a reason to unmake the receipt. `docs/FSD.md` §142 now records both the
+status rule and this reasoning.
+
 ## Deferred Decisions
 
 Things knowingly left undone, with the condition that should bring them back up. Raise each one
