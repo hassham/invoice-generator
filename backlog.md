@@ -506,9 +506,7 @@ fix made them run, not pass their actual criteria:
   estimate can be converted". `Estimate` has a `Converted` status but **no field holding the
   resulting invoice id**, and no backend test covers the conversion rules. That is an
   implementation gap, not just a test gap.
-- `IG-268` wants "periods with no invoices show zero, and figures never include another account's
-  data". The zero case is covered client-side, but **no backend test touches `/reports/revenue`
-  at all**, so cross-account isolation is unverified.
+- ~~`IG-268`~~ — done 2026-10-11, see below.
 
 **IG-234: Credit note numbering hardened + first tests — 2026-10-07**
 
@@ -702,3 +700,39 @@ Current Status: <what changed since the last update, in 1-3 bullets>
 Current Focus / Next Task: <what's claimed/next, or "nothing claimed">
 New Engineering Notes (if any): <non-obvious, durable lessons only>
 ```
+
+**IG-268: Revenue report edge cases — COMPLETE 2026-10-11**
+
+15 endpoint tests in `InvoiceApp.Api.Tests/Reporting/RevenueReportEndpointsTests.cs`. Nothing had
+touched `/api/v1/reports/revenue` before: the zero-period half was covered client-side only, and
+cross-account isolation was asserted by nobody.
+
+**Both acceptance criteria hold.** Cross-account isolation is sound — two accounts billing in the
+same month and currency (500 vs 9,000) each see only their own figure, and a brand-new account
+sees zeros rather than someone else's numbers. Empty periods are emitted as explicit zeros across
+the whole requested range, not omitted; a gap is not the same as a zero, and a chart drawn from
+gaps misleads. Also covered: unpaid invoices are not revenue, part payments count only what was
+paid, several payments on one invoice are summed, a soft-deleted invoice's revenue is excluded,
+quarter and year grouping, an unsupported `periodType` is a 400, and the currency/period type echo.
+
+Backend 603 (345 API).
+
+**Defect found, NOT fixed — revenue is attributed to the wrong date.** Measured:
+
+```
+invoice issued 2030-09-10, paid 2030-10-05, amount 1000
+September query: 2030-09 = 1000
+October query:   2030-10 = 0
+```
+
+`ReportingService.GetRevenueReportAsync` sums **payments** (cash basis) but groups them by the
+**invoice's issue date** (accrual basis), and filters the date range on issue date too. So money
+received in October is reported as September revenue, and an October-only query shows zero. Worse,
+a payment against an invoice issued outside the requested range is excluded from the report
+entirely, so a range query can silently omit real income.
+
+Left alone deliberately: choosing cash basis (group and filter by payment date) or accrual basis
+(sum invoice totals, not payments) **changes every figure the report has ever produced**, and
+which one is right is a product decision, not an implementation detail. Raise it before touching
+it. The current behaviour is a hybrid that is neither.
+
