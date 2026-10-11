@@ -128,20 +128,27 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
             .AsNoTracking()
             .Where(i => i.BusinessId == business.Id && !i.IsDeleted)
             .Where(i => i.Status != InvoiceStatus.Cancelled && i.AmountDue > 0)
+            // IG-275: order on the invoice's real due_date column BEFORE projecting into the
+            // DTO. Sorting after a client projection does not translate - PostgreSQL threw
+            // "The LINQ expression 'DbSet<Invoice>()' could not be translated" and this endpoint
+            // returned 500 for every caller, while EF Core InMemory evaluated it happily and the
+            // test suite stayed green. Engineering Note 46, and the reason the four-command gate
+            // is not sufficient on its own for a query change.
             .Join(
                 dbContext.Customers,
                 invoice => invoice.CustomerId,
                 customer => customer.Id,
-                (invoice, customer) => new OutstandingInvoiceDto(
-                    invoice.Id,
-                    invoice.InvoiceNumber,
-                    customer.BusinessName ?? customer.ContactName ?? string.Empty,
-                    invoice.IssueDate,
-                    invoice.DueDate,
-                    invoice.Currency,
-                    invoice.AmountDue,
-                    invoice.Status.ToString()))
-            .OrderByDescending(x => x.DueDate)
+                (invoice, customer) => new { Invoice = invoice, Customer = customer })
+            .OrderByDescending(x => x.Invoice.DueDate)
+            .Select(x => new OutstandingInvoiceDto(
+                x.Invoice.Id,
+                x.Invoice.InvoiceNumber,
+                x.Customer.BusinessName ?? x.Customer.ContactName ?? string.Empty,
+                x.Invoice.IssueDate,
+                x.Invoice.DueDate,
+                x.Invoice.Currency,
+                x.Invoice.AmountDue,
+                x.Invoice.Status.ToString()))
             .ToListAsync(cancellationToken);
 
         return invoices;
@@ -162,20 +169,27 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
             .AsNoTracking()
             .Where(i => i.BusinessId == business.Id && !i.IsDeleted)
             .Where(i => i.Status != InvoiceStatus.Cancelled && i.AmountDue > 0 && i.DueDate < today)
+            // IG-275: order on the invoice's real due_date column BEFORE projecting into the
+            // DTO. Sorting after a client projection does not translate - PostgreSQL threw
+            // "The LINQ expression 'DbSet<Invoice>()' could not be translated" and this endpoint
+            // returned 500 for every caller, while EF Core InMemory evaluated it happily and the
+            // test suite stayed green. Engineering Note 46, and the reason the four-command gate
+            // is not sufficient on its own for a query change.
             .Join(
                 dbContext.Customers,
                 invoice => invoice.CustomerId,
                 customer => customer.Id,
-                (invoice, customer) => new OverdueInvoiceDto(
-                    invoice.Id,
-                    invoice.InvoiceNumber,
-                    customer.BusinessName ?? customer.ContactName ?? string.Empty,
-                    invoice.IssueDate,
-                    invoice.DueDate,
-                    invoice.Currency,
-                    invoice.AmountDue,
-                    invoice.Status.ToString()))
-            .OrderByDescending(x => x.DueDate)
+                (invoice, customer) => new { Invoice = invoice, Customer = customer })
+            .OrderByDescending(x => x.Invoice.DueDate)
+            .Select(x => new OverdueInvoiceDto(
+                x.Invoice.Id,
+                x.Invoice.InvoiceNumber,
+                x.Customer.BusinessName ?? x.Customer.ContactName ?? string.Empty,
+                x.Invoice.IssueDate,
+                x.Invoice.DueDate,
+                x.Invoice.Currency,
+                x.Invoice.AmountDue,
+                x.Invoice.Status.ToString()))
             .ToListAsync(cancellationToken);
 
         return invoices;
@@ -207,7 +221,14 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         // each payment was received, not on when the invoice was issued. Keeping the two methods
         // on one basis is the point of IG-313: a customer's revenue has to add up to the revenue
         // report over the same range, and before this it did not.
-        var revenueByCustomer = await dbContext.Payments
+        // IG-275: grouped in memory rather than with a translated GroupBy. The previous
+        // GroupBy(...).ToDictionaryAsync(...) runs on PostgreSQL but EF Core's InMemory provider
+        // cannot translate it ("The LINQ expression 'DbSet<Payment>()' could not be translated"),
+        // so no endpoint test could ever exercise this method - which is how the IG-313 change to
+        // it went unverified by the suite and had to be checked by hand against real Postgres.
+        // The row count here is one per payment in the range for one business, so materialising
+        // before grouping is not a concern at this scale.
+        var paymentsInRange = await dbContext.Payments
             .AsNoTracking()
             .Where(p => p.PaymentDate >= effectiveStart && p.PaymentDate <= effectiveEnd)
             .Join(
@@ -218,8 +239,11 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
                 payment => payment.InvoiceId,
                 invoice => invoice.Id,
                 (payment, invoice) => new { invoice.CustomerId, payment.Amount })
+            .ToListAsync(cancellationToken);
+
+        var revenueByCustomer = paymentsInRange
             .GroupBy(x => x.CustomerId)
-            .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Amount), cancellationToken);
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
         // Build result including customers with zero revenue
         var result = customers

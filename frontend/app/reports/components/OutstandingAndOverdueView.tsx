@@ -7,9 +7,12 @@ import {
   getOverdueReport,
   exportOutstandingInvoicesCsv,
   exportOverdueInvoicesCsv,
+  exportOutstandingInvoicesPdf,
+  exportOverdueInvoicesPdf,
   OutstandingInvoice,
   OverdueInvoice,
 } from "../../lib/dashboard";
+import { downloadExport } from "../lib/downloadExport";
 
 type ReportType = "outstanding" | "overdue";
 
@@ -24,6 +27,7 @@ export function OutstandingAndOverdueView({ type }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -67,18 +71,26 @@ export function OutstandingAndOverdueView({ type }: Props) {
         type === "outstanding"
           ? await exportOutstandingInvoicesCsv()
           : await exportOverdueInvoicesCsv();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${type}-invoices.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadExport(blob, `${type}-invoices.csv`);
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to export ${type} invoices`);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      const blob =
+        type === "outstanding"
+          ? await exportOutstandingInvoicesPdf()
+          : await exportOverdueInvoicesPdf();
+      downloadExport(blob, `${type}-invoices.pdf`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to export ${type} invoices`);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -98,13 +110,22 @@ export function OutstandingAndOverdueView({ type }: Props) {
           <p className="text-sm text-gray-600 mt-1">{description}</p>
         </div>
         {invoices.length > 0 && (
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
-          >
-            {exporting ? "Exporting..." : "Export to CSV"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+            >
+              {exporting ? "Exporting..." : "Export to CSV"}
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+              className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+            >
+              {exportingPdf ? "Exporting..." : "Export to PDF"}
+            </button>
+          </div>
         )}
       </div>
 

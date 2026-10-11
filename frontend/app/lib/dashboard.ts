@@ -301,3 +301,70 @@ export async function exportTaxSummaryCsv(startDate?: string, endDate?: string):
 
   return response.blob();
 }
+
+/**
+ * IG-275: the PDF exports. Each takes the same filters as the report it mirrors and sends them
+ * unchanged, so the document the user receives was produced from the figures they were looking at.
+ *
+ * One helper rather than five near-identical functions: the CSV exports above predate it and are
+ * left alone, but there is no reason to copy the shape a second time per report.
+ */
+async function exportReportPdf(
+  path: string,
+  failureMessage: string,
+  params: Record<string, string | undefined> = {}
+): Promise<Blob> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) {
+      search.set(key, value);
+    }
+  }
+  const query = search.toString();
+  const response = await fetch(
+    `${baseUrl()}/api/v1/reports/${path}/export/pdf${query ? `?${query}` : ""}`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, failureMessage));
+  }
+
+  return response.blob();
+}
+
+/** IG-275: Export revenue report to PDF. */
+export function exportRevenueReportPdf(
+  periodType: string = "month",
+  startDate?: string,
+  endDate?: string
+): Promise<Blob> {
+  return exportReportPdf("revenue", "Failed to export revenue report.", {
+    periodType,
+    startDate,
+    endDate,
+  });
+}
+
+/** IG-275: Export outstanding invoices to PDF. */
+export function exportOutstandingInvoicesPdf(): Promise<Blob> {
+  return exportReportPdf("outstanding", "Failed to export outstanding invoices.");
+}
+
+/** IG-275: Export overdue invoices to PDF. */
+export function exportOverdueInvoicesPdf(): Promise<Blob> {
+  return exportReportPdf("overdue", "Failed to export overdue invoices.");
+}
+
+/** IG-275: Export revenue by customer to PDF. */
+export function exportRevenueByCustomerPdf(startDate?: string, endDate?: string): Promise<Blob> {
+  return exportReportPdf("by-customer", "Failed to export revenue by customer.", {
+    startDate,
+    endDate,
+  });
+}
+
+/** IG-275: Export tax summary to PDF. */
+export function exportTaxSummaryPdf(startDate?: string, endDate?: string): Promise<Blob> {
+  return exportReportPdf("tax-summary", "Failed to export tax summary.", { startDate, endDate });
+}

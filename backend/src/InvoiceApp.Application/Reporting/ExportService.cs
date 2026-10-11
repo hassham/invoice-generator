@@ -3,8 +3,15 @@ using System.Text;
 namespace InvoiceApp.Application.Reporting;
 
 /// <summary>
-/// IG-228: Export report data to CSV and PDF formats.
+/// IG-228: Export report data to CSV.
 /// </summary>
+/// <remarks>
+/// IG-275: CSV only, deliberately. This interface lives in Application, which must not depend on a
+/// PDF library, so report PDFs are rendered by ReportPdfDocument in InvoiceApp.Modules.Documents
+/// and built in the endpoint - the same arrangement every other document in the product already
+/// uses. Until IG-275 this summary claimed "CSV and PDF formats" while no PDF export existed
+/// anywhere, which is the only reason the gap went unnoticed for so long.
+/// </remarks>
 public interface IExportService
 {
     /// <summary>

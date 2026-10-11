@@ -735,6 +735,54 @@ payment still counts as revenue — correct on a cash basis, since the money did
 it is a credit note, not a reason to unmake the receipt. `docs/FSD.md` §142 now records both the
 status rule and this reasoning.
 
+**IG-275: Report PDF export — COMPLETE 2026-10-11**
+
+CSV export was already built and already faithful (each CSV endpoint calls the same
+`IReportingService` method with the same arguments as the report it mirrors). PDF export did not
+exist at all — only a doc comment on `IExportService` claimed "CSV and PDF formats", which is the
+single reason the gap went unnoticed. That comment is now accurate.
+
+Five `GET /api/v1/reports/{report}/export/pdf` endpoints, plus an "Export to PDF" button beside
+every existing CSV button. Each endpoint calls the same service method with the same arguments as
+the on-screen report, so IG-275's criterion holds by construction rather than by assertion.
+
+New shared shape rather than five document classes: `ReportPdfRequest` (Application) is a title,
+a filter line, optional headline figures and one table; `ReportPdfDocument`
+(`InvoiceApp.Modules.Documents`) renders it in the same visual language as the invoice and receipt
+PDFs. A sixth report gets a PDF by building the record, not by writing QuestPDF.
+
+**Layering:** PDF rendering is deliberately NOT on `IExportService`. That interface lives in
+Application, which must not depend on a PDF library, and only `InvoiceApp.Api` may reference the
+Documents module — `ModuleReferenceBoundaryTests` enforces both. The endpoint builds the request
+and calls `new ReportPdfDocument(request).GeneratePdf()`, exactly as every other document does.
+
+**Two translation defects found, both pre-existing, neither caught by the four-command gate:**
+
+1. **`/reports/outstanding` and `/reports/overdue` returned 500 for every real caller.** Both
+   methods sorted *after* projecting into a DTO constructor, which PostgreSQL cannot translate
+   ("The LINQ expression 'DbSet<Invoice>()' could not be translated"). InMemory evaluated it
+   client-side, so the suite was green and the reports pages shipped broken. Fixed by ordering on
+   the real `due_date` column before the projection (Note 46).
+2. **`GetRevenueByCustomerAsync` could not be endpoint-tested at all.** Its translated
+   `GroupBy(...).ToDictionaryAsync(...)` runs on PostgreSQL but InMemory rejects it, so every test
+   against that endpoint would have 500'd regardless of the behaviour under test — which is why
+   `IG-313`'s change to it had to be checked by hand. Now grouped in memory, and the endpoint has
+   7 tests including the cash-basis case and the two-accounts-same-customer-name isolation case.
+
+**The providers disagree in both directions.** A green InMemory test says nothing about whether a
+query runs in production, and a red one does not prove the query is wrong. New
+`ReportingQueryTranslationTests` (Infrastructure) executes all five reporting queries against the
+real Postgres container via the existing `PostgresAvailabilityFixture` — skip-not-fail when
+unreachable, since CI defines no Postgres service. Reverting the fix makes exactly 2 of its 8 fail.
+
+Verification: backend **650** (14 / 252 / 384), frontend **774** (98 files), `npx eslint .` clean,
+`npm run build` clean. Rendered content proved by `pdftotext -raw` against real Postgres for all
+five reports and compared field by field with the JSON the documents were built from — magic bytes
+and a size floor are all an xUnit test can assert, and both would pass for a PDF full of wrong
+numbers. Two blemishes that only the extraction showed: the tax subtitle overflowed its column
+(shortened, and the column widened), and an empty report printed a bare "0.00" with no currency
+(now falls back to the business's default currency, so it reads as an answer rather than a fault).
+
 ## Deferred Decisions
 
 Things knowingly left undone, with the condition that should bring them back up. Raise each one

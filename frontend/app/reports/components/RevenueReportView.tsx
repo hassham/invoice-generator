@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRevenueReport, RevenueReport, exportRevenueReportCsv } from "../../lib/dashboard";
+import {
+  getRevenueReport,
+  RevenueReport,
+  exportRevenueReportCsv,
+  exportRevenueReportPdf,
+} from "../../lib/dashboard";
+import { downloadExport } from "../lib/downloadExport";
 
 export function RevenueReportView() {
   const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">("month");
@@ -9,6 +15,7 @@ export function RevenueReportView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [startDate, setStartDate] = useState<string>();
   const [endDate, setEndDate] = useState<string>();
 
@@ -60,18 +67,25 @@ export function RevenueReportView() {
     try {
       setExporting(true);
       const blob = await exportRevenueReportCsv(periodType, startDate, endDate);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `revenue-report-${periodType}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadExport(blob, `revenue-report-${periodType}.csv`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to export revenue report");
     } finally {
       setExporting(false);
+    }
+  };
+
+  // IG-275: the same period and dates the table above was built from, so the PDF cannot disagree
+  // with what is on screen.
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      const blob = await exportRevenueReportPdf(periodType, startDate, endDate);
+      downloadExport(blob, `revenue-report-${periodType}.pdf`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export revenue report");
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -117,13 +131,22 @@ export function RevenueReportView() {
             </button>
           ))}
         </div>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
-        >
-          {exporting ? "Exporting..." : "Export to CSV"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+          >
+            {exporting ? "Exporting..." : "Export to CSV"}
+          </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+          >
+            {exportingPdf ? "Exporting..." : "Export to PDF"}
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">

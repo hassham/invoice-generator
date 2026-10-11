@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRevenueByCustomer, exportRevenueByCustomerCsv, RevenueByCustomer } from "../../lib/dashboard";
+import {
+  getRevenueByCustomer,
+  exportRevenueByCustomerCsv,
+  exportRevenueByCustomerPdf,
+  RevenueByCustomer,
+} from "../../lib/dashboard";
+import { downloadExport } from "../lib/downloadExport";
 
 export function RevenueByCustomerView() {
   const [customers, setCustomers] = useState<RevenueByCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -39,18 +46,23 @@ export function RevenueByCustomerView() {
     try {
       setExporting(true);
       const blob = await exportRevenueByCustomerCsv();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "revenue-by-customer.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadExport(blob, "revenue-by-customer.csv");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to export revenue by customer");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      const blob = await exportRevenueByCustomerPdf();
+      downloadExport(blob, "revenue-by-customer.pdf");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export revenue by customer");
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -70,13 +82,22 @@ export function RevenueByCustomerView() {
           <p className="text-sm text-gray-600 mt-1">Revenue breakdown by customer for current month</p>
         </div>
         {customers.length > 0 && (
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
-          >
-            {exporting ? "Exporting..." : "Export to CSV"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+            >
+              {exporting ? "Exporting..." : "Export to CSV"}
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+              className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+            >
+              {exportingPdf ? "Exporting..." : "Export to PDF"}
+            </button>
+          </div>
         )}
       </div>
 
