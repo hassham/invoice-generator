@@ -28,8 +28,6 @@ public class DocumentListEndpointsTests
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
-    private const string Endpoint = "/api/v1/documents";
-
     private static readonly DateOnly IssueDate = new(2030, 8, 1);
 
     private static async Task<HttpClient> RegisteredClientAsync(AuthenticatedRouteTestFactory factory, string email)
@@ -89,14 +87,14 @@ public class DocumentListEndpointsTests
 
     private static async Task<Guid> CreateInvoiceAsync(HttpClient client, string number, string customer = "Acme Pty Ltd", DateOnly? issueDate = null, decimal unitPrice = 100)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", InvoiceRequest(number, customer, issueDate ?? IssueDate, unitPrice));
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", InvoiceRequest(number, customer, issueDate ?? IssueDate, unitPrice));
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions))!.Id;
     }
 
     private static async Task CreateEstimateAsync(HttpClient client, string number, string customer = "Acme Pty Ltd", DateOnly? issueDate = null, decimal unitPrice = 900)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/estimates", EstimateRequest(number, customer, issueDate ?? IssueDate, unitPrice));
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}", EstimateRequest(number, customer, issueDate ?? IssueDate, unitPrice));
         response.EnsureSuccessStatusCode();
     }
 
@@ -109,7 +107,7 @@ public class DocumentListEndpointsTests
 
     private static async Task CreateReceiptAsync(HttpClient client, Guid businessId, Guid invoiceId, decimal amount = 50)
     {
-        var paymentResponse = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+        var paymentResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments",
             new PaymentRequest(IssueDate, amount, PaymentMethod.BankTransfer, null, null));
         paymentResponse.EnsureSuccessStatusCode();
 
@@ -123,7 +121,7 @@ public class DocumentListEndpointsTests
 
     private static async Task<Guid> CreateSupplierAsync(HttpClient client, string name = "Bolt Supply Co")
     {
-        var response = await client.PostAsJsonAsync("/api/v1/customers", new CustomerRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}", new CustomerRequest(
             name, "Jamie Lee", "sales@bolt.example", null, null, null, null, null, null, null, null, null));
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions))!.Id;
@@ -163,7 +161,7 @@ public class DocumentListEndpointsTests
 
     private static async Task<DocumentListResponse> ListAsync(HttpClient client, string queryString = "")
     {
-        var response = await client.GetAsync($"{Endpoint}{queryString}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/documents")}{queryString}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<DocumentListResponse>(JsonOptions))!;
     }
@@ -174,7 +172,7 @@ public class DocumentListEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync(Endpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/documents"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -354,7 +352,7 @@ public class DocumentListEndpointsTests
         var invoiceId = await CreateInvoiceAsync(client, "INV-GONE");
 
         var before = await ListAsync(client);
-        await client.DeleteAsync($"/api/v1/invoices/{invoiceId}");
+        await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{invoiceId}");
         var after = await ListAsync(client);
 
         Assert.Equal(1, before.TotalCount);
@@ -399,7 +397,7 @@ public class DocumentListEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "doc-bad-type@example.com");
 
-        var response = await client.GetAsync($"{Endpoint}?documentType=Nonsense");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/documents")}?documentType=Nonsense");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -412,7 +410,7 @@ public class DocumentListEndpointsTests
         using var client = await RegisteredClientAsync(factory, "doc-invoice-list@example.com");
         await SeedOneOfEachAsync(client);
 
-        var invoiceList = await client.GetFromJsonAsync<InvoiceListResponse>("/api/v1/invoices", JsonOptions);
+        var invoiceList = await client.GetFromJsonAsync<InvoiceListResponse>($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", JsonOptions);
 
         Assert.Equal(1, invoiceList!.TotalCount);
         Assert.Equal("INV-DOC-1", invoiceList.Items[0].InvoiceNumber);

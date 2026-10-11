@@ -17,7 +17,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// included, and account-ownership/validation are both enforced.</summary>
 public class InvoiceSendEmailEndpointTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -60,9 +59,9 @@ public class InvoiceSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "send-email-valid@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-EMAIL-1"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-EMAIL-1"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var response = await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         var sent = Assert.Single(factory.InvoiceEmailSender.SentMessages);
@@ -86,7 +85,7 @@ public class InvoiceSendEmailEndpointTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.PostAsJsonAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}/send-email", EmailRequest());
+        var response = await anonymousClient.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(anonymousClient)}/{Guid.NewGuid()}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Empty(factory.InvoiceEmailSender.SentMessages);
@@ -97,10 +96,10 @@ public class InvoiceSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "send-email-owner@example.com");
-        var created = await (await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-EMAIL-2"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(ownerClient), ValidRequest("INV-EMAIL-2"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         using var otherClient = await RegisteredClientAsync(factory, "send-email-other@example.com");
 
-        var response = await otherClient.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var response = await otherClient.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{created!.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Empty(factory.InvoiceEmailSender.SentMessages);
@@ -111,9 +110,9 @@ public class InvoiceSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "send-email-invalid@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-EMAIL-3"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-EMAIL-3"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var response = await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest() with { To = [] });
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}/send-email", EmailRequest() with { To = [] });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Empty(factory.InvoiceEmailSender.SentMessages);
@@ -124,7 +123,7 @@ public class InvoiceSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "send-email-backfill@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-EMAIL-4"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-EMAIL-4"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -134,7 +133,7 @@ public class InvoiceSendEmailEndpointTests
             await db.SaveChangesAsync();
         }
 
-        var response = await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         var sent = Assert.Single(factory.InvoiceEmailSender.SentMessages);

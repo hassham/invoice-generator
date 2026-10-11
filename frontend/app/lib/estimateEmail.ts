@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 import type { InvoiceEmailLog, InvoiceEmailRequest } from "./invoiceEmail";
 
 export type { InvoiceEmailLog as EstimateEmailLog, InvoiceEmailRequest as EstimateEmailRequest } from "./invoiceEmail";
@@ -15,7 +16,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
  * already fully generic (To/Cc/Subject/Message, Sent/Failed) with no invoice-specific fields, same
  * reasoning the backend applies to InvoiceEmailRequest/InvoiceEmailStatus. */
 export async function sendEstimateEmail(estimateId: string, request: InvoiceEmailRequest): Promise<void> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates/${estimateId}/send-email`, {
+  const response = await fetch(await businessRoute(`/estimates/${estimateId}/send-email`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -28,7 +29,7 @@ export async function sendEstimateEmail(estimateId: string, request: InvoiceEmai
 }
 
 export async function getEstimateEmailHistory(estimateId: string): Promise<InvoiceEmailLog[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates/${estimateId}/email-history`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/estimates/${estimateId}/email-history`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load the email history for this estimate."));

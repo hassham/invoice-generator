@@ -1,12 +1,22 @@
 namespace InvoiceApp.Application.Businesses;
 
-/// <summary>All methods resolve the account's one Business row from <paramref name="userId"/>
-/// internally, same precedent as ICustomerService/IInvoiceService - never a caller-supplied id.</summary>
+/// <summary>IG-295: supports multiple businesses per account. GetAsync(userId) returns the user's
+/// first/default business for backward compatibility; GetAsync(userId, businessId) returns a
+/// specific business if it belongs to the user. All methods enforce account isolation - a userId
+/// can never access another account's business.</summary>
 public interface IBusinessService
 {
     Task<BusinessProfileDto> GetAsync(Guid userId, CancellationToken cancellationToken);
 
+    Task<BusinessProfileDto> GetAsync(Guid userId, Guid businessId, CancellationToken cancellationToken);
+
+    Task<List<BusinessProfileDto>> ListAsync(Guid userId, CancellationToken cancellationToken);
+
+    Task<BusinessProfileDto> CreateAsync(Guid userId, CreateBusinessRequest request, CancellationToken cancellationToken);
+
     Task<BusinessProfileDto> UpdateAsync(Guid userId, BusinessProfileRequest request, CancellationToken cancellationToken);
+
+    Task<BusinessProfileDto> UpdateAsync(Guid userId, Guid businessId, BusinessProfileRequest request, CancellationToken cancellationToken);
 
     /// <summary>IG-54 / FSD section 64: formats the account's current InvoicePrefix/
     /// NextInvoiceNumber/InvoiceNumberPadding into a suggested invoice number, then increments
@@ -29,9 +39,9 @@ public interface IBusinessService
     /// <summary>IG-219: persists the connected account id (already exchanged/verified by
     /// IStripeConnectService before this is called - same "parse-then-delegate" split as
     /// ExternalLoginService/IExternalLoginService).</summary>
-    Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, string stripeAccountId, CancellationToken cancellationToken);
+    Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, Guid businessId, string stripeAccountId, CancellationToken cancellationToken);
 
     /// <summary>IG-219: caller (InvoiceApp.Api) is responsible for calling
     /// IStripeConnectService.DeauthorizeAsync first - this only ever forgets the id locally.</summary>
-    Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, CancellationToken cancellationToken);
+    Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, Guid businessId, CancellationToken cancellationToken);
 }

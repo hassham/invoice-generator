@@ -10,6 +10,7 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 {
     public async Task<RevenueReportDto> GetRevenueReportAsync(
         Guid userId,
+        Guid businessId,
         string periodType,
         DateOnly? startDate,
         DateOnly? endDate,
@@ -17,8 +18,8 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
     {
         var business = await dbContext.Businesses
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
-            ?? throw new NotFoundException("No business found for user.");
+            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Business not found.");
 
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
         var effectiveStart = startDate ?? new DateOnly(now.Year, now.Month, 1);
@@ -117,12 +118,13 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
     public async Task<List<OutstandingInvoiceDto>> GetOutstandingReportAsync(
         Guid userId,
+        Guid businessId,
         CancellationToken cancellationToken)
     {
         var business = await dbContext.Businesses
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
-            ?? throw new NotFoundException("No business found for user.");
+            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Business not found.");
 
         var invoices = await dbContext.Invoices
             .AsNoTracking()
@@ -156,12 +158,13 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
     public async Task<List<OverdueInvoiceDto>> GetOverdueReportAsync(
         Guid userId,
+        Guid businessId,
         CancellationToken cancellationToken)
     {
         var business = await dbContext.Businesses
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
-            ?? throw new NotFoundException("No business found for user.");
+            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Business not found.");
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -197,14 +200,15 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
     public async Task<List<RevenueByCustomerDto>> GetRevenueByCustomerAsync(
         Guid userId,
+        Guid businessId,
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken)
     {
         var business = await dbContext.Businesses
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
-            ?? throw new NotFoundException("No business found for user.");
+            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Business not found.");
 
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
         var effectiveStart = startDate ?? new DateOnly(now.Year, now.Month, 1);
@@ -261,14 +265,15 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
     public async Task<TaxSummaryDto> GetTaxSummaryAsync(
         Guid userId,
+        Guid businessId,
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken)
     {
         var business = await dbContext.Businesses
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.UserId == userId, cancellationToken)
-            ?? throw new NotFoundException("No business found for user.");
+            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Business not found.");
 
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
         var effectiveStart = startDate ?? new DateOnly(now.Year, now.Month, 1);

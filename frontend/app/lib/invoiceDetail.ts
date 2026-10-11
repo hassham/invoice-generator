@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 import type { InvoiceSavePayload } from "../invoice/create/lib/invoiceSave";
 import type { FieldValues } from "../invoice/create/lib/invoiceDraft";
 import { createEmptyLineItem, toCalculationInput, type LineItem } from "../invoice/create/lib/lineItems";
@@ -174,7 +175,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
 
 /** IG-47: account-owned, same credentials:"include" convention as lib/auth.ts/lib/customers.ts. */
 export async function getInvoice(id: string): Promise<InvoiceDetail> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/invoices/${id}`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load this invoice."));
@@ -194,7 +195,7 @@ export interface InvoiceSummary {
 /** IG-49 / FSD section 52: cancelling is a status transition, not a field edit - a Paid invoice
  * rejects with a 409 (surfaced via the thrown error's message), everything else transitions. */
 export async function cancelInvoice(id: string): Promise<InvoiceSummary> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}/cancel`, { method: "POST", credentials: "include" });
+  const response = await fetch(await businessRoute(`/invoices/${id}/cancel`), { method: "POST", credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to cancel this invoice."));
@@ -206,7 +207,7 @@ export async function cancelInvoice(id: string): Promise<InvoiceSummary> {
 /** IG-49 / FSD section 53: always a soft delete (archival) server-side, regardless of status -
  * never removes financial history. */
 export async function deleteInvoice(id: string): Promise<void> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}`, { method: "DELETE", credentials: "include" });
+  const response = await fetch(await businessRoute(`/invoices/${id}`), { method: "DELETE", credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to delete this invoice."));
@@ -217,7 +218,7 @@ export async function deleteInvoice(id: string): Promise<void> {
  * settings/Notes/Terms/Template from this one - the id in the response is enough to navigate
  * straight to the new duplicate's own detail page. */
 export async function duplicateInvoice(id: string): Promise<InvoiceSummary> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${id}/duplicate`, { method: "POST", credentials: "include" });
+  const response = await fetch(await businessRoute(`/invoices/${id}/duplicate`), { method: "POST", credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to duplicate this invoice."));

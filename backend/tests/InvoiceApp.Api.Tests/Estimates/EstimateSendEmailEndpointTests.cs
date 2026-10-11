@@ -21,7 +21,6 @@ namespace InvoiceApp.Api.Tests.Estimates;
 /// InvoiceSendEmailEndpointTests/InvoiceEmailHistoryEndpointTests exactly for the new entity.</summary>
 public class EstimateSendEmailEndpointTests
 {
-    private const string EstimatesEndpoint = "/api/v1/estimates";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -61,7 +60,7 @@ public class EstimateSendEmailEndpointTests
 
     private static async Task<List<InvoiceEmailLogDto>> GetHistoryAsync(HttpClient client, Guid estimateId)
     {
-        var response = await client.GetAsync($"{EstimatesEndpoint}/{estimateId}/email-history");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{estimateId}/email-history");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<List<InvoiceEmailLogDto>>(JsonOptions))!;
     }
@@ -71,10 +70,10 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-send-valid@example.com");
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-EMAIL-1"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest("EST-EMAIL-1"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
         Assert.Equal(EstimateStatus.Draft, created!.Status);
 
-        var response = await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created.Id}/send-email", EmailRequest());
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         var sent = Assert.Single(factory.InvoiceEmailSender.SentMessages);
@@ -96,10 +95,10 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-resend@example.com");
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-EMAIL-2"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
-        await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest("EST-EMAIL-2"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}/send-email", EmailRequest());
 
-        await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created.Id}/send-email", EmailRequest() with { Subject = "Resend" });
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created.Id}/send-email", EmailRequest() with { Subject = "Resend" });
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -113,10 +112,10 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-send-fail@example.com");
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-EMAIL-3"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest("EST-EMAIL-3"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
         factory.InvoiceEmailSender.ThrowOnSend = new InvalidOperationException("SMTP connection refused");
 
-        var response = await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         using var scope = factory.Services.CreateScope();
@@ -135,7 +134,7 @@ public class EstimateSendEmailEndpointTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.PostAsJsonAsync($"{EstimatesEndpoint}/{Guid.NewGuid()}/send-email", EmailRequest());
+        var response = await anonymousClient.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(anonymousClient, "/estimates")}/{Guid.NewGuid()}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Empty(factory.InvoiceEmailSender.SentMessages);
@@ -146,10 +145,10 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "estimate-send-owner@example.com");
-        var created = await (await ownerClient.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-EMAIL-4"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/estimates"), ValidRequest("EST-EMAIL-4"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
         using var otherClient = await RegisteredClientAsync(factory, "estimate-send-other@example.com");
 
-        var response = await otherClient.PostAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var response = await otherClient.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(otherClient, "/estimates")}/{created!.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Empty(factory.InvoiceEmailSender.SentMessages);
@@ -160,9 +159,9 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-send-invalid@example.com");
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-EMAIL-5"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest("EST-EMAIL-5"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
-        var response = await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}/send-email", EmailRequest() with { To = [] });
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}/send-email", EmailRequest() with { To = [] });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Empty(factory.InvoiceEmailSender.SentMessages);
@@ -173,7 +172,7 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-history-empty@example.com");
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-HIST-1"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest("EST-HIST-1"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
         var history = await GetHistoryAsync(client, created!.Id);
 
@@ -185,10 +184,10 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-history-multiple@example.com");
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-HIST-2"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest("EST-HIST-2"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
-        await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}/send-email", EmailRequest());
-        await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created.Id}/send-email", EmailRequest() with { Subject = "Second send" });
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}/send-email", EmailRequest());
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created.Id}/send-email", EmailRequest() with { Subject = "Second send" });
 
         var history = await GetHistoryAsync(client, created.Id);
 
@@ -202,7 +201,7 @@ public class EstimateSendEmailEndpointTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.GetAsync($"{EstimatesEndpoint}/{Guid.NewGuid()}/email-history");
+        var response = await anonymousClient.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(anonymousClient, "/estimates")}/{Guid.NewGuid()}/email-history");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -212,10 +211,10 @@ public class EstimateSendEmailEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "estimate-history-owner@example.com");
-        var created = await (await ownerClient.PostAsJsonAsync(EstimatesEndpoint, ValidRequest("EST-HIST-3"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        var created = await (await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/estimates"), ValidRequest("EST-HIST-3"))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
         using var otherClient = await RegisteredClientAsync(factory, "estimate-history-other@example.com");
 
-        var response = await otherClient.GetAsync($"{EstimatesEndpoint}/{created!.Id}/email-history");
+        var response = await otherClient.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(otherClient, "/estimates")}/{created!.Id}/email-history");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

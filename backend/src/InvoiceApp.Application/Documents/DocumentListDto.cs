@@ -56,5 +56,5 @@ public sealed record DocumentListResponse(
 
 public interface IDocumentListService
 {
-    Task<DocumentListResponse> ListAsync(Guid userId, DocumentListQuery query, CancellationToken cancellationToken);
+    Task<DocumentListResponse> ListAsync(Guid userId, Guid businessId, DocumentListQuery query, CancellationToken cancellationToken);
 }

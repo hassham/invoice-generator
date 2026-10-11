@@ -4,6 +4,7 @@ import { useState } from "react";
 import { disconnectStripe, stripeConnectUrl, type BusinessProfile } from "../../../lib/business";
 
 interface StripeConnectSectionProps {
+  businessId: string;
   stripeAccountId: string | null;
   onChange: (profile: BusinessProfile) => void;
 }
@@ -13,7 +14,7 @@ interface StripeConnectSectionProps {
  * payments I receive go to my own bank account, not a shared one." Null stripeAccountId is what
  * IG-216's hosted-invoice Pay Now button will key off of to decide whether to render at all.
  */
-export function StripeConnectSection({ stripeAccountId, onChange }: StripeConnectSectionProps) {
+export function StripeConnectSection({ businessId, stripeAccountId, onChange }: StripeConnectSectionProps) {
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +22,7 @@ export function StripeConnectSection({ stripeAccountId, onChange }: StripeConnec
     setDisconnecting(true);
     setError(null);
     try {
-      const updated = await disconnectStripe();
+      const updated = await disconnectStripe(businessId);
       onChange(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to disconnect Stripe.");
@@ -60,7 +61,7 @@ export function StripeConnectSection({ stripeAccountId, onChange }: StripeConnec
           </div>
         ) : (
           <a
-            href={stripeConnectUrl()}
+            href={stripeConnectUrl(businessId)}
             className="inline-block rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
           >
             Connect with Stripe

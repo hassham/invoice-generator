@@ -1,8 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyDraft } from "./invoiceDraft";
 import { buildInvoiceSavePayload, createInvoice, updateInvoice } from "./invoiceSave";
 import { createEmptyLineItem } from "./lineItems";
 import { createEmptySupportingContent } from "./supportingContent";
+
+// IG-296: the active business comes from the stored selection, so these tests never need the
+// extra /api/v1/business lookup that happens when nothing is selected.
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 describe("buildInvoiceSavePayload", () => {
   it("maps the editor's state into the backend's request shape", () => {
@@ -109,7 +115,7 @@ describe("createInvoice", () => {
 
     expect(result).toEqual(sampleSavedInvoice);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("/api/v1/invoices");
+    expect(url).toContain("/api/v1/businesses/biz-1/invoices");
     expect(init.method).toBe("POST");
     expect(init.credentials).toBe("include");
   });
@@ -134,7 +140,7 @@ describe("updateInvoice", () => {
     await updateInvoice("inv-1", samplePayload());
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("/api/v1/invoices/inv-1");
+    expect(url).toContain("/api/v1/businesses/biz-1/invoices/inv-1");
     expect(init.method).toBe("PUT");
     expect(init.credentials).toBe("include");
   });

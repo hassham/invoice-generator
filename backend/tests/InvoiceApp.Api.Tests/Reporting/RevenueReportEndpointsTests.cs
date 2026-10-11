@@ -36,7 +36,7 @@ public class RevenueReportEndpointsTests
 
     private static async Task<Guid> InvoiceAsync(HttpClient client, string number, DateOnly issueDate, decimal amount)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", new InvoiceSaveRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", new InvoiceSaveRequest(
             InvoiceNumber: number,
             IssueDate: issueDate,
             DueDate: issueDate.AddDays(14),
@@ -61,14 +61,14 @@ public class RevenueReportEndpointsTests
 
     private static async Task PayAsync(HttpClient client, Guid invoiceId, DateOnly paidOn, decimal amount)
     {
-        var response = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments",
             new PaymentRequest(paidOn, amount, PaymentMethod.BankTransfer, null, null));
         response.EnsureSuccessStatusCode();
     }
 
     private static async Task<RevenueReportDto> ReportAsync(HttpClient client, string query)
     {
-        var response = await client.GetAsync($"/api/v1/reports/revenue{query}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue{query}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<RevenueReportDto>(JsonOptions))!;
     }
@@ -82,7 +82,7 @@ public class RevenueReportEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/v1/reports/revenue");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -210,7 +210,7 @@ public class RevenueReportEndpointsTests
         var removed = await InvoiceAsync(client, "INV-REMOVED", new DateOnly(2030, 8, 10), 800);
         await PayAsync(client, removed, new DateOnly(2030, 8, 20), 800);
 
-        await client.DeleteAsync($"/api/v1/invoices/{removed}");
+        await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{removed}");
 
         var report = await ReportAsync(client, "?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
 
@@ -258,7 +258,7 @@ public class RevenueReportEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, $"rev-bad-{periodType.Length}@example.com");
 
-        var response = await client.GetAsync($"/api/v1/reports/revenue?periodType={periodType}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue?periodType={periodType}");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -405,7 +405,7 @@ public class RevenueReportEndpointsTests
         await PayAsync(client, kept, new DateOnly(2030, 10, 5), 200);
         var removed = await InvoiceAsync(client, "INV-B-GONE", new DateOnly(2030, 9, 10), 800);
         await PayAsync(client, removed, new DateOnly(2030, 10, 5), 800);
-        (await client.DeleteAsync($"/api/v1/invoices/{removed}")).EnsureSuccessStatusCode();
+        (await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{removed}")).EnsureSuccessStatusCode();
 
         var report = await ReportAsync(client, "?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
 

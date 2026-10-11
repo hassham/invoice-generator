@@ -21,7 +21,6 @@ namespace InvoiceApp.Api.Tests.Payments;
 /// verification itself is covered separately by StripeWebhookServiceTests.</summary>
 public class StripeWebhookEndpointsTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
     private const string WebhookEndpoint = "/api/v1/webhooks/stripe";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
@@ -56,7 +55,7 @@ public class StripeWebhookEndpointsTests
 
     private static async Task<(Guid InvoiceId, string Token)> CreateConnectedInvoiceAsync(AuthenticatedRouteTestFactory factory, HttpClient client, string invoiceNumber)
     {
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber));
         createResponse.EnsureSuccessStatusCode();
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 

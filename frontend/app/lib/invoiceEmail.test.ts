@@ -1,5 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getInvoiceEmailHistory, parseEmailList, sendInvoiceEmail } from "./invoiceEmail";
+
+// IG-296: the active business comes from the stored selection, so these tests never need the
+// extra /api/v1/business lookup that happens when nothing is selected.
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 describe("parseEmailList", () => {
   it("splits on commas and newlines, trimming whitespace", () => {
@@ -31,7 +37,7 @@ describe("sendInvoiceEmail", () => {
     await sendInvoiceEmail("invoice-1", { to: ["a@example.com"], cc: [], subject: "Invoice", message: "Hi" });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/invoices/invoice-1/send-email"),
+      expect.stringContaining("/api/v1/businesses/biz-1/invoices/invoice-1/send-email"),
       expect.objectContaining({ method: "POST", credentials: "include" }),
     );
   });
@@ -64,7 +70,7 @@ describe("getInvoiceEmailHistory", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getInvoiceEmailHistory("invoice-1")).resolves.toEqual(history);
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/v1/invoices/invoice-1/email-history"), expect.objectContaining({ credentials: "include" }));
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/v1/businesses/biz-1/invoices/invoice-1/email-history"), expect.objectContaining({ credentials: "include" }));
   });
 
   it("throws on a failed response", async () => {

@@ -1,3 +1,4 @@
+using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Dashboard;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Invoicing;
@@ -10,10 +11,11 @@ public sealed class DashboardService(ApplicationDbContext dbContext) : IDashboar
 {
     private const int RecentInvoiceCount = 5;
 
-    public async Task<DashboardSummaryDto> GetSummaryAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
+    public async Task<DashboardSummaryDto> GetSummaryAsync(Guid userId, Guid businessId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.SingleAsync(b => b.UserId == userId, cancellationToken);
-        var businessId = business.Id;
+        var business = await dbContext.Businesses
+            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Business not found.");
 
         var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
         var periodStart = startDate ?? new DateOnly(today.Year, today.Month, 1);

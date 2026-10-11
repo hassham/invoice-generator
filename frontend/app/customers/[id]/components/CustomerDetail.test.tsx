@@ -1,7 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CustomerDetail } from "./CustomerDetail";
+
+// IG-296: the active business comes from the stored selection, so these tests never see the
+// extra /api/v1/business lookup that runs when nothing is selected.
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 const sampleCustomer = {
   id: "c1",
@@ -62,7 +68,7 @@ describe("CustomerDetail", () => {
 
     expect(await screen.findByRole("status")).toHaveTextContent("Changes saved.");
     expect(fetchMock).toHaveBeenLastCalledWith(
-      expect.stringContaining("/api/v1/customers/c1"),
+      expect.stringContaining("/api/v1/businesses/biz-1/customers/c1"),
       expect.objectContaining({ method: "PUT" }),
     );
   });

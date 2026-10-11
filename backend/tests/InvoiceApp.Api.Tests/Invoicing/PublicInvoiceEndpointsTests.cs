@@ -18,7 +18,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// one.</summary>
 public class PublicInvoiceEndpointsTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -52,7 +51,7 @@ public class PublicInvoiceEndpointsTests
 
     private static async Task<string> CreateInvoiceAndGetTokenAsync(AuthenticatedRouteTestFactory factory, HttpClient client, string invoiceNumber)
     {
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber));
         createResponse.EnsureSuccessStatusCode();
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
@@ -119,14 +118,14 @@ public class PublicInvoiceEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "hosted-deleted@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HOSTED-DEL"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-HOSTED-DEL"));
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var token = (await db.Invoices.SingleAsync(i => i.Id == created!.Id)).PublicToken!;
 
-        await client.DeleteAsync($"{InvoicesEndpoint}/{created!.Id}");
+        await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}");
 
         using var anonymousClient = factory.CreateClient();
         var response = await anonymousClient.GetAsync($"/api/v1/public/invoices/{token}");

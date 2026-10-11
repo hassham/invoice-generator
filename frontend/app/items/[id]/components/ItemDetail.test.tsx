@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ItemDetail } from "./ItemDetail";
+
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 const sampleItem = {
   id: "i1",
@@ -57,7 +61,7 @@ describe("ItemDetail", () => {
 
     expect(await screen.findByRole("status")).toHaveTextContent("Changes saved.");
     expect(fetchMock).toHaveBeenLastCalledWith(
-      expect.stringContaining("/api/v1/items/i1"),
+      expect.stringContaining("/api/v1/businesses/biz-1/items/i1"),
       expect.objectContaining({ method: "PUT" }),
     );
   });

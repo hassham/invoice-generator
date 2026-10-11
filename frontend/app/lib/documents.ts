@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 /**
  * IG-237: the unified document list. Mirrors the backend's `DocumentSummaryDto` - five document
  * types collapsed into one row shape - and is deliberately separate from `lib/invoiceList.ts`,
@@ -92,7 +93,7 @@ export async function listDocuments(params: DocumentListParams = {}): Promise<Do
     }
   }
 
-  const response = await fetch(`${baseUrl()}/api/v1/documents?${query.toString()}`, {
+  const response = await fetch(await businessRoute(`/documents?${query.toString()}`), {
     credentials: "include",
   });
 

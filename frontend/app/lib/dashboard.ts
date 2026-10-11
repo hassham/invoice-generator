@@ -1,3 +1,4 @@
+import { businessApiBase } from "./business";
 export interface DashboardRecentInvoice {
   id: string;
   invoiceNumber: string;
@@ -93,7 +94,7 @@ export async function getDashboardSummary(startDate?: string, endDate?: string):
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/dashboard/summary${query ? `?${query}` : ""}`, {
+  const response = await fetch(`${await businessApiBase()}/dashboard/summary${query ? `?${query}` : ""}`, {
     credentials: "include",
   });
 
@@ -121,7 +122,7 @@ export async function getRevenueReport(
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/reports/revenue?${query}`, {
+  const response = await fetch(`${await businessApiBase()}/reports/revenue?${query}`, {
     credentials: "include",
   });
 
@@ -134,7 +135,7 @@ export async function getRevenueReport(
 
 /** IG-225: Get invoices with outstanding balance (AmountDue > 0, not Cancelled). */
 export async function getOutstandingReport(): Promise<OutstandingInvoice[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/reports/outstanding`, {
+  const response = await fetch(`${await businessApiBase()}/reports/outstanding`, {
     credentials: "include",
   });
 
@@ -147,7 +148,7 @@ export async function getOutstandingReport(): Promise<OutstandingInvoice[]> {
 
 /** IG-225: Get invoices that are both outstanding and overdue (past due date). */
 export async function getOverdueReport(): Promise<OverdueInvoice[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/reports/overdue`, {
+  const response = await fetch(`${await businessApiBase()}/reports/overdue`, {
     credentials: "include",
   });
 
@@ -172,7 +173,7 @@ export async function getRevenueByCustomer(
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/reports/by-customer?${query}`, {
+  const response = await fetch(`${await businessApiBase()}/reports/by-customer?${query}`, {
     credentials: "include",
   });
 
@@ -194,7 +195,7 @@ export async function getTaxSummary(startDate?: string, endDate?: string): Promi
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/reports/tax-summary?${query}`, {
+  const response = await fetch(`${await businessApiBase()}/reports/tax-summary?${query}`, {
     credentials: "include",
   });
 
@@ -220,7 +221,7 @@ export async function exportRevenueReportCsv(
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/reports/revenue/export/csv?${query}`, {
+  const response = await fetch(`${await businessApiBase()}/reports/revenue/export/csv?${query}`, {
     credentials: "include",
   });
 
@@ -233,7 +234,7 @@ export async function exportRevenueReportCsv(
 
 /** IG-228: Export outstanding invoices to CSV. */
 export async function exportOutstandingInvoicesCsv(): Promise<Blob> {
-  const response = await fetch(`${baseUrl()}/api/v1/reports/outstanding/export/csv`, {
+  const response = await fetch(`${await businessApiBase()}/reports/outstanding/export/csv`, {
     credentials: "include",
   });
 
@@ -246,7 +247,7 @@ export async function exportOutstandingInvoicesCsv(): Promise<Blob> {
 
 /** IG-228: Export overdue invoices to CSV. */
 export async function exportOverdueInvoicesCsv(): Promise<Blob> {
-  const response = await fetch(`${baseUrl()}/api/v1/reports/overdue/export/csv`, {
+  const response = await fetch(`${await businessApiBase()}/reports/overdue/export/csv`, {
     credentials: "include",
   });
 
@@ -270,7 +271,7 @@ export async function exportRevenueByCustomerCsv(
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/reports/by-customer/export/csv?${query}`, {
+  const response = await fetch(`${await businessApiBase()}/reports/by-customer/export/csv?${query}`, {
     credentials: "include",
   });
 
@@ -291,7 +292,7 @@ export async function exportTaxSummaryCsv(startDate?: string, endDate?: string):
     params.set("endDate", endDate);
   }
   const query = params.toString();
-  const response = await fetch(`${baseUrl()}/api/v1/reports/tax-summary/export/csv?${query}`, {
+  const response = await fetch(`${await businessApiBase()}/reports/tax-summary/export/csv?${query}`, {
     credentials: "include",
   });
 
@@ -322,7 +323,7 @@ async function exportReportPdf(
   }
   const query = search.toString();
   const response = await fetch(
-    `${baseUrl()}/api/v1/reports/${path}/export/pdf${query ? `?${query}` : ""}`,
+    `${await businessApiBase()}/reports/${path}/export/pdf${query ? `?${query}` : ""}`,
     { credentials: "include" }
   );
 

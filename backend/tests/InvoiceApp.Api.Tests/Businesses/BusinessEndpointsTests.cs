@@ -79,7 +79,7 @@ public class BusinessEndpointsTests
             PaymentInstructions: null,
             TemplateId: null,
             TemplateCustomization: null);
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", request);
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", request);
         response.EnsureSuccessStatusCode();
     }
 

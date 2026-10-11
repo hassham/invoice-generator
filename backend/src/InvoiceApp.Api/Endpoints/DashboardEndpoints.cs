@@ -13,32 +13,33 @@ public static class DashboardEndpoints
     {
         // FSD section 98. Account-owned aggregation, so requires a session like the other
         // invoice/customer read endpoints.
-        app.MapGet("/api/v1/dashboard/summary", GetSummaryAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/dashboard/summary", GetSummaryAsync).RequireAuthorization();
         // IG-224: revenue report endpoint
-        app.MapGet("/api/v1/reports/revenue", GetRevenueReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/revenue", GetRevenueReportAsync).RequireAuthorization();
         // IG-225: outstanding and overdue invoice reports
-        app.MapGet("/api/v1/reports/outstanding", GetOutstandingReportAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/overdue", GetOverdueReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/outstanding", GetOutstandingReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/overdue", GetOverdueReportAsync).RequireAuthorization();
         // IG-226: revenue by customer report
-        app.MapGet("/api/v1/reports/by-customer", GetRevenueByCustomerAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/by-customer", GetRevenueByCustomerAsync).RequireAuthorization();
         // IG-227: tax summary report
-        app.MapGet("/api/v1/reports/tax-summary", GetTaxSummaryAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/tax-summary", GetTaxSummaryAsync).RequireAuthorization();
         // IG-228: CSV export endpoints
-        app.MapGet("/api/v1/reports/revenue/export/csv", ExportRevenueReportCsvAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/outstanding/export/csv", ExportOutstandingInvoicesCsvAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/overdue/export/csv", ExportOverdueInvoicesCsvAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/by-customer/export/csv", ExportRevenueByCustomerCsvAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/tax-summary/export/csv", ExportTaxSummaryCsvAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/revenue/export/csv", ExportRevenueReportCsvAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/outstanding/export/csv", ExportOutstandingInvoicesCsvAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/overdue/export/csv", ExportOverdueInvoicesCsvAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/by-customer/export/csv", ExportRevenueByCustomerCsvAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/tax-summary/export/csv", ExportTaxSummaryCsvAsync).RequireAuthorization();
         // IG-275: PDF export endpoints, one per report, mirroring the CSV set above.
-        app.MapGet("/api/v1/reports/revenue/export/pdf", ExportRevenueReportPdfAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/outstanding/export/pdf", ExportOutstandingInvoicesPdfAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/overdue/export/pdf", ExportOverdueInvoicesPdfAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/by-customer/export/pdf", ExportRevenueByCustomerPdfAsync).RequireAuthorization();
-        app.MapGet("/api/v1/reports/tax-summary/export/pdf", ExportTaxSummaryPdfAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/revenue/export/pdf", ExportRevenueReportPdfAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/outstanding/export/pdf", ExportOutstandingInvoicesPdfAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/overdue/export/pdf", ExportOverdueInvoicesPdfAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/by-customer/export/pdf", ExportRevenueByCustomerPdfAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/reports/tax-summary/export/pdf", ExportTaxSummaryPdfAsync).RequireAuthorization();
         return app;
     }
 
     private static async Task<IResult> GetSummaryAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IDashboardService dashboardService,
         CancellationToken cancellationToken,
@@ -46,11 +47,12 @@ public static class DashboardEndpoints
         DateOnly? endDate = null)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var summary = await dashboardService.GetSummaryAsync(userId, startDate, endDate, cancellationToken);
+        var summary = await dashboardService.GetSummaryAsync(userId, businessId, startDate, endDate, cancellationToken);
         return Results.Ok(summary);
     }
 
     private static async Task<IResult> GetRevenueReportAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         CancellationToken cancellationToken,
@@ -64,7 +66,7 @@ public static class DashboardEndpoints
         }
 
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var report = await reportingService.GetRevenueReportAsync(userId, periodType, startDate, endDate, cancellationToken);
+        var report = await reportingService.GetRevenueReportAsync(userId, businessId, periodType, startDate, endDate, cancellationToken);
         return Results.Ok(report);
     }
 
@@ -78,26 +80,29 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> GetOutstandingReportAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         CancellationToken cancellationToken)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var report = await reportingService.GetOutstandingReportAsync(userId, cancellationToken);
+        var report = await reportingService.GetOutstandingReportAsync(userId, businessId, cancellationToken);
         return Results.Ok(report);
     }
 
     private static async Task<IResult> GetOverdueReportAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         CancellationToken cancellationToken)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var report = await reportingService.GetOverdueReportAsync(userId, cancellationToken);
+        var report = await reportingService.GetOverdueReportAsync(userId, businessId, cancellationToken);
         return Results.Ok(report);
     }
 
     private static async Task<IResult> GetRevenueByCustomerAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         CancellationToken cancellationToken,
@@ -105,11 +110,12 @@ public static class DashboardEndpoints
         DateOnly? endDate = null)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var report = await reportingService.GetRevenueByCustomerAsync(userId, startDate, endDate, cancellationToken);
+        var report = await reportingService.GetRevenueByCustomerAsync(userId, businessId, startDate, endDate, cancellationToken);
         return Results.Ok(report);
     }
 
     private static async Task<IResult> GetTaxSummaryAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         CancellationToken cancellationToken,
@@ -117,11 +123,12 @@ public static class DashboardEndpoints
         DateOnly? endDate = null)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var report = await reportingService.GetTaxSummaryAsync(userId, startDate, endDate, cancellationToken);
+        var report = await reportingService.GetTaxSummaryAsync(userId, businessId, startDate, endDate, cancellationToken);
         return Results.Ok(report);
     }
 
     private static async Task<IResult> ExportRevenueReportCsvAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IExportService exportService,
@@ -136,7 +143,7 @@ public static class DashboardEndpoints
         }
 
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var report = await reportingService.GetRevenueReportAsync(userId, periodType, startDate, endDate, cancellationToken);
+        var report = await reportingService.GetRevenueReportAsync(userId, businessId, periodType, startDate, endDate, cancellationToken);
         var csv = await exportService.ExportRevenueReportToCsvAsync(report);
 
         return Results.File(
@@ -146,13 +153,14 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportOutstandingInvoicesCsvAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IExportService exportService,
         CancellationToken cancellationToken)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var invoices = await reportingService.GetOutstandingReportAsync(userId, cancellationToken);
+        var invoices = await reportingService.GetOutstandingReportAsync(userId, businessId, cancellationToken);
         var csv = await exportService.ExportOutstandingInvoicesToCsvAsync(invoices);
 
         return Results.File(
@@ -162,13 +170,14 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportOverdueInvoicesCsvAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IExportService exportService,
         CancellationToken cancellationToken)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var invoices = await reportingService.GetOverdueReportAsync(userId, cancellationToken);
+        var invoices = await reportingService.GetOverdueReportAsync(userId, businessId, cancellationToken);
         var csv = await exportService.ExportOverdueInvoicesToCsvAsync(invoices);
 
         return Results.File(
@@ -178,6 +187,7 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportRevenueByCustomerCsvAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IExportService exportService,
@@ -186,7 +196,7 @@ public static class DashboardEndpoints
         DateOnly? endDate = null)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var customers = await reportingService.GetRevenueByCustomerAsync(userId, startDate, endDate, cancellationToken);
+        var customers = await reportingService.GetRevenueByCustomerAsync(userId, businessId, startDate, endDate, cancellationToken);
         var csv = await exportService.ExportRevenueByCustomerToCsvAsync(customers);
 
         return Results.File(
@@ -196,6 +206,7 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportTaxSummaryCsvAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IExportService exportService,
@@ -204,7 +215,7 @@ public static class DashboardEndpoints
         DateOnly? endDate = null)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var summary = await reportingService.GetTaxSummaryAsync(userId, startDate, endDate, cancellationToken);
+        var summary = await reportingService.GetTaxSummaryAsync(userId, businessId, startDate, endDate, cancellationToken);
         var csv = await exportService.ExportTaxSummaryToCsvAsync(summary);
 
         return Results.File(
@@ -221,6 +232,7 @@ public static class DashboardEndpoints
     // and only InvoiceApp.Api may reference the Documents module. ModuleReferenceBoundaryTests
     // enforces both.
     private static async Task<IResult> ExportRevenueReportPdfAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IBusinessService businessService,
@@ -236,9 +248,9 @@ public static class DashboardEndpoints
 
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var (effectiveStart, effectiveEnd) = EffectiveRange(startDate, endDate);
-        var business = await businessService.GetAsync(userId, cancellationToken);
+        var business = await businessService.GetAsync(userId, businessId, cancellationToken);
         var report = await reportingService.GetRevenueReportAsync(
-            userId, periodType, effectiveStart, effectiveEnd, cancellationToken);
+            userId, businessId, periodType, effectiveStart, effectiveEnd, cancellationToken);
 
         var request = new ReportPdfRequest(
             Title: "Revenue Report",
@@ -264,14 +276,15 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportOutstandingInvoicesPdfAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IBusinessService businessService,
         CancellationToken cancellationToken)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var business = await businessService.GetAsync(userId, cancellationToken);
-        var invoices = await reportingService.GetOutstandingReportAsync(userId, cancellationToken);
+        var business = await businessService.GetAsync(userId, businessId, cancellationToken);
+        var invoices = await reportingService.GetOutstandingReportAsync(userId, businessId, cancellationToken);
 
         return PdfResult(
             InvoiceTableRequest("Outstanding Invoices", business.BusinessName, business.DefaultCurrency, invoices
@@ -282,14 +295,15 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportOverdueInvoicesPdfAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IBusinessService businessService,
         CancellationToken cancellationToken)
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var business = await businessService.GetAsync(userId, cancellationToken);
-        var invoices = await reportingService.GetOverdueReportAsync(userId, cancellationToken);
+        var business = await businessService.GetAsync(userId, businessId, cancellationToken);
+        var invoices = await reportingService.GetOverdueReportAsync(userId, businessId, cancellationToken);
 
         return PdfResult(
             InvoiceTableRequest("Overdue Invoices", business.BusinessName, business.DefaultCurrency, invoices
@@ -300,6 +314,7 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportRevenueByCustomerPdfAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IBusinessService businessService,
@@ -309,9 +324,9 @@ public static class DashboardEndpoints
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var (effectiveStart, effectiveEnd) = EffectiveRange(startDate, endDate);
-        var business = await businessService.GetAsync(userId, cancellationToken);
+        var business = await businessService.GetAsync(userId, businessId, cancellationToken);
         var customers = await reportingService.GetRevenueByCustomerAsync(
-            userId, effectiveStart, effectiveEnd, cancellationToken);
+            userId, businessId, effectiveStart, effectiveEnd, cancellationToken);
 
         var currency = customers.Count > 0 ? customers[0].Currency : business.DefaultCurrency;
 
@@ -337,6 +352,7 @@ public static class DashboardEndpoints
     }
 
     private static async Task<IResult> ExportTaxSummaryPdfAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IReportingService reportingService,
         IBusinessService businessService,
@@ -346,9 +362,9 @@ public static class DashboardEndpoints
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var (effectiveStart, effectiveEnd) = EffectiveRange(startDate, endDate);
-        var business = await businessService.GetAsync(userId, cancellationToken);
+        var business = await businessService.GetAsync(userId, businessId, cancellationToken);
         var summary = await reportingService.GetTaxSummaryAsync(
-            userId, effectiveStart, effectiveEnd, cancellationToken);
+            userId, businessId, effectiveStart, effectiveEnd, cancellationToken);
 
         var request = new ReportPdfRequest(
             Title: "Tax Summary",

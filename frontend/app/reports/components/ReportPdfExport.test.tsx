@@ -187,7 +187,6 @@ describe("report PDF export", () => {
         currency: "AUD",
         amountDue: 220,
         status: "Draft",
-        daysOverdue: 31,
       },
     ]);
     vi.mocked(dashboardLib.exportOverdueInvoicesPdf).mockResolvedValue(new Blob(["%PDF-"]));

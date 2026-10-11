@@ -1,5 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDashboardSummary } from "./dashboard";
+
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 const sampleSummary = {
   totalInvoiced: 500,
@@ -24,7 +28,7 @@ describe("getDashboardSummary", () => {
 
     expect(result).toEqual(sampleSummary);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("http://localhost:5094/api/v1/dashboard/summary");
+    expect(url).toBe("http://localhost:5094/api/v1/businesses/biz-1/dashboard/summary");
     expect(init.credentials).toBe("include");
   });
 

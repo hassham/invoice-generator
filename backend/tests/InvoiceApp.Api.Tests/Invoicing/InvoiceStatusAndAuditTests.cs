@@ -20,7 +20,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// </summary>
 public class InvoiceStatusAndAuditTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -70,12 +69,12 @@ public class InvoiceStatusAndAuditTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "overdue-list-detail@example.com");
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-PASTDUE", issueDate: "2020-01-01", dueDate: "2020-01-15"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-PASTDUE", issueDate: "2020-01-01", dueDate: "2020-01-15"));
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var listResponse = await client.GetAsync(InvoicesEndpoint);
+        var listResponse = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
         var list = await listResponse.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
-        var detailResponse = await client.GetAsync($"{InvoicesEndpoint}/{created!.Id}");
+        var detailResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}");
         var detail = await detailResponse.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
 
         Assert.Equal(InvoiceStatus.Overdue, list!.Items.Single().Status);
@@ -87,11 +86,11 @@ public class InvoiceStatusAndAuditTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "overdue-cancelled@example.com");
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-CANCELLED", issueDate: "2020-01-01", dueDate: "2020-01-15"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-CANCELLED", issueDate: "2020-01-01", dueDate: "2020-01-15"));
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, created!.Id, InvoiceStatus.Cancelled);
 
-        var listResponse = await client.GetAsync(InvoicesEndpoint);
+        var listResponse = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
         var list = await listResponse.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
 
         Assert.Equal(InvoiceStatus.Cancelled, list!.Items.Single().Status);
@@ -102,11 +101,11 @@ public class InvoiceStatusAndAuditTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "overdue-paid@example.com");
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-PAID", issueDate: "2020-01-01", dueDate: "2020-01-15"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-PAID", issueDate: "2020-01-01", dueDate: "2020-01-15"));
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, created!.Id, InvoiceStatus.Paid, amountDue: 0);
 
-        var listResponse = await client.GetAsync(InvoicesEndpoint);
+        var listResponse = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
         var list = await listResponse.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
 
         Assert.Equal(InvoiceStatus.Paid, list!.Items.Single().Status);
@@ -117,10 +116,10 @@ public class InvoiceStatusAndAuditTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "overdue-filter@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-PASTDUE", issueDate: "2020-01-01", dueDate: "2020-01-15"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-NOTDUE", issueDate: "2020-01-01", dueDate: "2999-01-01"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-PASTDUE", issueDate: "2020-01-01", dueDate: "2020-01-15"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-NOTDUE", issueDate: "2020-01-01", dueDate: "2999-01-01"));
 
-        var response = await client.GetAsync($"{InvoicesEndpoint}?status=Overdue");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}?status=Overdue");
         var result = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
 
         Assert.Equal(["INV-PASTDUE"], result!.Items.Select(item => item.InvoiceNumber));
@@ -132,7 +131,7 @@ public class InvoiceStatusAndAuditTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "audit-create@example.com");
 
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-AUDIT-CREATE"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-AUDIT-CREATE"));
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         using var scope = factory.Services.CreateScope();
@@ -155,10 +154,10 @@ public class InvoiceStatusAndAuditTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "audit-update@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-AUDIT-UPDATE"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-AUDIT-UPDATE"));
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var updateResponse = await client.PutAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}", ValidRequest("INV-AUDIT-UPDATE", issueDate: "2026-09-01", dueDate: "2026-09-15"));
+        var updateResponse = await client.PutAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}", ValidRequest("INV-AUDIT-UPDATE", issueDate: "2026-09-01", dueDate: "2026-09-15"));
         updateResponse.EnsureSuccessStatusCode();
 
         using var scope = factory.Services.CreateScope();

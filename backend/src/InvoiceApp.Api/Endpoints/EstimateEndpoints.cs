@@ -25,56 +25,60 @@ public static class EstimateEndpoints
 {
     public static IEndpointRouteBuilder MapEstimateEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/estimates", CreateAsync).RequireAuthorization();
-        app.MapPut("/api/v1/estimates/{id:guid}", UpdateAsync).RequireAuthorization();
-        app.MapGet("/api/v1/estimates/{id:guid}", GetAsync).RequireAuthorization();
-        app.MapGet("/api/v1/estimates", ListAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/estimates", CreateAsync).RequireAuthorization();
+        app.MapPut("/api/v1/businesses/{businessId:guid}/estimates/{id:guid}", UpdateAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/estimates/{id:guid}", GetAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/estimates", ListAsync).RequireAuthorization();
         // IG-221: same authenticated + rate-limited treatment as InvoiceEndpoints.SendEmailAsync -
         // a real external side effect (an actual email sent to a caller-supplied address).
-        app.MapPost("/api/v1/estimates/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
-        app.MapGet("/api/v1/estimates/{id:guid}/email-history", GetEmailHistoryAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/estimates/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        app.MapGet("/api/v1/businesses/{businessId:guid}/estimates/{id:guid}/email-history", GetEmailHistoryAsync).RequireAuthorization();
         // IG-223: convert an Accepted estimate to an invoice - reuses the entire invoice
         // creation/calculation pipeline, returns the new invoice ID.
-        app.MapPost("/api/v1/estimates/{id:guid}/convert-to-invoice", ConvertToInvoiceAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/estimates/{id:guid}/convert-to-invoice", ConvertToInvoiceAsync).RequireAuthorization();
         return app;
     }
 
     private static async Task<IResult> CreateAsync(
         EstimateSaveRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         CancellationToken cancellationToken)
     {
         EstimateSaveRequestValidator.Validate(request);
 
-        var estimate = await estimateService.SaveAsync(UserId(user), estimateId: null, request, cancellationToken);
-        return Results.Created($"/api/v1/estimates/{estimate.Id}", estimate);
+        var estimate = await estimateService.SaveAsync(UserId(user), businessId, estimateId: null, request, cancellationToken);
+        return Results.Created($"/api/v1/businesses/{businessId}/estimates/{estimate.Id}", estimate);
     }
 
     private static async Task<IResult> UpdateAsync(
         Guid id,
         EstimateSaveRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         CancellationToken cancellationToken)
     {
         EstimateSaveRequestValidator.Validate(request);
 
-        var estimate = await estimateService.SaveAsync(UserId(user), id, request, cancellationToken);
+        var estimate = await estimateService.SaveAsync(UserId(user), businessId, id, request, cancellationToken);
         return Results.Ok(estimate);
     }
 
     private static async Task<IResult> GetAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         CancellationToken cancellationToken)
     {
-        var estimate = await estimateService.GetAsync(UserId(user), id, cancellationToken);
+        var estimate = await estimateService.GetAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(estimate);
     }
 
     private static async Task<IResult> ListAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         CancellationToken cancellationToken,
@@ -84,7 +88,7 @@ public static class EstimateEndpoints
         EstimateStatus? status = null)
     {
         var query = new EstimateListQuery(page, pageSize, search, status);
-        var result = await estimateService.ListAsync(UserId(user), query, cancellationToken);
+        var result = await estimateService.ListAsync(UserId(user), businessId, query, cancellationToken);
         return Results.Ok(result);
     }
 
@@ -94,6 +98,7 @@ public static class EstimateEndpoints
     private static async Task<IResult> SendEmailAsync(
         Guid id,
         InvoiceEmailRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         IEmailSender emailSender,
@@ -103,7 +108,7 @@ public static class EstimateEndpoints
         InvoiceEmailRequestValidator.Validate(request);
 
         var userId = UserId(user);
-        var context = await estimateService.PrepareEstimateEmailAsync(userId, id, cancellationToken);
+        var context = await estimateService.PrepareEstimateEmailAsync(userId, businessId, id, cancellationToken);
         var pdfBytes = new InvoicePdfDocument(context.PdfRequest).GeneratePdf();
         var pdfFileName = InvoiceFilenameGenerator.Generate(context.PdfRequest.InvoiceNumber, "Estimate");
         var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
@@ -116,31 +121,33 @@ public static class EstimateEndpoints
         }
         catch (Exception ex)
         {
-            await estimateService.RecordEstimateEmailSentAsync(userId, id, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
+            await estimateService.RecordEstimateEmailSentAsync(userId, businessId, id, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
             throw;
         }
 
-        await estimateService.RecordEstimateEmailSentAsync(userId, id, request, InvoiceEmailStatus.Sent, null, cancellationToken);
+        await estimateService.RecordEstimateEmailSentAsync(userId, businessId, id, request, InvoiceEmailStatus.Sent, null, cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> GetEmailHistoryAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         CancellationToken cancellationToken)
     {
-        var history = await estimateService.GetEstimateEmailHistoryAsync(UserId(user), id, cancellationToken);
+        var history = await estimateService.GetEstimateEmailHistoryAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(history);
     }
 
     private static async Task<IResult> ConvertToInvoiceAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IEstimateService estimateService,
         CancellationToken cancellationToken)
     {
-        var invoiceId = await estimateService.ConvertToInvoiceAsync(UserId(user), id, cancellationToken);
+        var invoiceId = await estimateService.ConvertToInvoiceAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(new { invoiceId });
     }
 

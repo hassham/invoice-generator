@@ -11,9 +11,9 @@ namespace InvoiceApp.Infrastructure.Payments;
 
 public sealed class PaymentService(ApplicationDbContext dbContext, IAuditLogService auditLogService) : IPaymentService
 {
-    public async Task<IReadOnlyList<PaymentDto>> ListAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PaymentDto>> ListAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var invoice = await LoadOwnedInvoiceAsync(userId, invoiceId, cancellationToken);
+        var invoice = await LoadOwnedInvoiceAsync(userId, businessId, invoiceId, cancellationToken);
 
         var payments = await dbContext.Payments
             .Where(payment => payment.InvoiceId == invoice.Id)
@@ -24,9 +24,9 @@ public sealed class PaymentService(ApplicationDbContext dbContext, IAuditLogServ
         return payments.Select(ToDto).ToList();
     }
 
-    public async Task<PaymentRecordResult> RecordAsync(Guid userId, Guid invoiceId, PaymentRequest request, CancellationToken cancellationToken)
+    public async Task<PaymentRecordResult> RecordAsync(Guid userId, Guid businessId, Guid invoiceId, PaymentRequest request, CancellationToken cancellationToken)
     {
-        var invoice = await LoadOwnedInvoiceAsync(userId, invoiceId, cancellationToken);
+        var invoice = await LoadOwnedInvoiceAsync(userId, businessId, invoiceId, cancellationToken);
 
         // FSD section 52: no reactivation flow exists to build against, so this is a hard block on
         // *recording new* payments - removing one (RemoveAsync) is a correction and stays allowed.
@@ -79,9 +79,9 @@ public sealed class PaymentService(ApplicationDbContext dbContext, IAuditLogServ
         return new PaymentRecordResult(ToDto(payment), ToInvoiceDto(invoice));
     }
 
-    public async Task<InvoiceDto> RemoveAsync(Guid userId, Guid invoiceId, Guid paymentId, CancellationToken cancellationToken)
+    public async Task<InvoiceDto> RemoveAsync(Guid userId, Guid businessId, Guid invoiceId, Guid paymentId, CancellationToken cancellationToken)
     {
-        var invoice = await LoadOwnedInvoiceAsync(userId, invoiceId, cancellationToken);
+        var invoice = await LoadOwnedInvoiceAsync(userId, businessId, invoiceId, cancellationToken);
 
         var payment = await dbContext.Payments.SingleOrDefaultAsync(
             p => p.Id == paymentId && p.InvoiceId == invoice.Id,
@@ -119,15 +119,18 @@ public sealed class PaymentService(ApplicationDbContext dbContext, IAuditLogServ
         return ToInvoiceDto(invoice);
     }
 
-    private async Task<Invoice> LoadOwnedInvoiceAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    /// <summary>IG-296: the invoice must sit under the business the request names, and that business
+    /// must belong to the caller. Anything else is reported as not found, with no hint which part failed.</summary>
+    private async Task<Invoice> LoadOwnedInvoiceAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+        var owned = await dbContext.Businesses.AnyAsync(
+            business => business.Id == businessId && business.UserId == userId,
+            cancellationToken);
+        if (!owned)
+        {
+            throw new NotFoundException("Business not found.");
+        }
 
-        // Not found and "belongs to someone else" return the same 404 - same anti-enumeration
-        // precedent as InvoiceService.LoadOwnedAsync.
         return await dbContext.Invoices.SingleOrDefaultAsync(
             invoice => invoice.Id == invoiceId && invoice.BusinessId == businessId && !invoice.IsDeleted,
             cancellationToken)

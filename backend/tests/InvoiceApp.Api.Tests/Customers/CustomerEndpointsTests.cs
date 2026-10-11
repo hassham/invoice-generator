@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using InvoiceApp.Api.Tests.Authentication;
 using InvoiceApp.Application.Customers;
 using InvoiceApp.Application.Identity;
@@ -14,7 +15,7 @@ namespace InvoiceApp.Api.Tests.Customers;
 /// </summary>
 public class CustomerEndpointsTests
 {
-    private const string CustomersEndpoint = "/api/v1/customers";
+    private static string CustomersEndpoint(Guid businessId) => $"/api/v1/businesses/{businessId}/customers";
 
     [Fact]
     public async Task Missing_session_cannot_list_customers()
@@ -22,7 +23,7 @@ public class CustomerEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync(CustomersEndpoint);
+        var response = await client.GetAsync(CustomersEndpoint(Guid.NewGuid()));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -32,16 +33,16 @@ public class CustomerEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
-        await RegisterAsync(client, "creator@example.com");
+        var businessId = await RegisterAsync(client, "creator@example.com");
 
-        var response = await client.PostAsJsonAsync(CustomersEndpoint, ValidRequest());
+        var response = await client.PostAsJsonAsync(CustomersEndpoint(businessId), ValidRequest());
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<CustomerDto>();
         Assert.NotNull(created);
         Assert.Equal("Acme Pty Ltd", created!.BusinessName);
         Assert.False(created.IsArchived);
-        Assert.Equal($"{CustomersEndpoint}/{created.Id}", response.Headers.Location?.OriginalString);
+        Assert.Equal($"{CustomersEndpoint(businessId)}/{created.Id}", response.Headers.Location?.OriginalString);
     }
 
     [Fact]
@@ -49,29 +50,28 @@ public class CustomerEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
-        await RegisterAsync(client, "invalid.customer@example.com");
+        var businessId = await RegisterAsync(client, "invalid.customer@example.com");
 
-        var response = await client.PostAsJsonAsync(CustomersEndpoint, ValidRequest() with { BusinessName = null, ContactName = null });
+        var response = await client.PostAsJsonAsync(CustomersEndpoint(businessId), ValidRequest() with { BusinessName = null, ContactName = null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task Lists_only_the_signed_in_accounts_customers()
+    public async Task Another_accounts_customers_are_not_listed_under_my_business()
     {
         using var factory = new AuthenticatedRouteTestFactory();
 
         using var ownerClient = factory.CreateClient();
-        await RegisterAsync(ownerClient, "owner@example.com");
-        await ownerClient.PostAsJsonAsync(CustomersEndpoint, ValidRequest());
+        var businessId = await RegisterAsync(ownerClient, "owner@example.com");
+        await ownerClient.PostAsJsonAsync(CustomersEndpoint(businessId), ValidRequest());
 
         using var otherClient = factory.CreateClient();
         await RegisterAsync(otherClient, "other@example.com");
 
-        var response = await otherClient.GetAsync(CustomersEndpoint);
+        var response = await otherClient.GetAsync(CustomersEndpoint(businessId));
 
-        var customers = await response.Content.ReadFromJsonAsync<List<CustomerDto>>();
-        Assert.Empty(customers!);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -80,14 +80,14 @@ public class CustomerEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
 
         using var ownerClient = factory.CreateClient();
-        await RegisterAsync(ownerClient, "owner2@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(CustomersEndpoint, ValidRequest());
+        var businessId = await RegisterAsync(ownerClient, "owner2@example.com");
+        var createResponse = await ownerClient.PostAsJsonAsync(CustomersEndpoint(businessId), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CustomerDto>();
 
         using var otherClient = factory.CreateClient();
         await RegisterAsync(otherClient, "other2@example.com");
 
-        var response = await otherClient.GetAsync($"{CustomersEndpoint}/{created!.Id}");
+        var response = await otherClient.GetAsync($"{CustomersEndpoint(businessId)}/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -97,11 +97,11 @@ public class CustomerEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
-        await RegisterAsync(client, "updater@example.com");
-        var createResponse = await client.PostAsJsonAsync(CustomersEndpoint, ValidRequest());
+        var businessId = await RegisterAsync(client, "updater@example.com");
+        var createResponse = await client.PostAsJsonAsync(CustomersEndpoint(businessId), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CustomerDto>();
 
-        var response = await client.PutAsJsonAsync($"{CustomersEndpoint}/{created!.Id}", ValidRequest() with { ContactName = "Updated Contact" });
+        var response = await client.PutAsJsonAsync($"{CustomersEndpoint(businessId)}/{created!.Id}", ValidRequest() with { ContactName = "Updated Contact" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<CustomerDto>();
@@ -113,17 +113,17 @@ public class CustomerEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
-        await RegisterAsync(client, "archiver@example.com");
-        var createResponse = await client.PostAsJsonAsync(CustomersEndpoint, ValidRequest());
+        var businessId = await RegisterAsync(client, "archiver@example.com");
+        var createResponse = await client.PostAsJsonAsync(CustomersEndpoint(businessId), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CustomerDto>();
 
-        var archiveResponse = await client.DeleteAsync($"{CustomersEndpoint}/{created!.Id}");
+        var archiveResponse = await client.DeleteAsync($"{CustomersEndpoint(businessId)}/{created!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, archiveResponse.StatusCode);
 
-        var defaultList = await (await client.GetAsync(CustomersEndpoint)).Content.ReadFromJsonAsync<List<CustomerDto>>();
+        var defaultList = await (await client.GetAsync(CustomersEndpoint(businessId))).Content.ReadFromJsonAsync<List<CustomerDto>>();
         Assert.Empty(defaultList!);
 
-        var fullList = await (await client.GetAsync($"{CustomersEndpoint}?includeArchived=true")).Content.ReadFromJsonAsync<List<CustomerDto>>();
+        var fullList = await (await client.GetAsync($"{CustomersEndpoint(businessId)}?includeArchived=true")).Content.ReadFromJsonAsync<List<CustomerDto>>();
         Assert.Single(fullList!);
         Assert.True(fullList![0].IsArchived);
     }
@@ -142,10 +142,13 @@ public class CustomerEndpointsTests
         "12345",
         "Preferred customer");
 
-    private static async Task RegisterAsync(HttpClient client, string email)
+    private static async Task<Guid> RegisterAsync(HttpClient client, string email)
     {
         var request = new RegisterAccountRequest(email, "Password1", "Password1", null);
         var response = await client.PostAsJsonAsync("/api/v1/auth/register", request);
         response.EnsureSuccessStatusCode();
+
+        using var business = await JsonDocument.ParseAsync(await client.GetStreamAsync("/api/v1/business"));
+        return business.RootElement.GetProperty("id").GetGuid();
     }
 }

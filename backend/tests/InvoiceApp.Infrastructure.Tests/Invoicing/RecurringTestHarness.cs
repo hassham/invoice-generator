@@ -20,7 +20,7 @@ public sealed class CapturingInvoiceEmailDispatcher : IInvoiceEmailDispatcher
 
     public Func<Guid, Exception?>? FailWith { get; set; }
 
-    public Task SendAsync(Guid userId, Guid invoiceId, InvoiceEmailRequest request, CancellationToken cancellationToken)
+    public Task SendAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, CancellationToken cancellationToken)
     {
         if (FailWith?.Invoke(invoiceId) is { } failure)
         {

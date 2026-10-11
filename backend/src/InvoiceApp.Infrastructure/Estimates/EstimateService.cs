@@ -24,9 +24,9 @@ namespace InvoiceApp.Infrastructure.Estimates;
 /// </summary>
 public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogService auditLogService, IInvoiceService invoiceService) : IEstimateService
 {
-    public async Task<EstimateDto> SaveAsync(Guid userId, Guid? estimateId, EstimateSaveRequest request, CancellationToken cancellationToken)
+    public async Task<EstimateDto> SaveAsync(Guid userId, Guid businessId, Guid? estimateId, EstimateSaveRequest request, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
 
         var estimate = estimateId is { } id
             ? await LoadOwnedAsync(businessId, id, cancellationToken)
@@ -122,16 +122,16 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         return ToDto(estimate);
     }
 
-    public async Task<EstimateDetailDto> GetAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    public async Task<EstimateDetailDto> GetAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var estimate = await LoadOwnedAsync(businessId, estimateId, cancellationToken);
         return ToDetailDto(estimate);
     }
 
-    public async Task<EstimateListResponse> ListAsync(Guid userId, EstimateListQuery query, CancellationToken cancellationToken)
+    public async Task<EstimateListResponse> ListAsync(Guid userId, Guid businessId, EstimateListQuery query, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var effectivePageSize = query.PageSize is >= 1 and <= 100 ? query.PageSize : 25;
         var effectivePage = query.Page < 1 ? 1 : query.Page;
 
@@ -246,9 +246,9 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         return await BuildPdfRequestAsync(estimate, cancellationToken);
     }
 
-    public async Task<InvoiceEmailContext> PrepareEstimateEmailAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    public async Task<InvoiceEmailContext> PrepareEstimateEmailAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var estimate = await LoadOwnedAsync(businessId, estimateId, cancellationToken);
 
         if (estimate.PublicToken is null)
@@ -263,9 +263,9 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         return new InvoiceEmailContext(pdfRequest, estimate.PublicToken, business.Email);
     }
 
-    public async Task RecordEstimateEmailSentAsync(Guid userId, Guid estimateId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
+    public async Task RecordEstimateEmailSentAsync(Guid userId, Guid businessId, Guid estimateId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var owned = await dbContext.Estimates.SingleOrDefaultAsync(e => e.Id == estimateId && e.BusinessId == businessId && !e.IsDeleted, cancellationToken);
         if (owned is null)
         {
@@ -296,9 +296,9 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<InvoiceEmailLogDto>> GetEstimateEmailHistoryAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<InvoiceEmailLogDto>> GetEstimateEmailHistoryAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var owned = await dbContext.Estimates.AnyAsync(e => e.Id == estimateId && e.BusinessId == businessId && !e.IsDeleted, cancellationToken);
         if (!owned)
         {
@@ -325,9 +325,9 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
     /// invoice creation/calculation pipeline: the new invoice starts as Draft with all line
     /// items, totals, customer data copied from the estimate. Estimate transitions to Converted.
     /// Only valid from Accepted; other statuses reject with a 409 ConflictException.</summary>
-    public async Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken)
+    public async Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var estimate = await LoadOwnedAsync(businessId, estimateId, cancellationToken);
 
         if (estimate.Status != EstimateStatus.Accepted)
@@ -370,7 +370,7 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
                 : JsonSerializer.Deserialize<InvoiceSaveTemplateCustomization>(estimate.TemplateSettings),
             CustomerId: estimate.CustomerId);
 
-        var createdInvoice = await invoiceService.SaveAsync(userId, null, invoiceRequest, cancellationToken);
+        var createdInvoice = await invoiceService.SaveAsync(userId, estimate.BusinessId, null, invoiceRequest, cancellationToken);
 
         estimate.Status = EstimateStatus.Converted;
         estimate.UpdatedAt = DateTimeOffset.UtcNow;
@@ -439,11 +439,19 @@ public sealed class EstimateService(ApplicationDbContext dbContext, IAuditLogSer
         return owned ? customerId : throw new NotFoundException("Customer not found.");
     }
 
-    private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken) =>
-        await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+    /// <summary>The business must belong to the signed-in account; another account's business id is
+    /// reported as not found, never as forbidden.</summary>
+    private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
+    {
+        var owned = await dbContext.Businesses.AnyAsync(
+            business => business.Id == businessId && business.UserId == userId,
+            cancellationToken);
+
+        if (!owned)
+        {
+            throw new NotFoundException("Business not found.");
+        }
+    }
 
     private async Task<Estimate> LoadOwnedAsync(Guid businessId, Guid estimateId, CancellationToken cancellationToken)
     {

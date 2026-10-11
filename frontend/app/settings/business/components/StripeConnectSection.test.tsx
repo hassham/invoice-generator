@@ -15,15 +15,15 @@ const CONNECTED_PROFILE = { stripeAccountId: "acct_after_disconnect" } as Busine
 
 describe("StripeConnectSection", () => {
   it("shows a Connect with Stripe link, pointing at the backend's connect endpoint, when not connected", () => {
-    render(<StripeConnectSection stripeAccountId={null} onChange={vi.fn()} />);
+    render(<StripeConnectSection businessId="biz-1" stripeAccountId={null} onChange={vi.fn()} />);
 
     const link = screen.getByRole("link", { name: "Connect with Stripe" });
-    expect(link).toHaveAttribute("href", stripeConnectUrl());
+    expect(link).toHaveAttribute("href", stripeConnectUrl("biz-1"));
     expect(screen.queryByText("Connected")).not.toBeInTheDocument();
   });
 
   it("shows the connected account id and a Disconnect button when connected", () => {
-    render(<StripeConnectSection stripeAccountId="acct_123" onChange={vi.fn()} />);
+    render(<StripeConnectSection businessId="biz-1" stripeAccountId="acct_123" onChange={vi.fn()} />);
 
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("acct_123")).toBeInTheDocument();
@@ -35,7 +35,7 @@ describe("StripeConnectSection", () => {
     mockedDisconnectStripe.mockResolvedValue(CONNECTED_PROFILE);
     const onChange = vi.fn();
     const user = userEvent.setup();
-    render(<StripeConnectSection stripeAccountId="acct_123" onChange={onChange} />);
+    render(<StripeConnectSection businessId="biz-1" stripeAccountId="acct_123" onChange={onChange} />);
 
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
 
@@ -46,7 +46,7 @@ describe("StripeConnectSection", () => {
     mockedDisconnectStripe.mockRejectedValue(new Error("Failed to disconnect Stripe."));
     const onChange = vi.fn();
     const user = userEvent.setup();
-    render(<StripeConnectSection stripeAccountId="acct_123" onChange={onChange} />);
+    render(<StripeConnectSection businessId="biz-1" stripeAccountId="acct_123" onChange={onChange} />);
 
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
 

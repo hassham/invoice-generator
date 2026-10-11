@@ -20,22 +20,22 @@ public static class InvoiceEndpoints
 
         // IG-45/IG-47/IG-62: "As an authenticated user..." - unlike /calculate and /pdf above,
         // these all read or write account-owned data, so all require a session.
-        app.MapPost("/api/v1/invoices", CreateAsync).RequireAuthorization();
-        app.MapPut("/api/v1/invoices/{id:guid}", UpdateAsync).RequireAuthorization();
-        app.MapGet("/api/v1/invoices/{id:guid}", GetAsync).RequireAuthorization();
-        app.MapGet("/api/v1/invoices", ListAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/invoices", CreateAsync).RequireAuthorization();
+        app.MapPut("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}", UpdateAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}", GetAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/invoices", ListAsync).RequireAuthorization();
         // IG-49: same DELETE-archives-not-hard-deletes convention as CustomerEndpoints.
-        app.MapPost("/api/v1/invoices/{id:guid}/cancel", CancelAsync).RequireAuthorization();
-        app.MapDelete("/api/v1/invoices/{id:guid}", DeleteAsync).RequireAuthorization();
-        app.MapPost("/api/v1/invoices/{id:guid}/duplicate", DuplicateAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/cancel", CancelAsync).RequireAuthorization();
+        app.MapDelete("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}", DeleteAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/duplicate", DuplicateAsync).RequireAuthorization();
         // IG-212: authenticated (unlike the anonymous PDF endpoint) since it has a real external
         // side effect - an actual email sent to a caller-supplied address - and rate-limited on
         // top of that for the same "sensitive/expensive endpoint" reasoning IG-71 already
         // established, since an authenticated account could otherwise be used to relay spam to
         // arbitrary recipients at volume.
-        app.MapPost("/api/v1/invoices/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/send-email", SendEmailAsync).RequireAuthorization().RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         // IG-213: a plain read, no rate limiting needed beyond what authentication already implies.
-        app.MapGet("/api/v1/invoices/{id:guid}/email-history", GetEmailHistoryAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/email-history", GetEmailHistoryAsync).RequireAuthorization();
         return app;
     }
 
@@ -50,40 +50,44 @@ public static class InvoiceEndpoints
 
     private static async Task<IResult> CreateAsync(
         InvoiceSaveRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
         InvoiceSaveRequestValidator.Validate(request);
 
-        var invoice = await invoiceService.SaveAsync(UserId(user), invoiceId: null, request, cancellationToken);
-        return Results.Created($"/api/v1/invoices/{invoice.Id}", invoice);
+        var invoice = await invoiceService.SaveAsync(UserId(user), businessId, invoiceId: null, request, cancellationToken);
+        return Results.Created($"/api/v1/businesses/{businessId}/invoices/{invoice.Id}", invoice);
     }
 
     private static async Task<IResult> UpdateAsync(
         Guid id,
         InvoiceSaveRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
         InvoiceSaveRequestValidator.Validate(request);
 
-        var invoice = await invoiceService.SaveAsync(UserId(user), id, request, cancellationToken);
+        var invoice = await invoiceService.SaveAsync(UserId(user), businessId, id, request, cancellationToken);
         return Results.Ok(invoice);
     }
 
     private static async Task<IResult> GetAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
-        var invoice = await invoiceService.GetAsync(UserId(user), id, cancellationToken);
+        var invoice = await invoiceService.GetAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(invoice);
     }
 
     private static async Task<IResult> ListAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken,
@@ -97,38 +101,41 @@ public static class InvoiceEndpoints
         InvoiceSortOption sort = InvoiceSortOption.Newest)
     {
         var query = new InvoiceListQuery(page, pageSize, search, status, startDate, endDate, customerId, sort);
-        var result = await invoiceService.ListAsync(UserId(user), query, cancellationToken);
+        var result = await invoiceService.ListAsync(UserId(user), businessId, query, cancellationToken);
         return Results.Ok(result);
     }
 
     private static async Task<IResult> CancelAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
-        var invoice = await invoiceService.CancelAsync(UserId(user), id, cancellationToken);
+        var invoice = await invoiceService.CancelAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(invoice);
     }
 
     private static async Task<IResult> DeleteAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
-        await invoiceService.DeleteAsync(UserId(user), id, cancellationToken);
+        await invoiceService.DeleteAsync(UserId(user), businessId, id, cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> DuplicateAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
-        var invoice = await invoiceService.DuplicateAsync(UserId(user), id, cancellationToken);
-        return Results.Created($"/api/v1/invoices/{invoice.Id}", invoice);
+        var invoice = await invoiceService.DuplicateAsync(UserId(user), businessId, id, cancellationToken);
+        return Results.Created($"/api/v1/businesses/{businessId}/invoices/{invoice.Id}", invoice);
     }
 
     /// <summary>IG-212: orchestrates what InvoiceService deliberately stays agnostic of - QuestPDF
@@ -140,6 +147,7 @@ public static class InvoiceEndpoints
     private static async Task<IResult> SendEmailAsync(
         Guid id,
         InvoiceEmailRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceEmailDispatcher dispatcher,
         CancellationToken cancellationToken)
@@ -150,17 +158,18 @@ public static class InvoiceEndpoints
         // generation job's Automatic Send goes through the very same path. The behaviour here is
         // unchanged - same PDF, same hosted link, same email-history entries on success and
         // failure.
-        await dispatcher.SendAsync(UserId(user), id, request, cancellationToken);
+        await dispatcher.SendAsync(UserId(user), businessId, id, request, cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> GetEmailHistoryAsync(
         Guid id,
+        Guid businessId,
         ClaimsPrincipal user,
         IInvoiceService invoiceService,
         CancellationToken cancellationToken)
     {
-        var history = await invoiceService.GetEmailHistoryAsync(UserId(user), id, cancellationToken);
+        var history = await invoiceService.GetEmailHistoryAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(history);
     }
 

@@ -20,7 +20,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// </summary>
 public class InvoiceCancelAndDeleteTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -54,7 +53,7 @@ public class InvoiceCancelAndDeleteTests
 
     private static async Task<Guid> CreateInvoiceAsync(HttpClient client, string invoiceNumber)
     {
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber));
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         return created!.Id;
@@ -76,13 +75,13 @@ public class InvoiceCancelAndDeleteTests
         using var client = await RegisteredClientAsync(factory, "cancel-draft@example.com");
         var id = await CreateInvoiceAsync(client, "INV-CANCEL-1");
 
-        var response = await client.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}/cancel", null);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         Assert.Equal(InvoiceStatus.Cancelled, updated!.Status);
 
-        var getResponse = await client.GetAsync($"{InvoicesEndpoint}/{id}");
+        var getResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
         var detail = await getResponse.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
         Assert.Equal(InvoiceStatus.Cancelled, detail!.Status);
     }
@@ -93,9 +92,9 @@ public class InvoiceCancelAndDeleteTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "cancel-idempotent@example.com");
         var id = await CreateInvoiceAsync(client, "INV-CANCEL-2");
-        await client.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}/cancel", null);
 
-        var response = await client.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}/cancel", null);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -110,10 +109,10 @@ public class InvoiceCancelAndDeleteTests
         var id = await CreateInvoiceAsync(client, "INV-CANCEL-3");
         await SetInvoiceStatusAsync(factory, id, InvoiceStatus.Paid);
 
-        var response = await client.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}/cancel", null);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        var getResponse = await client.GetAsync($"{InvoicesEndpoint}/{id}");
+        var getResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
         var detail = await getResponse.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
         Assert.Equal(InvoiceStatus.Paid, detail!.Status);
     }
@@ -126,7 +125,7 @@ public class InvoiceCancelAndDeleteTests
         var id = await CreateInvoiceAsync(ownerClient, "INV-CANCEL-4");
         using var otherClient = await RegisteredClientAsync(factory, "cancel-other@example.com");
 
-        var response = await otherClient.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        var response = await otherClient.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{id}/cancel", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -137,7 +136,7 @@ public class InvoiceCancelAndDeleteTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.PostAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}/cancel", null);
+        var response = await anonymousClient.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(anonymousClient)}/{Guid.NewGuid()}/cancel", null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -149,7 +148,7 @@ public class InvoiceCancelAndDeleteTests
         using var client = await RegisteredClientAsync(factory, "cancel-audit@example.com");
         var id = await CreateInvoiceAsync(client, "INV-CANCEL-5");
 
-        await client.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}/cancel", null);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -164,15 +163,15 @@ public class InvoiceCancelAndDeleteTests
         using var client = await RegisteredClientAsync(factory, "delete-basic@example.com");
         var id = await CreateInvoiceAsync(client, "INV-DELETE-1");
 
-        var response = await client.DeleteAsync($"{InvoicesEndpoint}/{id}");
+        var response = await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var listResponse = await client.GetAsync(InvoicesEndpoint);
+        var listResponse = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
         var list = await listResponse.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
         Assert.Empty(list!.Items);
 
-        var getResponse = await client.GetAsync($"{InvoicesEndpoint}/{id}");
+        var getResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
 
         using var scope = factory.Services.CreateScope();
@@ -190,7 +189,7 @@ public class InvoiceCancelAndDeleteTests
         var id = await CreateInvoiceAsync(client, "INV-DELETE-2");
         await SetInvoiceStatusAsync(factory, id, InvoiceStatus.Paid);
 
-        var response = await client.DeleteAsync($"{InvoicesEndpoint}/{id}");
+        var response = await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
@@ -203,7 +202,7 @@ public class InvoiceCancelAndDeleteTests
         var id = await CreateInvoiceAsync(ownerClient, "INV-DELETE-3");
         using var otherClient = await RegisteredClientAsync(factory, "delete-other@example.com");
 
-        var response = await otherClient.DeleteAsync($"{InvoicesEndpoint}/{id}");
+        var response = await otherClient.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{id}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -214,7 +213,7 @@ public class InvoiceCancelAndDeleteTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.DeleteAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}");
+        var response = await anonymousClient.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(anonymousClient)}/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -226,7 +225,7 @@ public class InvoiceCancelAndDeleteTests
         using var client = await RegisteredClientAsync(factory, "delete-audit@example.com");
         var id = await CreateInvoiceAsync(client, "INV-DELETE-4");
 
-        await client.DeleteAsync($"{InvoicesEndpoint}/{id}");
+        await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

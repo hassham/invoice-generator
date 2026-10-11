@@ -2,7 +2,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchTemplates } from "../../../invoice/create/lib/templates";
-import { getBusinessProfile, updateBusinessProfile, type BusinessProfile } from "../../../lib/business";
+import {
+  getBusinessProfile,
+  getBusinessProfileById,
+  updateBusinessProfile,
+  updateBusinessProfileById,
+  type BusinessProfile,
+} from "../../../lib/business";
 import { BusinessProfileSettings } from "./BusinessProfileSettings";
 
 const replaceMock = vi.fn();
@@ -23,12 +29,27 @@ vi.mock("../../../invoice/create/lib/templates", () => ({
 vi.mock("../../../lib/business", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../lib/business")>()),
   getBusinessProfile: vi.fn(),
+  getBusinessProfileById: vi.fn(),
   updateBusinessProfile: vi.fn(),
+  updateBusinessProfileById: vi.fn(),
+}));
+
+// IG-295: the page edits whichever business is selected; null (the default) keeps the legacy
+// account-level calls every other test in this file asserts on.
+let currentSelectedBusinessId: string | null = null;
+vi.mock("../../../lib/BusinessContext", () => ({
+  useSelectedBusiness: () => ({
+    selectedBusinessId: currentSelectedBusinessId,
+    selectBusiness: vi.fn(),
+    clearSelection: vi.fn(),
+  }),
 }));
 
 const mockedFetchTemplates = vi.mocked(fetchTemplates);
 const mockedGetBusinessProfile = vi.mocked(getBusinessProfile);
 const mockedUpdateBusinessProfile = vi.mocked(updateBusinessProfile);
+const mockedGetBusinessProfileById = vi.mocked(getBusinessProfileById);
+const mockedUpdateBusinessProfileById = vi.mocked(updateBusinessProfileById);
 
 const sampleProfile: BusinessProfile = {
   id: "biz-1",
@@ -160,5 +181,24 @@ describe("BusinessProfileSettings", () => {
       expect(screen.queryByText(/Failed to connect your Stripe account/)).not.toBeInTheDocument();
       expect(replaceMock).not.toHaveBeenCalled();
     });
+  });
+  it("loads and saves the selected business when one is chosen", async () => {
+    currentSelectedBusinessId = "biz-2";
+    try {
+      mockedGetBusinessProfileById.mockResolvedValue({ ...sampleProfile, id: "biz-2", businessName: "Second Co" });
+      mockedUpdateBusinessProfileById.mockResolvedValue({ ...sampleProfile, id: "biz-2", businessName: "Second Co" });
+
+      render(<BusinessProfileSettings />);
+      await waitFor(() => expect(screen.getByDisplayValue("Second Co")).toBeInTheDocument());
+
+      expect(mockedGetBusinessProfileById).toHaveBeenCalledWith("biz-2");
+      expect(mockedGetBusinessProfile).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      await waitFor(() => expect(mockedUpdateBusinessProfileById).toHaveBeenCalledWith("biz-2", expect.anything()));
+      expect(mockedUpdateBusinessProfile).not.toHaveBeenCalled();
+    } finally {
+      currentSelectedBusinessId = null;
+    }
   });
 });

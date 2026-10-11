@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 export interface InvoiceListItem {
   id: string;
   invoiceNumber: string;
@@ -84,7 +85,7 @@ export async function listInvoices(params: InvoiceListParams): Promise<InvoiceLi
     query.set("sort", params.sort);
   }
 
-  const response = await fetch(`${baseUrl()}/api/v1/invoices?${query.toString()}`, {
+  const response = await fetch(await businessRoute(`/invoices?${query.toString()}`), {
     credentials: "include",
   });
 

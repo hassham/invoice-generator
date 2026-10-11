@@ -1,3 +1,4 @@
+import { businessRoute } from "../../../lib/business";
 import type { InvoiceDraft } from "./invoiceDraft";
 import type { InvoiceDiscountType } from "./invoiceTotals";
 import { toCalculationInput, type LineItem } from "./lineItems";
@@ -147,7 +148,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
 /** POSTs a new invoice (first save) - same credentials:"include" convention as lib/auth.ts, since
  * this route requires an authenticated session. */
 export async function createInvoice(payload: InvoiceSavePayload): Promise<SavedInvoice> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices`, {
+  const response = await fetch(await businessRoute(`/invoices`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -163,7 +164,7 @@ export async function createInvoice(payload: InvoiceSavePayload): Promise<SavedI
 
 /** PUTs an update to a previously-saved invoice (every save after the first). */
 export async function updateInvoice(invoiceId: string, payload: InvoiceSavePayload): Promise<SavedInvoice> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}`, {
+  const response = await fetch(await businessRoute(`/invoices/${invoiceId}`), {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

@@ -21,7 +21,6 @@ namespace InvoiceApp.Api.Tests.Estimates;
 /// Estimate entity/table.</summary>
 public class EstimateSaveEndpointsTests
 {
-    private const string EstimatesEndpoint = "/api/v1/estimates";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -59,7 +58,7 @@ public class EstimateSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest());
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -70,7 +69,7 @@ public class EstimateSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-create@example.com");
 
-        var response = await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(customer: "Acme Pty Ltd\n123 Main St"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest(customer: "Acme Pty Ltd\n123 Main St"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
@@ -78,7 +77,7 @@ public class EstimateSaveEndpointsTests
         Assert.Equal("EST-0001", created!.EstimateNumber);
         Assert.Equal(EstimateStatus.Draft, created.Status);
         Assert.Equal(220m, created.TotalAmount); // 2 * 100 = 200 + 10% tax = 220
-        Assert.Equal($"{EstimatesEndpoint}/{created.Id}", response.Headers.Location?.OriginalString);
+        Assert.Equal($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created.Id}", response.Headers.Location?.OriginalString);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -92,9 +91,9 @@ public class EstimateSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-conflict@example.com");
-        await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(estimateNumber: "EST-DUPLICATE"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest(estimateNumber: "EST-DUPLICATE"));
 
-        var response = await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(estimateNumber: "EST-DUPLICATE", customer: "A Different Customer"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest(estimateNumber: "EST-DUPLICATE", customer: "A Different Customer"));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -107,7 +106,7 @@ public class EstimateSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-invalid@example.com");
 
-        var response = await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest() with { Customer = "" });
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest() with { Customer = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -120,7 +119,7 @@ public class EstimateSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-expiry@example.com");
 
-        var response = await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest() with { ExpiryDate = new DateOnly(2030, 7, 1) });
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest() with { ExpiryDate = new DateOnly(2030, 7, 1) });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -132,11 +131,11 @@ public class EstimateSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-update@example.com");
-        var createResponse = await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest());
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
         var updateRequest = ValidRequest() with { Items = [new EstimateSaveLineItem("Updated Service", 1, null, 500, 10, 0)] };
-        var updateResponse = await client.PutAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}", updateRequest);
+        var updateResponse = await client.PutAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}", updateRequest);
 
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
         var updated = await updateResponse.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
@@ -155,11 +154,11 @@ public class EstimateSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "estimate-owner@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(EstimatesEndpoint, ValidRequest());
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/estimates"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
         using var otherClient = await RegisteredClientAsync(factory, "estimate-other@example.com");
-        var response = await otherClient.PutAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}", ValidRequest());
+        var response = await otherClient.PutAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(otherClient, "/estimates")}/{created!.Id}", ValidRequest());
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -170,10 +169,10 @@ public class EstimateSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-get@example.com");
         var request = ValidRequest() with { ShipTo = "Warehouse 3\n45 Dock Rd" };
-        var createResponse = await client.PostAsJsonAsync(EstimatesEndpoint, request);
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), request);
         var created = await createResponse.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
-        var response = await client.GetAsync($"{EstimatesEndpoint}/{created!.Id}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var detail = await response.Content.ReadFromJsonAsync<EstimateDetailDto>(JsonOptions);
@@ -192,11 +191,11 @@ public class EstimateSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "estimate-get-owner@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(EstimatesEndpoint, ValidRequest());
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/estimates"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
 
         using var otherClient = await RegisteredClientAsync(factory, "estimate-get-other@example.com");
-        var response = await otherClient.GetAsync($"{EstimatesEndpoint}/{created!.Id}");
+        var response = await otherClient.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(otherClient, "/estimates")}/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -206,13 +205,13 @@ public class EstimateSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-list-owner@example.com");
-        await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(estimateNumber: "EST-0001", customer: "Acme Pty Ltd"));
-        await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(estimateNumber: "EST-0002", customer: "Beta Pty Ltd"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest(estimateNumber: "EST-0001", customer: "Acme Pty Ltd"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest(estimateNumber: "EST-0002", customer: "Beta Pty Ltd"));
 
         using var otherClient = await RegisteredClientAsync(factory, "estimate-list-other@example.com");
-        await otherClient.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(estimateNumber: "EST-0001", customer: "Someone Else"));
+        await otherClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(otherClient, "/estimates"), ValidRequest(estimateNumber: "EST-0001", customer: "Someone Else"));
 
-        var response = await client.GetAsync(EstimatesEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<EstimateListResponse>(JsonOptions);
@@ -229,12 +228,12 @@ public class EstimateSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "estimate-picker@example.com");
         var customerResponse = await client.PostAsJsonAsync(
-            "/api/v1/customers",
+            $"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}",
             new CustomerRequest("Selected Customer Pty Ltd", null, "billing@acme.example", null, null, null, null, null, null, null, null, null));
         var customer = await customerResponse.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
 
         var request = ValidRequest(customer: "Some Unrelated Typed Text") with { CustomerId = customer!.Id };
-        var response = await client.PostAsJsonAsync(EstimatesEndpoint, request);
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), request);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);

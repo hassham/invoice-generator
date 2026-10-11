@@ -10,43 +10,46 @@ public static class PaymentEndpoints
     {
         // Sub-resource of an account-owned invoice (FSD sections 66-72) - every route requires a
         // session, same convention as CustomerEndpoints/CatalogEndpoints.
-        app.MapGet("/api/v1/invoices/{invoiceId:guid}/payments", ListAsync).RequireAuthorization();
-        app.MapPost("/api/v1/invoices/{invoiceId:guid}/payments", RecordAsync).RequireAuthorization();
-        app.MapDelete("/api/v1/invoices/{invoiceId:guid}/payments/{paymentId:guid}", RemoveAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/invoices/{invoiceId:guid}/payments", ListAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{invoiceId:guid}/payments", RecordAsync).RequireAuthorization();
+        app.MapDelete("/api/v1/businesses/{businessId:guid}/invoices/{invoiceId:guid}/payments/{paymentId:guid}", RemoveAsync).RequireAuthorization();
         return app;
     }
 
     private static async Task<IResult> ListAsync(
         Guid invoiceId,
+        Guid businessId,
         ClaimsPrincipal user,
         IPaymentService paymentService,
         CancellationToken cancellationToken)
     {
-        var payments = await paymentService.ListAsync(UserId(user), invoiceId, cancellationToken);
+        var payments = await paymentService.ListAsync(UserId(user), businessId, invoiceId, cancellationToken);
         return Results.Ok(payments);
     }
 
     private static async Task<IResult> RecordAsync(
         Guid invoiceId,
         PaymentRequest request,
+        Guid businessId,
         ClaimsPrincipal user,
         IPaymentService paymentService,
         CancellationToken cancellationToken)
     {
         PaymentRequestValidator.Validate(request);
 
-        var result = await paymentService.RecordAsync(UserId(user), invoiceId, request, cancellationToken);
-        return Results.Created($"/api/v1/invoices/{invoiceId}/payments/{result.Payment.Id}", result);
+        var result = await paymentService.RecordAsync(UserId(user), businessId, invoiceId, request, cancellationToken);
+        return Results.Created($"/api/v1/businesses/{businessId}/invoices/{invoiceId}/payments/{result.Payment.Id}", result);
     }
 
     private static async Task<IResult> RemoveAsync(
         Guid invoiceId,
         Guid paymentId,
+        Guid businessId,
         ClaimsPrincipal user,
         IPaymentService paymentService,
         CancellationToken cancellationToken)
     {
-        var invoice = await paymentService.RemoveAsync(UserId(user), invoiceId, paymentId, cancellationToken);
+        var invoice = await paymentService.RemoveAsync(UserId(user), businessId, invoiceId, paymentId, cancellationToken);
         return Results.Ok(invoice);
     }
 

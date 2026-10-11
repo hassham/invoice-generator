@@ -46,7 +46,7 @@ public class RecurringScheduleEndpointsTests
 
     private static async Task<Guid> CustomerIdAsync(HttpClient client, string name = "Acme Pty Ltd")
     {
-        var response = await client.PostAsJsonAsync("/api/v1/customers", new CustomerRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}", new CustomerRequest(
             name, "Jamie Lee", "billing@acme.example", null, null, null, null, null, null, null, null, null));
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions))!.Id;
@@ -54,7 +54,7 @@ public class RecurringScheduleEndpointsTests
 
     private static async Task<Guid> TemplateInvoiceIdAsync(HttpClient client, string invoiceNumber = "INV-TPL-1")
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", new InvoiceSaveRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", new InvoiceSaveRequest(
             InvoiceNumber: invoiceNumber,
             IssueDate: StartDate,
             DueDate: StartDate.AddDays(14),
@@ -285,7 +285,7 @@ public class RecurringScheduleEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         var (client, businessId, customerId, templateId) = await ReadyAsync(factory, "sched-archived@example.com");
         using var _ = client;
-        await client.DeleteAsync($"/api/v1/customers/{customerId}");
+        await client.DeleteAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}/{customerId}");
 
         var response = await client.PostAsJsonAsync(Endpoint(businessId), Command(customerId, templateId));
 
@@ -313,7 +313,7 @@ public class RecurringScheduleEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         var (client, businessId, customerId, templateId) = await ReadyAsync(factory, "sched-deleted-template@example.com");
         using var _ = client;
-        await client.DeleteAsync($"/api/v1/invoices/{templateId}");
+        await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{templateId}");
 
         var response = await client.PostAsJsonAsync(Endpoint(businessId), Command(customerId, templateId));
 

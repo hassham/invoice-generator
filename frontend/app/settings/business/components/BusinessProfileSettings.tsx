@@ -3,7 +3,15 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BusinessLogoUpload } from "../../../components/business/BusinessLogoUpload";
-import { getBusinessProfile, updateBusinessProfile, type BusinessProfile, type BusinessProfileRequest } from "../../../lib/business";
+import {
+  getBusinessProfile,
+  getBusinessProfileById,
+  updateBusinessProfile,
+  updateBusinessProfileById,
+  type BusinessProfile,
+  type BusinessProfileRequest,
+} from "../../../lib/business";
+import { useSelectedBusiness } from "../../../lib/BusinessContext";
 import { BusinessProfileForm, type BusinessProfileFormValues } from "./BusinessProfileForm";
 import { StripeConnectSection } from "./StripeConnectSection";
 
@@ -48,6 +56,7 @@ function toFormValues(profile: BusinessProfile): BusinessProfileFormValues {
 export function BusinessProfileSettings() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { selectedBusinessId } = useSelectedBusiness();
   const [state, setState] = useState<LoadState>("loading");
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -82,7 +91,8 @@ export function BusinessProfileSettings() {
 
   useEffect(() => {
     let cancelled = false;
-    getBusinessProfile()
+    const load = selectedBusinessId ? getBusinessProfileById(selectedBusinessId) : getBusinessProfile();
+    load
       .then((loaded) => {
         if (!cancelled) {
           setProfile(loaded);
@@ -98,7 +108,7 @@ export function BusinessProfileSettings() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedBusinessId]);
 
   const handleSubmit = async (request: BusinessProfileRequest) => {
     setSubmitting(true);
@@ -106,7 +116,9 @@ export function BusinessProfileSettings() {
     setSavedAt(null);
 
     try {
-      const updated = await updateBusinessProfile(request);
+      const updated = selectedBusinessId
+        ? await updateBusinessProfileById(selectedBusinessId, request)
+        : await updateBusinessProfile(request);
       setProfile(updated);
       setSavedAt(Date.now());
     } catch (error) {
@@ -159,7 +171,7 @@ export function BusinessProfileSettings() {
       </div>
 
       <div className="mt-6">
-        <StripeConnectSection stripeAccountId={profile.stripeAccountId} onChange={setProfile} />
+        <StripeConnectSection businessId={profile.id} stripeAccountId={profile.stripeAccountId} onChange={setProfile} />
       </div>
     </div>
   );

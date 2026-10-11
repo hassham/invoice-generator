@@ -16,9 +16,7 @@ namespace InvoiceApp.Api.Tests.Businesses;
 /// connect/disconnect's effect on the Business row.</summary>
 public class StripeConnectEndpointsTests
 {
-    private const string ConnectEndpoint = "/api/v1/business/stripe/connect";
     private const string CallbackEndpoint = "/api/v1/business/stripe/callback";
-    private const string DisconnectEndpoint = "/api/v1/business/stripe/disconnect";
     private const string BusinessEndpoint = "/api/v1/business";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
@@ -47,7 +45,7 @@ public class StripeConnectEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "stripe-connect-shape@example.com");
 
-        var response = await client.GetAsync(ConnectEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/connect"));
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location!;
@@ -63,7 +61,7 @@ public class StripeConnectEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await anonymousClient.GetAsync(ConnectEndpoint);
+        var response = await anonymousClient.GetAsync(await DefaultBusinessRoutes.RouteAsync(anonymousClient, "/stripe/connect"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -75,7 +73,7 @@ public class StripeConnectEndpointsTests
         using var client = await RegisteredClientAsync(factory, "stripe-connect-success@example.com");
         factory.StripeConnectService.AccountIdToReturn = "acct_success123";
 
-        var connectResponse = await client.GetAsync(ConnectEndpoint);
+        var connectResponse = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/connect"));
         var state = ExtractState(connectResponse.Headers.Location!);
 
         // The same HttpClient instance carries the Set-Cookie from the redirect-out response
@@ -94,7 +92,7 @@ public class StripeConnectEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "stripe-connect-denied@example.com");
-        var connectResponse = await client.GetAsync(ConnectEndpoint);
+        var connectResponse = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/connect"));
         var state = ExtractState(connectResponse.Headers.Location!);
 
         var callbackResponse = await client.GetAsync($"{CallbackEndpoint}?error=access_denied&state={state}");
@@ -110,7 +108,7 @@ public class StripeConnectEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "stripe-connect-badstate@example.com");
-        await client.GetAsync(ConnectEndpoint); // Sets the real state cookie, but never used below.
+        await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/connect")); // Sets the real state cookie, but never used below.
 
         var callbackResponse = await client.GetAsync($"{CallbackEndpoint}?state=not-the-real-state&code=test-code");
 
@@ -136,7 +134,7 @@ public class StripeConnectEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "stripe-connect-exchangefail@example.com");
         factory.StripeConnectService.ThrowOnExchange = new InvalidOperationException("invalid_grant");
-        var connectResponse = await client.GetAsync(ConnectEndpoint);
+        var connectResponse = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/connect"));
         var state = ExtractState(connectResponse.Headers.Location!);
 
         var callbackResponse = await client.GetAsync($"{CallbackEndpoint}?state={state}&code=test-code");
@@ -151,11 +149,11 @@ public class StripeConnectEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "stripe-disconnect@example.com");
-        var connectResponse = await client.GetAsync(ConnectEndpoint);
+        var connectResponse = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/connect"));
         var state = ExtractState(connectResponse.Headers.Location!);
         await client.GetAsync($"{CallbackEndpoint}?state={state}&code=test-code");
 
-        var disconnectResponse = await client.PostAsync(DisconnectEndpoint, null);
+        var disconnectResponse = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/disconnect"), null);
 
         Assert.Equal(HttpStatusCode.OK, disconnectResponse.StatusCode);
         var profile = await disconnectResponse.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
@@ -169,7 +167,7 @@ public class StripeConnectEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "stripe-disconnect-noop@example.com");
 
-        var response = await client.PostAsync(DisconnectEndpoint, null);
+        var response = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/stripe/disconnect"), null);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Empty(factory.StripeConnectService.DeauthorizedAccountIds);
@@ -181,7 +179,7 @@ public class StripeConnectEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.PostAsync(DisconnectEndpoint, null);
+        var response = await anonymousClient.PostAsync(await DefaultBusinessRoutes.RouteAsync(anonymousClient, "/stripe/disconnect"), null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }

@@ -1,19 +1,19 @@
 namespace InvoiceApp.Application.Customers;
 
 /// <summary>
-/// Every method resolves account ownership from <paramref name="userId"/> internally (via that
-/// user's business), not from a caller-supplied business id - a request can only ever act on the
-/// signed-in user's own customers (Jira IG-55 AC: "account ownership is enforced").
+/// Every method takes the business the request is scoped to (IG-296 / IG-295). Ownership is checked
+/// against <paramref name="userId"/>: a business that belongs to another account, or a customer that
+/// belongs to a different business, is reported as not found (Jira IG-55 AC: "account ownership is enforced").
 /// </summary>
 public interface ICustomerService
 {
-    Task<IReadOnlyList<CustomerDto>> ListAsync(Guid userId, bool includeArchived, CancellationToken cancellationToken);
+    Task<IReadOnlyList<CustomerDto>> ListAsync(Guid userId, Guid businessId, bool includeArchived, CancellationToken cancellationToken);
 
-    Task<CustomerDto> GetAsync(Guid userId, Guid customerId, CancellationToken cancellationToken);
+    Task<CustomerDto> GetAsync(Guid userId, Guid businessId, Guid customerId, CancellationToken cancellationToken);
 
-    Task<CustomerDto> CreateAsync(Guid userId, CustomerRequest request, CancellationToken cancellationToken);
+    Task<CustomerDto> CreateAsync(Guid userId, Guid businessId, CustomerRequest request, CancellationToken cancellationToken);
 
-    Task<CustomerDto> UpdateAsync(Guid userId, Guid customerId, CustomerRequest request, CancellationToken cancellationToken);
+    Task<CustomerDto> UpdateAsync(Guid userId, Guid businessId, Guid customerId, CustomerRequest request, CancellationToken cancellationToken);
 
-    Task ArchiveAsync(Guid userId, Guid customerId, CancellationToken cancellationToken);
+    Task ArchiveAsync(Guid userId, Guid businessId, Guid customerId, CancellationToken cancellationToken);
 }

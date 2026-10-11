@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 import type { InvoiceDiscountType, TaxCalculationMethod } from "../invoice/create/lib/invoiceTotals";
 import { createEmptyLineItem, toCalculationInput, type LineItem } from "../invoice/create/lib/lineItems";
 import type { FieldValues } from "../invoice/create/lib/invoiceDraft";
@@ -258,7 +259,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
 
 /** POSTs a new estimate (first save) - same credentials:"include" convention as lib/invoiceSave.ts. */
 export async function createEstimate(payload: EstimateSavePayload): Promise<SavedEstimate> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates`, {
+  const response = await fetch(await businessRoute(`/estimates`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -273,7 +274,7 @@ export async function createEstimate(payload: EstimateSavePayload): Promise<Save
 }
 
 export async function updateEstimate(estimateId: string, payload: EstimateSavePayload): Promise<SavedEstimate> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates/${estimateId}`, {
+  const response = await fetch(await businessRoute(`/estimates/${estimateId}`), {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -288,7 +289,7 @@ export async function updateEstimate(estimateId: string, payload: EstimateSavePa
 }
 
 export async function getEstimate(id: string): Promise<EstimateDetail> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates/${id}`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/estimates/${id}`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load this estimate."));
@@ -298,7 +299,7 @@ export async function getEstimate(id: string): Promise<EstimateDetail> {
 }
 
 export async function listEstimates(page = 1, pageSize = 25): Promise<EstimateListResponse> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates?page=${page}&pageSize=${pageSize}`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/estimates?page=${page}&pageSize=${pageSize}`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load your estimates."));
@@ -313,7 +314,7 @@ export interface ConvertEstimateToInvoiceResponse {
 
 /** IG-223: convert an accepted estimate to an invoice. Returns the new invoice ID. */
 export async function convertEstimateToInvoice(estimateId: string): Promise<string> {
-  const response = await fetch(`${baseUrl()}/api/v1/estimates/${estimateId}/convert-to-invoice`, {
+  const response = await fetch(await businessRoute(`/estimates/${estimateId}/convert-to-invoice`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

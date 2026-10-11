@@ -89,6 +89,20 @@ export interface BusinessProfileRequest {
   invoiceNumberPadding: number;
 }
 
+export interface CreateBusinessRequest {
+  businessName: string;
+  country: string;
+  defaultCurrency: string;
+  taxCalculationMethod?: TaxCalculationMethod;
+  defaultTaxRate?: number;
+  defaultPaymentTerms?: PaymentTermsOption;
+  defaultPaymentTermsDays?: number | null;
+  invoicePrefix?: string;
+  invoiceNumberPadding?: number;
+  estimatePrefix?: string;
+  estimateNumberPadding?: number;
+}
+
 export interface GeneratedInvoiceNumber {
   invoiceNumber: string;
 }
@@ -114,8 +128,46 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
   return problem?.detail ?? fallback;
 }
 
-/** IG-53: account-owned, same credentials:"include" convention as lib/customers.ts. Every account
- * has exactly one Business row (created at registration), so there's no id in the route. */
+/** IG-295: lists all businesses owned by the user. */
+export async function listBusinesses(): Promise<BusinessProfile[]> {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses`, { credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load your businesses."));
+  }
+
+  return response.json();
+}
+
+/** IG-295: creates a new business under the current account. */
+export async function createBusiness(request: CreateBusinessRequest): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to create your business."));
+  }
+
+  return response.json();
+}
+
+/** IG-295: gets a specific business by id (must be owned by the user). */
+export async function getBusinessProfileById(businessId: string): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses/${businessId}`, { credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load your business profile."));
+  }
+
+  return response.json();
+}
+
+/** IG-53: account-owned, same credentials:"include" convention as lib/customers.ts. Returns the
+ * user's default/first business for backward compatibility. */
 export async function getBusinessProfile(): Promise<BusinessProfile> {
   const response = await fetch(`${baseUrl()}/api/v1/business`, { credentials: "include" });
 
@@ -128,6 +180,25 @@ export async function getBusinessProfile(): Promise<BusinessProfile> {
 
 export async function updateBusinessProfile(request: BusinessProfileRequest): Promise<BusinessProfile> {
   const response = await fetch(`${baseUrl()}/api/v1/business`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to save your business profile."));
+  }
+
+  return response.json();
+}
+
+/** IG-295: updates a specific business by id (must be owned by the user). */
+export async function updateBusinessProfileById(
+  businessId: string,
+  request: BusinessProfileRequest
+): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses/${businessId}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -208,16 +279,72 @@ export function resolveLogoUrl(logoUrl: string): string {
  * which only works as a genuine browser navigation (it also needs to set a same-origin cookie
  * that a fetch response wouldn't get the browser to carry through the redirect the same way).
  */
-export function stripeConnectUrl(): string {
-  return `${baseUrl()}/api/v1/business/stripe/connect`;
+export function stripeConnectUrl(businessId: string): string {
+  return `${baseUrl()}/api/v1/businesses/${businessId}/stripe/connect`;
 }
 
-export async function disconnectStripe(): Promise<BusinessProfile> {
-  const response = await fetch(`${baseUrl()}/api/v1/business/stripe/disconnect`, { method: "POST", credentials: "include" });
+export async function disconnectStripe(businessId: string): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses/${businessId}/stripe/disconnect`, { method: "POST", credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to disconnect Stripe."));
   }
 
   return response.json();
+}
+
+/** The localStorage key BusinessContext persists the user's chosen business under (IG-295). */
+export const SELECTED_BUSINESS_STORAGE_KEY = "selectedBusinessId";
+
+/** IG-296: the business the user picked on /businesses, or null when nothing has been picked. */
+/** IG-296: forgets the stored selection, so the next session starts from the account default. */
+export function clearSelectedBusinessId(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.removeItem(SELECTED_BUSINESS_STORAGE_KEY);
+  } catch {
+    // Storage can be blocked; there is nothing to clear in that case.
+  }
+}
+
+export function readSelectedBusinessId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem(SELECTED_BUSINESS_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** IG-296: the business every business-scoped request is made against - the one the user picked,
+ * or the account's first (default) business when none has been picked yet. */
+export async function getActiveBusinessId(): Promise<string> {
+  const selected = readSelectedBusinessId();
+  if (selected) {
+    return selected;
+  }
+
+  const response = await fetch(`${baseUrl()}/api/v1/business`, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to load your business."));
+  }
+
+  const profile: BusinessProfile = await response.json();
+  return profile.id;
+}
+
+/** IG-296: a business-scoped API URL, e.g. businessRoute("/invoices") resolves to
+ * /api/v1/businesses/{activeBusinessId}/invoices. */
+export async function businessRoute(path: string): Promise<string> {
+  return `${baseUrl()}/api/v1/businesses/${await getActiveBusinessId()}${path}`;
+}
+
+/** IG-296: the API base for the active business, e.g. ${base}/api/v1/businesses/{id}, for URLs
+ * built from nested template literals where businessRoute's single-path form doesn't fit. */
+export async function businessApiBase(): Promise<string> {
+  return `${baseUrl()}/api/v1/businesses/${await getActiveBusinessId()}`;
 }

@@ -23,11 +23,12 @@ public sealed class InvoiceEmailDispatcher(
 {
     public async Task SendAsync(
         Guid userId,
+        Guid businessId,
         Guid invoiceId,
         InvoiceEmailRequest request,
         CancellationToken cancellationToken)
     {
-        var context = await invoiceService.PrepareInvoiceEmailAsync(userId, invoiceId, cancellationToken);
+        var context = await invoiceService.PrepareInvoiceEmailAsync(userId, businessId, invoiceId, cancellationToken);
         var pdfBytes = new InvoicePdfDocument(context.PdfRequest).GeneratePdf();
         var pdfFileName = InvoiceFilenameGenerator.Generate(context.PdfRequest.InvoiceNumber);
         var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
@@ -42,10 +43,10 @@ public sealed class InvoiceEmailDispatcher(
         {
             // The failure is recorded before it is rethrown, so a send that blew up is still
             // visible in the invoice's email history rather than vanishing with the exception.
-            await invoiceService.RecordEmailSentAsync(userId, invoiceId, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
+            await invoiceService.RecordEmailSentAsync(userId, businessId, invoiceId, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
             throw;
         }
 
-        await invoiceService.RecordEmailSentAsync(userId, invoiceId, request, InvoiceEmailStatus.Sent, null, cancellationToken);
+        await invoiceService.RecordEmailSentAsync(userId, businessId, invoiceId, request, InvoiceEmailStatus.Sent, null, cancellationToken);
     }
 }

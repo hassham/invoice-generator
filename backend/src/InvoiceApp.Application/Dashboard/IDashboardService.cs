@@ -9,5 +9,5 @@ public interface IDashboardService
     /// regardless of the period - both null default to the current calendar month (FSD's stated
     /// default).
     /// </summary>
-    Task<DashboardSummaryDto> GetSummaryAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken);
+    Task<DashboardSummaryDto> GetSummaryAsync(Guid userId, Guid businessId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken);
 }

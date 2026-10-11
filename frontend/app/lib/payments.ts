@@ -1,3 +1,5 @@
+import { businessRoute } from "./business";
+
 export type PaymentMethod = "Cash" | "BankTransfer" | "Card" | "PayPal" | "Cheque" | "Other";
 
 export const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "BankTransfer", "Card", "PayPal", "Cheque", "Other"];
@@ -49,7 +51,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
 /** FSD sections 66-72: account-owned sub-resource of an invoice, same credentials:"include"
  * convention as lib/invoiceDetail.ts. */
 export async function listPayments(invoiceId: string): Promise<Payment[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}/payments`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/invoices/${invoiceId}/payments`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load payments for this invoice."));
@@ -61,7 +63,7 @@ export async function listPayments(invoiceId: string): Promise<Payment[]> {
 /** FSD sections 69-71: rejects overpayment (400) and payments against a Cancelled invoice (409) -
  * surfaced via the thrown error's message, same pattern as cancelInvoice. */
 export async function recordPayment(invoiceId: string, request: PaymentRequest): Promise<RecordPaymentResult> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}/payments`, {
+  const response = await fetch(await businessRoute(`/invoices/${invoiceId}/payments`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -78,7 +80,7 @@ export async function recordPayment(invoiceId: string, request: PaymentRequest):
 /** FSD section 72: allowed regardless of the invoice's current status - a correction, not a new
  * payment. */
 export async function removePayment(invoiceId: string, paymentId: string): Promise<InvoicePaymentSummary> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}/payments/${paymentId}`, {
+  const response = await fetch(await businessRoute(`/invoices/${invoiceId}/payments/${paymentId}`), {
     method: "DELETE",
     credentials: "include",
   });

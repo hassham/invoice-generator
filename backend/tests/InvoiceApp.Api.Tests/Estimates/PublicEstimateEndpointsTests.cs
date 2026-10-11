@@ -19,7 +19,6 @@ namespace InvoiceApp.Api.Tests.Estimates;
 /// exactly for the new entity: anonymous access via a real token, generic 404 for anything else.</summary>
 public class PublicEstimateEndpointsTests
 {
-    private const string EstimatesEndpoint = "/api/v1/estimates";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -58,8 +57,8 @@ public class PublicEstimateEndpointsTests
     /// hosted-page tests send first to get a real one.</summary>
     private static async Task<string> CreateAndSendGetTokenAsync(AuthenticatedRouteTestFactory factory, HttpClient client, string estimateNumber)
     {
-        var created = await (await client.PostAsJsonAsync(EstimatesEndpoint, ValidRequest(estimateNumber))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
-        await client.PostAsJsonAsync($"{EstimatesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/estimates"), ValidRequest(estimateNumber))).Content.ReadFromJsonAsync<EstimateDto>(JsonOptions);
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/estimates")}/{created!.Id}/send-email", EmailRequest());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

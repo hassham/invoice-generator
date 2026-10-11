@@ -46,7 +46,7 @@ public class ReportPdfExportEndpointsTests
     private static async Task<Guid> InvoiceAsync(
         HttpClient client, string number, DateOnly issueDate, decimal amount, decimal taxRate = 10)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", new InvoiceSaveRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", new InvoiceSaveRequest(
             InvoiceNumber: number,
             IssueDate: issueDate,
             DueDate: issueDate.AddDays(14),
@@ -71,7 +71,7 @@ public class ReportPdfExportEndpointsTests
 
     private static async Task PayAsync(HttpClient client, Guid invoiceId, DateOnly paidOn, decimal amount)
     {
-        var response = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments",
             new PaymentRequest(paidOn, amount, PaymentMethod.BankTransfer, null, null));
         response.EnsureSuccessStatusCode();
     }
@@ -101,7 +101,7 @@ public class ReportPdfExportEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/reports/{report}/export/pdf");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/{report}/export/pdf");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -116,7 +116,7 @@ public class ReportPdfExportEndpointsTests
         // and must still produce a readable document rather than a 500 or a zero-byte file.
         foreach (var report in AllReports)
         {
-            var response = await client.GetAsync($"/api/v1/reports/{report}/export/pdf");
+            var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/{report}/export/pdf");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
             var bytes = await response.Content.ReadAsByteArrayAsync();
@@ -134,11 +134,11 @@ public class ReportPdfExportEndpointsTests
         await PayAsync(client, invoiceId, new DateOnly(2030, 8, 20), 1_000);
 
         var month = await client.GetAsync(
-            "/api/v1/reports/revenue/export/pdf?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
+            $"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue/export/pdf?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
         await AssertIsPdfAsync(month, "revenue-report-month.pdf");
 
         var quarter = await client.GetAsync(
-            "/api/v1/reports/revenue/export/pdf?periodType=quarter&startDate=2030-07-01&endDate=2030-09-30");
+            $"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue/export/pdf?periodType=quarter&startDate=2030-07-01&endDate=2030-09-30");
         await AssertIsPdfAsync(quarter, "revenue-report-quarter.pdf");
     }
 
@@ -150,7 +150,7 @@ public class ReportPdfExportEndpointsTests
 
         // Same guard as the JSON and CSV endpoints. Without it an unsupported periodType would
         // reach GetPeriodKey and surface as a 500 from inside the renderer.
-        var response = await client.GetAsync("/api/v1/reports/revenue/export/pdf?periodType=fortnight");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue/export/pdf?periodType=fortnight");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -162,13 +162,13 @@ public class ReportPdfExportEndpointsTests
         using var client = await RegisteredClientAsync(factory, "pdf-names@example.com");
 
         await AssertIsPdfAsync(
-            await client.GetAsync("/api/v1/reports/outstanding/export/pdf"), "outstanding-invoices.pdf");
+            await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/outstanding/export/pdf"), "outstanding-invoices.pdf");
         await AssertIsPdfAsync(
-            await client.GetAsync("/api/v1/reports/overdue/export/pdf"), "overdue-invoices.pdf");
+            await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/overdue/export/pdf"), "overdue-invoices.pdf");
         await AssertIsPdfAsync(
-            await client.GetAsync("/api/v1/reports/by-customer/export/pdf"), "revenue-by-customer.pdf");
+            await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/by-customer/export/pdf"), "revenue-by-customer.pdf");
         await AssertIsPdfAsync(
-            await client.GetAsync("/api/v1/reports/tax-summary/export/pdf"), "tax-summary.pdf");
+            await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/tax-summary/export/pdf"), "tax-summary.pdf");
     }
 
     [Fact]
@@ -188,9 +188,9 @@ public class ReportPdfExportEndpointsTests
         await PayAsync(other, otherInvoice, new DateOnly(2030, 8, 20), 99_000);
 
         var ownerPdf = await client_GetAsync(owner,
-            "/api/v1/reports/revenue/export/pdf?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
+            $"{await DefaultBusinessRoutes.RouteAsync(owner, "/reports")}/revenue/export/pdf?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
         var otherPdf = await client_GetAsync(other,
-            "/api/v1/reports/revenue/export/pdf?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
+            $"{await DefaultBusinessRoutes.RouteAsync(other, "/reports")}/revenue/export/pdf?periodType=month&startDate=2030-08-01&endDate=2030-08-31");
 
         // Two accounts with very different figures must not produce byte-identical documents. This
         // is a weak assertion on its own, but it is the strongest one available without decoding
@@ -217,8 +217,8 @@ public class ReportPdfExportEndpointsTests
 
         const string filters = "periodType=month&startDate=2030-08-01&endDate=2030-08-31";
 
-        var csv = await client.GetStringAsync($"/api/v1/reports/revenue/export/csv?{filters}");
-        var pdf = await client.GetAsync($"/api/v1/reports/revenue/export/pdf?{filters}");
+        var csv = await client.GetStringAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue/export/csv?{filters}");
+        var pdf = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue/export/pdf?{filters}");
 
         // The figure the CSV prints for August is the one the PDF was built from - both endpoints
         // call GetRevenueReportAsync with these same arguments. Asserting the CSV's value here
@@ -239,11 +239,11 @@ public class ReportPdfExportEndpointsTests
 
         // Same service call as the on-screen report, so the CSV is the readable proof of which
         // invoices went in; the PDF is generated from that same list in the same request shape.
-        var csv = await client.GetStringAsync("/api/v1/reports/outstanding/export/csv");
+        var csv = await client.GetStringAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/outstanding/export/csv");
         Assert.Contains("PDF-OWING", csv);
         Assert.DoesNotContain("PDF-SETTLED", csv);
 
         await AssertIsPdfAsync(
-            await client.GetAsync("/api/v1/reports/outstanding/export/pdf"), "outstanding-invoices.pdf");
+            await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/outstanding/export/pdf"), "outstanding-invoices.pdf");
     }
 }

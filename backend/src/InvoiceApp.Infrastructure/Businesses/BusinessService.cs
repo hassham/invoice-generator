@@ -14,10 +14,65 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return ToDto(business);
     }
 
+    public async Task<BusinessProfileDto> GetAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, businessId, cancellationToken);
+        return ToDto(business);
+    }
+
+    public async Task<List<BusinessProfileDto>> ListAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var businesses = await dbContext.Businesses
+            .Where(b => b.UserId == userId)
+            .OrderBy(b => b.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return businesses.Select(ToDto).ToList();
+    }
+
+    public async Task<BusinessProfileDto> CreateAsync(Guid userId, CreateBusinessRequest request, CancellationToken cancellationToken)
+    {
+        var business = new Business
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            BusinessName = request.BusinessName.Trim(),
+            Country = request.Country.Trim().ToUpperInvariant(),
+            DefaultCurrency = request.DefaultCurrency.Trim().ToUpperInvariant(),
+            DefaultTaxRate = request.DefaultTaxRate,
+            TaxCalculationMethod = request.TaxCalculationMethod,
+            DefaultPaymentTerms = request.DefaultPaymentTerms,
+            DefaultPaymentTermsDays = request.DefaultPaymentTerms == PaymentTermsOption.Custom ? request.DefaultPaymentTermsDays : null,
+            InvoicePrefix = request.InvoicePrefix.Trim(),
+            NextInvoiceNumber = 1,
+            InvoiceNumberPadding = request.InvoiceNumberPadding,
+            EstimatePrefix = request.EstimatePrefix.Trim(),
+            NextEstimateNumber = 1,
+            EstimateNumberPadding = request.EstimateNumberPadding,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        dbContext.Businesses.Add(business);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(business);
+    }
+
     public async Task<BusinessProfileDto> UpdateAsync(Guid userId, BusinessProfileRequest request, CancellationToken cancellationToken)
     {
         var business = await FindOwnedAsync(userId, cancellationToken);
+        return await UpdateCoreAsync(business, request, cancellationToken);
+    }
 
+    public async Task<BusinessProfileDto> UpdateAsync(Guid userId, Guid businessId, BusinessProfileRequest request, CancellationToken cancellationToken)
+    {
+        var business = await FindOwnedAsync(userId, businessId, cancellationToken);
+        return await UpdateCoreAsync(business, request, cancellationToken);
+    }
+
+    private async Task<BusinessProfileDto> UpdateCoreAsync(Business business, BusinessProfileRequest request, CancellationToken cancellationToken)
+    {
         // IG-54 AC: "conflicting settings are rejected clearly" - a config change that would make
         // the *next* generated number collide with one that already exists for this business is
         // rejected outright, not silently left to surface as a save-time conflict much later.
@@ -148,9 +203,9 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return ToDto(business);
     }
 
-    public async Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, string stripeAccountId, CancellationToken cancellationToken)
+    public async Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, Guid businessId, string stripeAccountId, CancellationToken cancellationToken)
     {
-        var business = await FindOwnedAsync(userId, cancellationToken);
+        var business = await FindOwnedAsync(userId, businessId, cancellationToken);
 
         business.StripeAccountId = stripeAccountId;
         business.StripeConnectedAt = DateTimeOffset.UtcNow;
@@ -161,9 +216,9 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return ToDto(business);
     }
 
-    public async Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var business = await FindOwnedAsync(userId, cancellationToken);
+        var business = await FindOwnedAsync(userId, businessId, cancellationToken);
 
         business.StripeAccountId = null;
         business.StripeConnectedAt = null;
@@ -175,7 +230,21 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
     }
 
     private async Task<Business> FindOwnedAsync(Guid userId, CancellationToken cancellationToken) =>
-        await dbContext.Businesses.SingleAsync(business => business.UserId == userId, cancellationToken);
+        await dbContext.Businesses
+            .Where(business => business.UserId == userId)
+            .OrderBy(business => business.CreatedAt)
+            .FirstAsync(cancellationToken);
+
+    // IG-295: an id that exists but belongs to another account is reported exactly like one that
+    // doesn't exist at all, so the API never confirms another account's business ids.
+    private async Task<Business> FindOwnedAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
+    {
+        var business = await dbContext.Businesses.FirstOrDefaultAsync(
+            b => b.UserId == userId && b.Id == businessId,
+            cancellationToken);
+
+        return business ?? throw new NotFoundException("Business not found.");
+    }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

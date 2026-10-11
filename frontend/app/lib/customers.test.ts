@@ -1,5 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { archiveCustomer, createCustomer, getCustomer, listCustomers, updateCustomer } from "./customers";
+
+// IG-296: the active business comes from the stored selection, so these tests never need the
+// extra /api/v1/business lookup that happens when nothing is selected.
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 const sampleCustomer = {
   id: "c1",
@@ -113,7 +119,7 @@ describe("updateCustomer", () => {
     await updateCustomer("c1", sampleRequest);
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("/api/v1/customers/c1");
+    expect(url).toContain("/api/v1/businesses/biz-1/customers/c1");
     expect(init.method).toBe("PUT");
     expect(init.credentials).toBe("include");
   });
@@ -127,7 +133,7 @@ describe("archiveCustomer", () => {
     await archiveCustomer("c1");
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("/api/v1/customers/c1");
+    expect(url).toContain("/api/v1/businesses/biz-1/customers/c1");
     expect(init.method).toBe("DELETE");
     expect(init.credentials).toBe("include");
   });

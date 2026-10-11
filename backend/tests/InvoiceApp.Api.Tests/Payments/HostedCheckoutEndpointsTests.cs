@@ -19,7 +19,6 @@ namespace InvoiceApp.Api.Tests.Payments;
 /// paid), and confirmation's server-side verification + idempotency.</summary>
 public class HostedCheckoutEndpointsTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -53,7 +52,7 @@ public class HostedCheckoutEndpointsTests
 
     private static async Task<(Guid InvoiceId, string Token)> CreateInvoiceAndGetTokenAsync(AuthenticatedRouteTestFactory factory, HttpClient client, string invoiceNumber)
     {
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber));
         createResponse.EnsureSuccessStatusCode();
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
@@ -116,7 +115,7 @@ public class HostedCheckoutEndpointsTests
         using var client = await RegisteredClientAsync(factory, "checkout-cancelled@example.com");
         var (invoiceId, token) = await CreateInvoiceAndGetTokenAsync(factory, client, "INV-CHK-3");
         await ConnectStripeAsync(factory, "INV-CHK-3");
-        await client.PostAsync($"{InvoicesEndpoint}/{invoiceId}/cancel", null);
+        await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{invoiceId}/cancel", null);
 
         using var anonymousClient = factory.CreateClient();
         var response = await anonymousClient.PostAsync($"/api/v1/public/invoices/{token}/checkout-session", null);

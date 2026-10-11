@@ -71,7 +71,7 @@ public class PurchaseOrderEndpointsTests
 
     private static async Task<Guid> SupplierIdAsync(HttpClient client, string name = "Bolt Supply Co")
     {
-        var response = await client.PostAsJsonAsync("/api/v1/customers", ValidSupplier(name));
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}", ValidSupplier(name));
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
         return created!.Id;
@@ -257,7 +257,7 @@ public class PurchaseOrderEndpointsTests
         var businessId = await BusinessIdAsync(client);
         var supplierId = await SupplierIdAsync(client);
 
-        var invoice = await client.PostAsJsonAsync("/api/v1/invoices", new InvoiceSaveRequest(
+        var invoice = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", new InvoiceSaveRequest(
             InvoiceNumber: "INV-0007",
             IssueDate: IssueDate,
             DueDate: DueDate,

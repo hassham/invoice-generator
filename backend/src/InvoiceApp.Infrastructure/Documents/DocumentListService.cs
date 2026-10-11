@@ -1,4 +1,5 @@
 using InvoiceApp.Application.Documents;
+using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Domain.Estimates;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
@@ -54,12 +55,16 @@ public sealed class DocumentListService(ApplicationDbContext dbContext) : IDocum
         EstimateStatus? EstimateStatus,
         bool IsOverdue);
 
-    public async Task<DocumentListResponse> ListAsync(Guid userId, DocumentListQuery query, CancellationToken cancellationToken)
+    public async Task<DocumentListResponse> ListAsync(Guid userId, Guid businessId, DocumentListQuery query, CancellationToken cancellationToken)
     {
-        var businessId = await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+        // IG-296: the business must belong to the caller; another account's id is not found.
+        var owned = await dbContext.Businesses.AnyAsync(
+            business => business.Id == businessId && business.UserId == userId,
+            cancellationToken);
+        if (!owned)
+        {
+            throw new NotFoundException("Business not found.");
+        }
 
         // Same bounds as the invoice list (FSD section 112): default 25, hard ceiling 100, and an
         // out-of-range value falls back to the default rather than erroring.

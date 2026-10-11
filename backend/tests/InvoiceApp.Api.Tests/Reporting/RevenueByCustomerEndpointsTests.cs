@@ -40,7 +40,7 @@ public class RevenueByCustomerEndpointsTests
     private static async Task<Guid> InvoiceAsync(
         HttpClient client, string number, string customer, DateOnly issueDate, decimal amount)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", new InvoiceSaveRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", new InvoiceSaveRequest(
             InvoiceNumber: number,
             IssueDate: issueDate,
             DueDate: issueDate.AddDays(14),
@@ -65,14 +65,14 @@ public class RevenueByCustomerEndpointsTests
 
     private static async Task PayAsync(HttpClient client, Guid invoiceId, DateOnly paidOn, decimal amount)
     {
-        var response = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments",
             new PaymentRequest(paidOn, amount, PaymentMethod.BankTransfer, null, null));
         response.EnsureSuccessStatusCode();
     }
 
     private static async Task<List<RevenueByCustomerDto>> ReportAsync(HttpClient client, string query)
     {
-        var response = await client.GetAsync($"/api/v1/reports/by-customer{query}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/by-customer{query}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<List<RevenueByCustomerDto>>(JsonOptions))!;
     }
@@ -88,7 +88,7 @@ public class RevenueByCustomerEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/reports/by-customer{August}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/by-customer{August}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -159,7 +159,7 @@ public class RevenueByCustomerEndpointsTests
         var byCustomer = await ReportAsync(client, "?startDate=2030-10-01&endDate=2030-10-31");
 
         var revenueResponse = await client.GetAsync(
-            "/api/v1/reports/revenue?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
+            $"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/revenue?periodType=month&startDate=2030-10-01&endDate=2030-10-31");
         revenueResponse.EnsureSuccessStatusCode();
         var revenue = (await revenueResponse.Content.ReadFromJsonAsync<RevenueReportDto>(JsonOptions))!;
 
@@ -198,7 +198,7 @@ public class RevenueByCustomerEndpointsTests
         await PayAsync(client, kept, new DateOnly(2030, 8, 10), 200);
         var removed = await InvoiceAsync(client, "BC-GONE", "Acme Pty Ltd", new DateOnly(2030, 8, 6), 800);
         await PayAsync(client, removed, new DateOnly(2030, 8, 11), 800);
-        (await client.DeleteAsync($"/api/v1/invoices/{removed}")).EnsureSuccessStatusCode();
+        (await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{removed}")).EnsureSuccessStatusCode();
 
         var report = await ReportAsync(client, August);
 

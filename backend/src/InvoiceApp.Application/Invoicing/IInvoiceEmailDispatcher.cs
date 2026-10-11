@@ -16,5 +16,5 @@ namespace InvoiceApp.Application.Invoicing;
 /// </summary>
 public interface IInvoiceEmailDispatcher
 {
-    Task SendAsync(Guid userId, Guid invoiceId, InvoiceEmailRequest request, CancellationToken cancellationToken);
+    Task SendAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, CancellationToken cancellationToken);
 }

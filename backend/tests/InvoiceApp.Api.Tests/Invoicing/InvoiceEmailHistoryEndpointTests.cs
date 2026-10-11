@@ -14,7 +14,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// via the email-history endpoint, account-owned like everything else.</summary>
 public class InvoiceEmailHistoryEndpointTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -54,7 +53,7 @@ public class InvoiceEmailHistoryEndpointTests
 
     private static async Task<List<InvoiceEmailLogDto>> GetHistoryAsync(HttpClient client, Guid invoiceId)
     {
-        var response = await client.GetAsync($"{InvoicesEndpoint}/{invoiceId}/email-history");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{invoiceId}/email-history");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<List<InvoiceEmailLogDto>>(JsonOptions))!;
     }
@@ -64,7 +63,7 @@ public class InvoiceEmailHistoryEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "history-empty@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HIST-1"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-HIST-1"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         var history = await GetHistoryAsync(client, created!.Id);
 
@@ -76,10 +75,10 @@ public class InvoiceEmailHistoryEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "history-sent@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HIST-2"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-HIST-2"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         var before = DateTimeOffset.UtcNow;
 
-        await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}/send-email", EmailRequest());
         var history = await GetHistoryAsync(client, created.Id);
 
         var entry = Assert.Single(history);
@@ -95,10 +94,10 @@ public class InvoiceEmailHistoryEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "history-failed@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HIST-3"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-HIST-3"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         factory.InvoiceEmailSender.ThrowOnSend = new InvalidOperationException("SMTP connection refused");
 
-        var sendResponse = await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest());
+        var sendResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}/send-email", EmailRequest());
 
         Assert.Equal(HttpStatusCode.InternalServerError, sendResponse.StatusCode);
         var history = await GetHistoryAsync(client, created.Id);
@@ -112,10 +111,10 @@ public class InvoiceEmailHistoryEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "history-multiple@example.com");
-        var created = await (await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HIST-4"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-HIST-4"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}/send-email", EmailRequest());
-        await client.PostAsJsonAsync($"{InvoicesEndpoint}/{created.Id}/send-email", EmailRequest() with { Subject = "Second send" });
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}/send-email", EmailRequest());
+        await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created.Id}/send-email", EmailRequest() with { Subject = "Second send" });
 
         var history = await GetHistoryAsync(client, created.Id);
 
@@ -130,7 +129,7 @@ public class InvoiceEmailHistoryEndpointTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.GetAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}/email-history");
+        var response = await anonymousClient.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(anonymousClient)}/{Guid.NewGuid()}/email-history");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -140,10 +139,10 @@ public class InvoiceEmailHistoryEndpointTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "history-owner@example.com");
-        var created = await (await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HIST-5"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var created = await (await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(ownerClient), ValidRequest("INV-HIST-5"))).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         using var otherClient = await RegisteredClientAsync(factory, "history-other@example.com");
 
-        var response = await otherClient.GetAsync($"{InvoicesEndpoint}/{created!.Id}/email-history");
+        var response = await otherClient.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{created!.Id}/email-history");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

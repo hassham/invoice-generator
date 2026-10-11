@@ -21,7 +21,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// </summary>
 public class InvoiceSaveEndpointsTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     // Mirrors Program.cs's global JsonStringEnumConverter registration (InvoiceStatus is
     // serialized as its string name over the wire) - HttpClient's ReadFromJsonAsync doesn't pick
@@ -67,7 +66,7 @@ public class InvoiceSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -78,7 +77,7 @@ public class InvoiceSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "save-create@example.com");
 
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(customer: "Acme Pty Ltd\n123 Main St"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(customer: "Acme Pty Ltd\n123 Main St"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -86,7 +85,7 @@ public class InvoiceSaveEndpointsTests
         Assert.Equal("INV-0001", created!.InvoiceNumber);
         Assert.Equal(InvoiceStatus.Draft, created.Status);
         Assert.Equal(220m, created.TotalAmount); // 2 * 100 = 200 + 10% tax = 220
-        Assert.Equal($"{InvoicesEndpoint}/{created.Id}", response.Headers.Location?.OriginalString);
+        Assert.Equal($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created.Id}", response.Headers.Location?.OriginalString);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -100,10 +99,10 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "save-reuse@example.com");
-        var first = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0001", customer: "Acme Pty Ltd"));
+        var first = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: "INV-0001", customer: "Acme Pty Ltd"));
         var firstInvoice = await first.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var second = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0002", customer: "acme pty ltd"));
+        var second = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: "INV-0002", customer: "acme pty ltd"));
         var secondInvoice = await second.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         Assert.Equal(firstInvoice!.CustomerId, secondInvoice!.CustomerId);
@@ -117,9 +116,9 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "save-conflict@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-DUPLICATE"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: "INV-DUPLICATE"));
 
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-DUPLICATE", customer: "A Different Customer"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: "INV-DUPLICATE", customer: "A Different Customer"));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -132,7 +131,7 @@ public class InvoiceSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "save-invalid@example.com");
 
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest() with { Customer = "" });
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest() with { Customer = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -144,11 +143,11 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "save-update@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         var updateRequest = ValidRequest() with { Items = [new InvoiceSaveLineItem("Updated Service", 1, null, 500, 10, 0)] };
-        var updateResponse = await client.PutAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}", updateRequest);
+        var updateResponse = await client.PutAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}", updateRequest);
 
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
         var updated = await updateResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -167,11 +166,11 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "save-owner@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(ownerClient), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         using var otherClient = await RegisteredClientAsync(factory, "save-other@example.com");
-        var response = await otherClient.PutAsJsonAsync($"{InvoicesEndpoint}/{created!.Id}", ValidRequest());
+        var response = await otherClient.PutAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{created!.Id}", ValidRequest());
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -182,7 +181,7 @@ public class InvoiceSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -193,10 +192,10 @@ public class InvoiceSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "get-detail@example.com");
         var request = ValidRequest() with { ShipTo = "Warehouse 3\n45 Dock Rd" };
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, request);
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), request);
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var response = await client.GetAsync($"{InvoicesEndpoint}/{created!.Id}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var detail = await response.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
@@ -219,13 +218,13 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "get-after-update@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await client.PutAsJsonAsync(
-            $"{InvoicesEndpoint}/{created!.Id}",
+            $"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}",
             ValidRequest() with { Items = [new InvoiceSaveLineItem("Updated Service", 1, null, 500, 10, 0)] });
 
-        var response = await client.GetAsync($"{InvoicesEndpoint}/{created.Id}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created.Id}");
 
         var detail = await response.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
         Assert.Single(detail!.Items);
@@ -238,11 +237,11 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "get-owner@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest());
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(ownerClient), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         using var otherClient = await RegisteredClientAsync(factory, "get-other@example.com");
-        var response = await otherClient.GetAsync($"{InvoicesEndpoint}/{created!.Id}");
+        var response = await otherClient.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -253,7 +252,7 @@ public class InvoiceSaveEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync(InvoicesEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -263,13 +262,13 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "list-owner@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0001", customer: "Acme Pty Ltd"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0002", customer: "Beta Pty Ltd"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: "INV-0001", customer: "Acme Pty Ltd"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: "INV-0002", customer: "Beta Pty Ltd"));
 
         using var otherClient = await RegisteredClientAsync(factory, "list-other@example.com");
-        await otherClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: "INV-0001", customer: "Someone Else"));
+        await otherClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient), ValidRequest(invoiceNumber: "INV-0001", customer: "Someone Else"));
 
-        var response = await client.GetAsync(InvoicesEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
@@ -291,12 +290,12 @@ public class InvoiceSaveEndpointsTests
         using var client = await RegisteredClientAsync(factory, "list-paginate@example.com");
         for (var i = 1; i <= 3; i++)
         {
-            await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber: $"INV-000{i}"));
+            await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber: $"INV-000{i}"));
         }
 
-        var firstPage = await (await client.GetAsync($"{InvoicesEndpoint}?page=1&pageSize=2")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
-        var secondPage = await (await client.GetAsync($"{InvoicesEndpoint}?page=2&pageSize=2")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
-        var outOfRangePageSize = await (await client.GetAsync($"{InvoicesEndpoint}?pageSize=0")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+        var firstPage = await (await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}?page=1&pageSize=2")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+        var secondPage = await (await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}?page=2&pageSize=2")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
+        var outOfRangePageSize = await (await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}?pageSize=0")).Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
 
         Assert.Equal(2, firstPage!.Items.Count);
         Assert.Single(secondPage!.Items);
@@ -312,13 +311,13 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "picker-select@example.com");
-        var customerResponse = await client.PostAsJsonAsync("/api/v1/customers", ValidCustomerRequest("Selected Customer Pty Ltd"));
+        var customerResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}", ValidCustomerRequest("Selected Customer Pty Ltd"));
         var customer = await customerResponse.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
 
         // Free text deliberately does NOT match the selected customer's name - proves the id wins
         // over the find-or-create heuristic rather than the text being re-matched/re-created.
         var request = ValidRequest(customer: "Some Unrelated Typed Text") with { CustomerId = customer!.Id };
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, request);
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), request);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -334,12 +333,12 @@ public class InvoiceSaveEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "picker-owner@example.com");
-        var customerResponse = await ownerClient.PostAsJsonAsync("/api/v1/customers", ValidCustomerRequest());
+        var customerResponse = await ownerClient.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(ownerClient)}", ValidCustomerRequest());
         var customer = await customerResponse.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
 
         using var otherClient = await RegisteredClientAsync(factory, "picker-other@example.com");
         var request = ValidRequest() with { CustomerId = customer!.Id };
-        var response = await otherClient.PostAsJsonAsync(InvoicesEndpoint, request);
+        var response = await otherClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient), request);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -351,7 +350,7 @@ public class InvoiceSaveEndpointsTests
         using var client = await RegisteredClientAsync(factory, "picker-missing@example.com");
 
         var request = ValidRequest() with { CustomerId = Guid.NewGuid() };
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, request);
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), request);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

@@ -1,7 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CustomerListView } from "./CustomerListView";
+
+// IG-296: the active business comes from the stored selection, so these tests never see the
+// extra /api/v1/business lookup that runs when nothing is selected.
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 const sampleCustomer = {
   id: "c1",
@@ -90,7 +96,7 @@ describe("CustomerListView", () => {
     await user.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => expect(screen.queryByText("Acme Pty Ltd")).not.toBeInTheDocument());
-    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/v1/customers/c1"), expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/v1/businesses/biz-1/customers/c1"), expect.objectContaining({ method: "DELETE" }));
   });
 
   it("shows an error when archiving fails, keeping the customer in the list", async () => {

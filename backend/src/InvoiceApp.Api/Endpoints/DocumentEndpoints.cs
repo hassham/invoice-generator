@@ -24,7 +24,7 @@ public static class DocumentEndpoints
         // IG-237: one list across every document type. The per-type list endpoints stay exactly as
         // they are - this sits alongside them rather than replacing them, so nothing that already
         // reads /api/v1/invoices or /purchase-orders changes behaviour.
-        app.MapGet("/api/v1/documents", ListAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/documents", ListAsync).RequireAuthorization();
         return app;
     }
 
@@ -39,6 +39,7 @@ public static class DocumentEndpoints
     }
 
     private static async Task<IResult> ListAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IDocumentListService documentListService,
         CancellationToken cancellationToken,
@@ -52,7 +53,7 @@ public static class DocumentEndpoints
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var query = new DocumentListQuery(page, pageSize, search, documentType, startDate, endDate, sort);
-        var result = await documentListService.ListAsync(userId, query, cancellationToken);
+        var result = await documentListService.ListAsync(userId, businessId, query, cancellationToken);
         return Results.Ok(result);
     }
 }

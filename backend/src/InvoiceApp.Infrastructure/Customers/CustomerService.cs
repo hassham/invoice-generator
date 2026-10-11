@@ -8,9 +8,9 @@ namespace InvoiceApp.Infrastructure.Customers;
 
 public sealed class CustomerService(ApplicationDbContext dbContext) : ICustomerService
 {
-    public async Task<IReadOnlyList<CustomerDto>> ListAsync(Guid userId, bool includeArchived, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CustomerDto>> ListAsync(Guid userId, Guid businessId, bool includeArchived, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
 
         var query = dbContext.Customers.Where(customer => customer.BusinessId == businessId);
         if (!includeArchived)
@@ -22,15 +22,15 @@ public sealed class CustomerService(ApplicationDbContext dbContext) : ICustomerS
         return customers.Select(ToDto).ToList();
     }
 
-    public async Task<CustomerDto> GetAsync(Guid userId, Guid customerId, CancellationToken cancellationToken)
+    public async Task<CustomerDto> GetAsync(Guid userId, Guid businessId, Guid customerId, CancellationToken cancellationToken)
     {
-        var customer = await FindOwnedAsync(userId, customerId, cancellationToken);
+        var customer = await FindOwnedAsync(userId, businessId, customerId, cancellationToken);
         return ToDto(customer);
     }
 
-    public async Task<CustomerDto> CreateAsync(Guid userId, CustomerRequest request, CancellationToken cancellationToken)
+    public async Task<CustomerDto> CreateAsync(Guid userId, Guid businessId, CustomerRequest request, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
         var customer = new Customer
@@ -60,9 +60,9 @@ public sealed class CustomerService(ApplicationDbContext dbContext) : ICustomerS
         return ToDto(customer);
     }
 
-    public async Task<CustomerDto> UpdateAsync(Guid userId, Guid customerId, CustomerRequest request, CancellationToken cancellationToken)
+    public async Task<CustomerDto> UpdateAsync(Guid userId, Guid businessId, Guid customerId, CustomerRequest request, CancellationToken cancellationToken)
     {
-        var customer = await FindOwnedAsync(userId, customerId, cancellationToken);
+        var customer = await FindOwnedAsync(userId, businessId, customerId, cancellationToken);
 
         customer.BusinessName = request.BusinessName;
         customer.ContactName = request.ContactName;
@@ -83,9 +83,9 @@ public sealed class CustomerService(ApplicationDbContext dbContext) : ICustomerS
         return ToDto(customer);
     }
 
-    public async Task ArchiveAsync(Guid userId, Guid customerId, CancellationToken cancellationToken)
+    public async Task ArchiveAsync(Guid userId, Guid businessId, Guid customerId, CancellationToken cancellationToken)
     {
-        var customer = await FindOwnedAsync(userId, customerId, cancellationToken);
+        var customer = await FindOwnedAsync(userId, businessId, customerId, cancellationToken);
 
         // FSD section 58: archive, never hard-delete - historical invoices reference customers and
         // must keep resolving. Idempotent: archiving an already-archived customer is a no-op, not
@@ -96,20 +96,23 @@ public sealed class CustomerService(ApplicationDbContext dbContext) : ICustomerS
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken)
+    /// <summary>The business must belong to the signed-in account. Not found and "belongs to
+    /// someone else" return the same 404, so another account's business ids are never disclosed.</summary>
+    private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        // Every account gets exactly one Business row at registration (AccountRegistrationService)
-        // - this is what makes a customer "account-owned" (IG-55 AC) rather than needing a
-        // caller-supplied business id that a request could try to spoof.
-        return await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+        var owned = await dbContext.Businesses.AnyAsync(
+            business => business.Id == businessId && business.UserId == userId,
+            cancellationToken);
+
+        if (!owned)
+        {
+            throw new NotFoundException("Business not found.");
+        }
     }
 
-    private async Task<Customer> FindOwnedAsync(Guid userId, Guid customerId, CancellationToken cancellationToken)
+    private async Task<Customer> FindOwnedAsync(Guid userId, Guid businessId, Guid customerId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
 
         // Not found and "belongs to someone else" return the same 404 - existence of another
         // account's customer is never disclosed, same anti-enumeration precedent used elsewhere

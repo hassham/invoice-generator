@@ -46,7 +46,7 @@ public class TaxSummaryEndpointsTests
     /// account's own default tax rate is 0 (Engineering Note 45), so the rate has to be passed.</summary>
     private static async Task<Guid> InvoiceAsync(HttpClient client, string number, DateOnly issueDate, decimal amount)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", new InvoiceSaveRequest(
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", new InvoiceSaveRequest(
             InvoiceNumber: number,
             IssueDate: issueDate,
             DueDate: issueDate.AddDays(14),
@@ -71,20 +71,20 @@ public class TaxSummaryEndpointsTests
 
     private static async Task CancelAsync(HttpClient client, Guid invoiceId)
     {
-        var response = await client.PostAsync($"/api/v1/invoices/{invoiceId}/cancel", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{invoiceId}/cancel", null);
         response.EnsureSuccessStatusCode();
     }
 
     private static async Task PayAsync(HttpClient client, Guid invoiceId, DateOnly paidOn, decimal amount)
     {
-        var response = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments",
             new PaymentRequest(paidOn, amount, PaymentMethod.BankTransfer, null, null));
         response.EnsureSuccessStatusCode();
     }
 
     private static async Task<TaxSummaryDto> SummaryAsync(HttpClient client, string query = Range)
     {
-        var response = await client.GetAsync($"/api/v1/reports/tax-summary{query}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/tax-summary{query}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<TaxSummaryDto>(JsonOptions))!;
     }
@@ -95,7 +95,7 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/reports/tax-summary{Range}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/reports")}/tax-summary{Range}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -258,7 +258,7 @@ public class TaxSummaryEndpointsTests
 
         await InvoiceAsync(client, "TAX-D-KEEP", new DateOnly(2030, 8, 10), 1_000);
         var removed = await InvoiceAsync(client, "TAX-D-GONE", new DateOnly(2030, 8, 11), 4_000);
-        (await client.DeleteAsync($"/api/v1/invoices/{removed}")).EnsureSuccessStatusCode();
+        (await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{removed}")).EnsureSuccessStatusCode();
 
         var summary = await SummaryAsync(client);
 

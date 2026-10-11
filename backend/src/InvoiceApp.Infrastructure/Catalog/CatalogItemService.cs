@@ -8,9 +8,9 @@ namespace InvoiceApp.Infrastructure.Catalog;
 
 public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalogItemService
 {
-    public async Task<IReadOnlyList<CatalogItemDto>> ListAsync(Guid userId, bool includeArchived, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CatalogItemDto>> ListAsync(Guid userId, Guid businessId, bool includeArchived, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
 
         var query = dbContext.CatalogItems.Where(item => item.BusinessId == businessId);
         if (!includeArchived)
@@ -22,15 +22,15 @@ public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalo
         return items.Select(ToDto).ToList();
     }
 
-    public async Task<CatalogItemDto> GetAsync(Guid userId, Guid itemId, CancellationToken cancellationToken)
+    public async Task<CatalogItemDto> GetAsync(Guid userId, Guid businessId, Guid itemId, CancellationToken cancellationToken)
     {
-        var item = await FindOwnedAsync(userId, itemId, cancellationToken);
+        var item = await FindOwnedAsync(userId, businessId, itemId, cancellationToken);
         return ToDto(item);
     }
 
-    public async Task<CatalogItemDto> CreateAsync(Guid userId, CatalogItemRequest request, CancellationToken cancellationToken)
+    public async Task<CatalogItemDto> CreateAsync(Guid userId, Guid businessId, CatalogItemRequest request, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
         var item = new CatalogItem
@@ -54,9 +54,9 @@ public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalo
         return ToDto(item);
     }
 
-    public async Task<CatalogItemDto> UpdateAsync(Guid userId, Guid itemId, CatalogItemRequest request, CancellationToken cancellationToken)
+    public async Task<CatalogItemDto> UpdateAsync(Guid userId, Guid businessId, Guid itemId, CatalogItemRequest request, CancellationToken cancellationToken)
     {
-        var item = await FindOwnedAsync(userId, itemId, cancellationToken);
+        var item = await FindOwnedAsync(userId, businessId, itemId, cancellationToken);
 
         item.Name = request.Name.Trim();
         item.Description = request.Description;
@@ -71,9 +71,9 @@ public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalo
         return ToDto(item);
     }
 
-    public async Task ArchiveAsync(Guid userId, Guid itemId, CancellationToken cancellationToken)
+    public async Task ArchiveAsync(Guid userId, Guid businessId, Guid itemId, CancellationToken cancellationToken)
     {
-        var item = await FindOwnedAsync(userId, itemId, cancellationToken);
+        var item = await FindOwnedAsync(userId, businessId, itemId, cancellationToken);
 
         // FSD section 61: archive, never hard-delete - historical invoices store their own
         // snapshot of an item's fields (FSD section 25), not a live reference, but the catalogue
@@ -85,9 +85,9 @@ public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalo
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<CatalogItemDto> DuplicateAsync(Guid userId, Guid itemId, CancellationToken cancellationToken)
+    public async Task<CatalogItemDto> DuplicateAsync(Guid userId, Guid businessId, Guid itemId, CancellationToken cancellationToken)
     {
-        var source = await FindOwnedAsync(userId, itemId, cancellationToken);
+        var source = await FindOwnedAsync(userId, businessId, itemId, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
         var duplicate = new CatalogItem
@@ -113,20 +113,23 @@ public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalo
         return ToDto(duplicate);
     }
 
-    private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken)
+    /// <summary>The business must belong to the signed-in account. Not found and "belongs to
+    /// someone else" return the same 404, so another account's business ids are never disclosed.</summary>
+    private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        // Every account gets exactly one Business row at registration (AccountRegistrationService)
-        // - this is what makes an item "account-owned" (IG-57 AC) rather than needing a
-        // caller-supplied business id that a request could try to spoof.
-        return await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+        var owned = await dbContext.Businesses.AnyAsync(
+            business => business.Id == businessId && business.UserId == userId,
+            cancellationToken);
+
+        if (!owned)
+        {
+            throw new NotFoundException("Business not found.");
+        }
     }
 
-    private async Task<CatalogItem> FindOwnedAsync(Guid userId, Guid itemId, CancellationToken cancellationToken)
+    private async Task<CatalogItem> FindOwnedAsync(Guid userId, Guid businessId, Guid itemId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
 
         // Not found and "belongs to someone else" return the same 404 - existence of another
         // account's item is never disclosed, same anti-enumeration precedent as

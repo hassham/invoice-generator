@@ -123,7 +123,7 @@ public sealed class ReportingQueryTranslationTests : IClassFixture<PostgresAvail
         var service = new ReportingService(context);
 
         var report = await service.GetRevenueReportAsync(
-            userId, "month", new DateOnly(2030, 1, 1), new DateOnly(2030, 3, 31), CancellationToken.None);
+            userId, businessId, "month", new DateOnly(2030, 1, 1), new DateOnly(2030, 3, 31), CancellationToken.None);
 
         Assert.Equal("AUD", report.Currency);
         Assert.Equal(3, report.Periods.Count);
@@ -140,7 +140,7 @@ public sealed class ReportingQueryTranslationTests : IClassFixture<PostgresAvail
         var service = new ReportingService(context);
 
         var report = await service.GetRevenueReportAsync(
-            userId, periodType, new DateOnly(2030, 1, 1), new DateOnly(2031, 12, 31), CancellationToken.None);
+            userId, businessId, periodType, new DateOnly(2030, 1, 1), new DateOnly(2031, 12, 31), CancellationToken.None);
 
         Assert.NotEmpty(report.Periods);
     }
@@ -154,7 +154,7 @@ public sealed class ReportingQueryTranslationTests : IClassFixture<PostgresAvail
 
         // The regression this class was written for. Before IG-275 this threw
         // "The LINQ expression 'DbSet<Invoice>()' could not be translated" and the endpoint 500'd.
-        var invoices = await service.GetOutstandingReportAsync(userId, CancellationToken.None);
+        var invoices = await service.GetOutstandingReportAsync(userId, businessId, CancellationToken.None);
 
         Assert.Empty(invoices);
     }
@@ -166,7 +166,7 @@ public sealed class ReportingQueryTranslationTests : IClassFixture<PostgresAvail
         await using var context = PostgresAvailabilityFixture.CreateContext();
         var service = new ReportingService(context);
 
-        var invoices = await service.GetOverdueReportAsync(userId, CancellationToken.None);
+        var invoices = await service.GetOverdueReportAsync(userId, businessId, CancellationToken.None);
 
         Assert.Empty(invoices);
     }
@@ -179,7 +179,7 @@ public sealed class ReportingQueryTranslationTests : IClassFixture<PostgresAvail
         var service = new ReportingService(context);
 
         var customers = await service.GetRevenueByCustomerAsync(
-            userId, new DateOnly(2030, 1, 1), new DateOnly(2030, 12, 31), CancellationToken.None);
+            userId, businessId, new DateOnly(2030, 1, 1), new DateOnly(2030, 12, 31), CancellationToken.None);
 
         Assert.Empty(customers);
     }
@@ -192,7 +192,7 @@ public sealed class ReportingQueryTranslationTests : IClassFixture<PostgresAvail
         var service = new ReportingService(context);
 
         var summary = await service.GetTaxSummaryAsync(
-            userId, new DateOnly(2030, 1, 1), new DateOnly(2030, 12, 31), CancellationToken.None);
+            userId, businessId, new DateOnly(2030, 1, 1), new DateOnly(2030, 12, 31), CancellationToken.None);
 
         Assert.Equal("AUD", summary.Currency);
         Assert.Equal(0m, summary.TotalTaxCollected);

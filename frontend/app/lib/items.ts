@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 export interface CatalogItem {
   id: string;
   name: string;
@@ -32,7 +33,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
 /** IG-57: every call needs credentials: "include", same convention as lib/customers.ts - these
  * routes are all account-owned and require the session cookie. */
 export async function listItems(includeArchived = false): Promise<CatalogItem[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/items?includeArchived=${includeArchived}`, {
+  const response = await fetch(await businessRoute(`/items?includeArchived=${includeArchived}`), {
     credentials: "include",
   });
 
@@ -44,7 +45,7 @@ export async function listItems(includeArchived = false): Promise<CatalogItem[]>
 }
 
 export async function getItem(id: string): Promise<CatalogItem> {
-  const response = await fetch(`${baseUrl()}/api/v1/items/${id}`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/items/${id}`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load this item."));
@@ -54,7 +55,7 @@ export async function getItem(id: string): Promise<CatalogItem> {
 }
 
 export async function createItem(request: CatalogItemRequest): Promise<CatalogItem> {
-  const response = await fetch(`${baseUrl()}/api/v1/items`, {
+  const response = await fetch(await businessRoute(`/items`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -69,7 +70,7 @@ export async function createItem(request: CatalogItemRequest): Promise<CatalogIt
 }
 
 export async function updateItem(id: string, request: CatalogItemRequest): Promise<CatalogItem> {
-  const response = await fetch(`${baseUrl()}/api/v1/items/${id}`, {
+  const response = await fetch(await businessRoute(`/items/${id}`), {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -84,7 +85,7 @@ export async function updateItem(id: string, request: CatalogItemRequest): Promi
 }
 
 export async function archiveItem(id: string): Promise<void> {
-  const response = await fetch(`${baseUrl()}/api/v1/items/${id}`, {
+  const response = await fetch(await businessRoute(`/items/${id}`), {
     method: "DELETE",
     credentials: "include",
   });
@@ -96,7 +97,7 @@ export async function archiveItem(id: string): Promise<void> {
 
 /** FSD section 59's "Duplicate" list action. */
 export async function duplicateItem(id: string): Promise<CatalogItem> {
-  const response = await fetch(`${baseUrl()}/api/v1/items/${id}/duplicate`, {
+  const response = await fetch(await businessRoute(`/items/${id}/duplicate`), {
     method: "POST",
     credentials: "include",
   });

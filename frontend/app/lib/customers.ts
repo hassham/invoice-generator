@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 export interface Customer {
   id: string;
   businessName: string | null;
@@ -44,7 +45,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
 /** IG-55: every call needs credentials: "include", same reasoning as lib/auth.ts - these routes
  * are all account-owned and require the session cookie. */
 export async function listCustomers(includeArchived = false): Promise<Customer[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/customers?includeArchived=${includeArchived}`, {
+  const response = await fetch(await businessRoute(`/customers?includeArchived=${includeArchived}`), {
     credentials: "include",
   });
 
@@ -56,7 +57,7 @@ export async function listCustomers(includeArchived = false): Promise<Customer[]
 }
 
 export async function getCustomer(id: string): Promise<Customer> {
-  const response = await fetch(`${baseUrl()}/api/v1/customers/${id}`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/customers/${id}`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load this customer."));
@@ -66,7 +67,7 @@ export async function getCustomer(id: string): Promise<Customer> {
 }
 
 export async function createCustomer(request: CustomerRequest): Promise<Customer> {
-  const response = await fetch(`${baseUrl()}/api/v1/customers`, {
+  const response = await fetch(await businessRoute(`/customers`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -81,7 +82,7 @@ export async function createCustomer(request: CustomerRequest): Promise<Customer
 }
 
 export async function updateCustomer(id: string, request: CustomerRequest): Promise<Customer> {
-  const response = await fetch(`${baseUrl()}/api/v1/customers/${id}`, {
+  const response = await fetch(await businessRoute(`/customers/${id}`), {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -96,7 +97,7 @@ export async function updateCustomer(id: string, request: CustomerRequest): Prom
 }
 
 export async function archiveCustomer(id: string): Promise<void> {
-  const response = await fetch(`${baseUrl()}/api/v1/customers/${id}`, {
+  const response = await fetch(await businessRoute(`/customers/${id}`), {
     method: "DELETE",
     credentials: "include",
   });

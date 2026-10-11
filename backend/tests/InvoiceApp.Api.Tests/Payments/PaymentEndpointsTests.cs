@@ -24,7 +24,6 @@ namespace InvoiceApp.Api.Tests.Payments;
 /// </summary>
 public class PaymentEndpointsTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -63,7 +62,7 @@ public class PaymentEndpointsTests
 
     private static async Task<Guid> CreateInvoiceAsync(HttpClient client, string invoiceNumber)
     {
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest(invoiceNumber));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest(invoiceNumber));
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         return created!.Id;
@@ -78,7 +77,8 @@ public class PaymentEndpointsTests
         await db.SaveChangesAsync();
     }
 
-    private static string PaymentsEndpoint(Guid invoiceId) => $"{InvoicesEndpoint}/{invoiceId}/payments";
+    private static async Task<string> PaymentsEndpoint(HttpClient client, Guid invoiceId) =>
+        $"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments";
 
     [Fact]
     public async Task Recording_a_full_payment_marks_the_invoice_paid()
@@ -87,14 +87,14 @@ public class PaymentEndpointsTests
         using var client = await RegisteredClientAsync(factory, "pay-full@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-1");
 
-        var response = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(100m));
+        var response = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(100m));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
         Assert.Equal(InvoiceStatus.Paid, result!.Invoice.Status);
         Assert.Equal(100m, result.Invoice.AmountPaid);
         Assert.Equal(0m, result.Invoice.AmountDue);
-        Assert.Equal($"{PaymentsEndpoint(id)}/{result.Payment.Id}", response.Headers.Location?.OriginalString);
+        Assert.Equal($"{await PaymentsEndpoint(client, id)}/{result.Payment.Id}", response.Headers.Location?.OriginalString);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class PaymentEndpointsTests
         using var client = await RegisteredClientAsync(factory, "pay-partial@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-2");
 
-        var response = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(40m));
+        var response = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(40m));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
@@ -120,10 +120,10 @@ public class PaymentEndpointsTests
         using var client = await RegisteredClientAsync(factory, "pay-over@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-3");
 
-        var response = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(150m));
+        var response = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(150m));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var getResponse = await client.GetAsync($"{InvoicesEndpoint}/{id}");
+        var getResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
         var detail = await getResponse.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
         Assert.Equal(0m, detail!.AmountPaid);
     }
@@ -134,9 +134,9 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-over2@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-4");
-        await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(60m));
+        await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(60m));
 
-        var response = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(60m));
+        var response = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(60m));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -150,7 +150,7 @@ public class PaymentEndpointsTests
         using var client = await RegisteredClientAsync(factory, $"pay-nonpositive-{amount}@example.com");
         var id = await CreateInvoiceAsync(client, $"INV-PAY-NP-{amount}");
 
-        var response = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(amount));
+        var response = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(amount));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -161,9 +161,9 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-cancelled@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-5");
-        await client.PostAsync($"{InvoicesEndpoint}/{id}/cancel", null);
+        await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}/cancel", null);
 
-        var response = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(50m));
+        var response = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(50m));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -174,10 +174,10 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-remove@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-6");
-        var recordResponse = await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(100m));
+        var recordResponse = await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(100m));
         var recorded = await recordResponse.Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
 
-        var response = await client.DeleteAsync($"{PaymentsEndpoint(id)}/{recorded!.Payment.Id}");
+        var response = await client.DeleteAsync($"{await PaymentsEndpoint(client, id)}/{recorded!.Payment.Id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -192,10 +192,10 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-remove2@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-7");
-        var first = await (await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(30m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
-        await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(30m));
+        var first = await (await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(30m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
+        await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(30m));
 
-        var response = await client.DeleteAsync($"{PaymentsEndpoint(id)}/{first!.Payment.Id}");
+        var response = await client.DeleteAsync($"{await PaymentsEndpoint(client, id)}/{first!.Payment.Id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -209,10 +209,10 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-remove-cancelled@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-8");
-        var recorded = await (await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(40m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
+        var recorded = await (await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(40m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
         await SetInvoiceStatusAsync(factory, id, InvoiceStatus.Cancelled);
 
-        var response = await client.DeleteAsync($"{PaymentsEndpoint(id)}/{recorded!.Payment.Id}");
+        var response = await client.DeleteAsync($"{await PaymentsEndpoint(client, id)}/{recorded!.Payment.Id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -226,10 +226,10 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-list@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-9");
-        await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(20m));
-        await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(20m));
+        await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(20m));
+        await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(20m));
 
-        var response = await client.GetAsync(PaymentsEndpoint(id));
+        var response = await client.GetAsync(await PaymentsEndpoint(client, id));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payments = await response.Content.ReadFromJsonAsync<List<PaymentDto>>(JsonOptions);
@@ -244,7 +244,7 @@ public class PaymentEndpointsTests
         var id = await CreateInvoiceAsync(ownerClient, "INV-PAY-10");
         using var otherClient = await RegisteredClientAsync(factory, "pay-other@example.com");
 
-        var response = await otherClient.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(10m));
+        var response = await otherClient.PostAsJsonAsync(await PaymentsEndpoint(otherClient, id), ValidPaymentRequest(10m));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -257,7 +257,7 @@ public class PaymentEndpointsTests
         var id = await CreateInvoiceAsync(ownerClient, "INV-PAY-11");
         using var otherClient = await RegisteredClientAsync(factory, "pay-other2@example.com");
 
-        var response = await otherClient.GetAsync(PaymentsEndpoint(id));
+        var response = await otherClient.GetAsync(await PaymentsEndpoint(otherClient, id));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -268,10 +268,10 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "pay-owner3@example.com");
         var id = await CreateInvoiceAsync(ownerClient, "INV-PAY-12");
-        var recorded = await (await ownerClient.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(10m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
+        var recorded = await (await ownerClient.PostAsJsonAsync(await PaymentsEndpoint(ownerClient, id), ValidPaymentRequest(10m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
         using var otherClient = await RegisteredClientAsync(factory, "pay-other3@example.com");
 
-        var response = await otherClient.DeleteAsync($"{PaymentsEndpoint(id)}/{recorded!.Payment.Id}");
+        var response = await otherClient.DeleteAsync($"{await PaymentsEndpoint(otherClient, id)}/{recorded!.Payment.Id}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -283,9 +283,9 @@ public class PaymentEndpointsTests
         using var anonymousClient = factory.CreateClient();
         var invoiceId = Guid.NewGuid();
 
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousClient.GetAsync(PaymentsEndpoint(invoiceId))).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousClient.PostAsJsonAsync(PaymentsEndpoint(invoiceId), ValidPaymentRequest(10m))).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousClient.DeleteAsync($"{PaymentsEndpoint(invoiceId)}/{Guid.NewGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousClient.GetAsync(await PaymentsEndpoint(anonymousClient, invoiceId))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousClient.PostAsJsonAsync(await PaymentsEndpoint(anonymousClient, invoiceId), ValidPaymentRequest(10m))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousClient.DeleteAsync($"{await PaymentsEndpoint(anonymousClient, invoiceId)}/{Guid.NewGuid()}")).StatusCode);
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public class PaymentEndpointsTests
         using var client = await RegisteredClientAsync(factory, "pay-audit-record@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-13");
 
-        var recorded = await (await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(25m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
+        var recorded = await (await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(25m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -309,9 +309,9 @@ public class PaymentEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "pay-audit-remove@example.com");
         var id = await CreateInvoiceAsync(client, "INV-PAY-14");
-        var recorded = await (await client.PostAsJsonAsync(PaymentsEndpoint(id), ValidPaymentRequest(25m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
+        var recorded = await (await client.PostAsJsonAsync(await PaymentsEndpoint(client, id), ValidPaymentRequest(25m))).Content.ReadFromJsonAsync<PaymentRecordResult>(JsonOptions);
 
-        await client.DeleteAsync($"{PaymentsEndpoint(id)}/{recorded!.Payment.Id}");
+        await client.DeleteAsync($"{await PaymentsEndpoint(client, id)}/{recorded!.Payment.Id}");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

@@ -1,3 +1,4 @@
+import { businessRoute } from "./business";
 export interface InvoiceEmailRequest {
   to: string[];
   cc: string[];
@@ -41,7 +42,7 @@ async function parseErrorDetail(response: Response, fallback: string): Promise<s
  * lib/*.ts fetch wrapper. The backend attaches the PDF and hosted invoice link automatically -
  * this only ever sends what the compose form's fields hold. */
 export async function sendInvoiceEmail(invoiceId: string, request: InvoiceEmailRequest): Promise<void> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}/send-email`, {
+  const response = await fetch(await businessRoute(`/invoices/${invoiceId}/send-email`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -56,7 +57,7 @@ export async function sendInvoiceEmail(invoiceId: string, request: InvoiceEmailR
 /** IG-213: account-owned, same credentials:"include" convention as every other authenticated
  * lib/*.ts fetch wrapper. Newest first (the backend's own ordering). */
 export async function getInvoiceEmailHistory(invoiceId: string): Promise<InvoiceEmailLog[]> {
-  const response = await fetch(`${baseUrl()}/api/v1/invoices/${invoiceId}/email-history`, { credentials: "include" });
+  const response = await fetch(await businessRoute(`/invoices/${invoiceId}/email-history`), { credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to load the email history for this invoice."));

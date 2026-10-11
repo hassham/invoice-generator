@@ -21,7 +21,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// </summary>
 public class InvoiceListFilteringTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -68,7 +67,7 @@ public class InvoiceListFilteringTests
 
     private static async Task<List<string>> InvoiceNumbersAsync(HttpClient client, string queryString)
     {
-        var response = await client.GetAsync($"{InvoicesEndpoint}{queryString}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}{queryString}");
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
         return result!.Items.Select(item => item.InvoiceNumber).ToList();
@@ -79,10 +78,10 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "search-fields@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-ZEBRA", customer: "Random Co"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0002", customer: "Random Co", reference: "ZEBRA-PO"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0003", customer: "Zebra Holdings Pty Ltd"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0004", customer: "Not Matching At All"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-ZEBRA", customer: "Random Co"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-0002", customer: "Random Co", reference: "ZEBRA-PO"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-0003", customer: "Zebra Holdings Pty Ltd"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-0004", customer: "Not Matching At All"));
 
         var byNumber = await InvoiceNumbersAsync(client, "?search=zebra");
 
@@ -98,7 +97,7 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "search-email@example.com");
-        var response = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0001", customer: "Some Business\nbilling@zephyr.example"));
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-0001", customer: "Some Business\nbilling@zephyr.example"));
 
         // The find-or-create customer text is a multi-line block; email isn't part of it (IG-45's
         // free-text mapping has no email field), so set it directly via the customer record to
@@ -122,8 +121,8 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "filter-status@example.com");
-        var draftResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-DRAFT"));
-        var sentResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SENT"));
+        var draftResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-DRAFT"));
+        var sentResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SENT"));
         var sent = await sentResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, sent!.Id, InvoiceStatus.Sent);
         Assert.NotNull(await draftResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions));
@@ -140,9 +139,9 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "filter-customer@example.com");
-        var aResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-A", customer: "Customer A"));
+        var aResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-A", customer: "Customer A"));
         var a = await aResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-B", customer: "Customer B"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-B", customer: "Customer B"));
 
         var filtered = await InvoiceNumbersAsync(client, $"?customerId={a!.CustomerId}");
 
@@ -154,8 +153,8 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "filter-date@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-JUNE", issueDate: "2026-06-15"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-JAN", issueDate: "2026-01-15"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-JUNE", issueDate: "2026-06-15"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-JAN", issueDate: "2026-01-15"));
 
         var juneOnly = await InvoiceNumbersAsync(client, "?startDate=2026-06-01&endDate=2026-06-30");
 
@@ -167,9 +166,9 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "filter-combined@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-MATCH", customer: "Zephyr Co", issueDate: "2026-06-15"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-MATCH", customer: "Zephyr Co", issueDate: "2026-06-15"));
         // Same customer name text but outside the date range - AND semantics must exclude it.
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-WRONG-DATE", customer: "Zephyr Co", issueDate: "2026-01-15"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-WRONG-DATE", customer: "Zephyr Co", issueDate: "2026-01-15"));
 
         var matches = await InvoiceNumbersAsync(client, "?search=Zephyr&startDate=2026-06-01&endDate=2026-06-30");
 
@@ -181,8 +180,8 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "sort@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-LOW", unitPrice: 50));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-HIGH", unitPrice: 500));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-LOW", unitPrice: 50));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-HIGH", unitPrice: 500));
 
         var highestFirst = await InvoiceNumbersAsync(client, "?sort=AmountHighest");
         var lowestFirst = await InvoiceNumbersAsync(client, "?sort=AmountLowest");
@@ -196,8 +195,8 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "sort-oldest@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-FIRST"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SECOND"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-FIRST"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SECOND"));
 
         var newestFirst = await InvoiceNumbersAsync(client, "");
         var oldestFirst = await InvoiceNumbersAsync(client, "?sort=Oldest");
@@ -211,10 +210,10 @@ public class InvoiceListFilteringTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "no-criteria@example.com");
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0001"));
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0002"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-0001"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-0002"));
 
-        var response = await client.GetAsync(InvoicesEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client));
         var result = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions);
 
         Assert.Equal(2, result!.TotalCount);

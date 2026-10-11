@@ -23,8 +23,6 @@ namespace InvoiceApp.Api.Tests.Dashboard;
 /// </summary>
 public class DashboardEndpointsTests
 {
-    private const string SummaryEndpoint = "/api/v1/dashboard/summary";
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -71,7 +69,7 @@ public class DashboardEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync(SummaryEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -82,7 +80,7 @@ public class DashboardEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "dash-empty@example.com");
 
-        var response = await client.GetAsync(SummaryEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
@@ -103,18 +101,18 @@ public class DashboardEndpointsTests
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var thisMonth = new DateOnly(today.Year, today.Month, Math.Min(15, DateTime.DaysInMonth(today.Year, today.Month))).ToString("yyyy-MM-dd");
 
-        var draftResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-DRAFT", issueDate: thisMonth, dueDate: thisMonth));
+        var draftResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-DRAFT", issueDate: thisMonth, dueDate: thisMonth));
         var draft = await draftResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var sentResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SENT", issueDate: thisMonth, dueDate: thisMonth));
+        var sentResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SENT", issueDate: thisMonth, dueDate: thisMonth));
         var sent = await sentResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, sent!.Id, InvoiceStatus.Sent);
 
-        var cancelledResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-CANCELLED", issueDate: thisMonth, dueDate: thisMonth));
+        var cancelledResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-CANCELLED", issueDate: thisMonth, dueDate: thisMonth));
         var cancelled = await cancelledResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, cancelled!.Id, InvoiceStatus.Cancelled);
 
-        var response = await client.GetAsync(SummaryEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
 
         // Only the Sent invoice (100) counts toward Total Invoiced - Draft and Cancelled excluded.
@@ -132,11 +130,11 @@ public class DashboardEndpointsTests
         using var client = await RegisteredClientAsync(factory, "dash-overdue@example.com");
 
         // Due date well in the past relative to "today" in any real or test-clock scenario.
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-OVERDUE", issueDate: "2020-01-01", dueDate: "2020-01-15"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-OVERDUE", issueDate: "2020-01-01", dueDate: "2020-01-15"));
         // Due date far in the future - not overdue.
-        await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-FUTURE", issueDate: "2020-01-01", dueDate: "2999-01-01"));
+        await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-FUTURE", issueDate: "2020-01-01", dueDate: "2999-01-01"));
 
-        var response = await client.GetAsync(SummaryEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
 
         Assert.Equal(100, summary!.Overdue);
@@ -147,14 +145,14 @@ public class DashboardEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "dash-period@example.com");
-        var insideResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-INSIDE", issueDate: "2026-06-15", dueDate: "2026-06-20"));
+        var insideResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-INSIDE", issueDate: "2026-06-15", dueDate: "2026-06-20"));
         var inside = await insideResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, inside!.Id, InvoiceStatus.Sent);
-        var outsideResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-OUTSIDE", issueDate: "2026-01-15", dueDate: "2026-01-20"));
+        var outsideResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-OUTSIDE", issueDate: "2026-01-15", dueDate: "2026-01-20"));
         var outside = await outsideResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, outside!.Id, InvoiceStatus.Sent);
 
-        var response = await client.GetAsync($"{SummaryEndpoint}?startDate=2026-06-01&endDate=2026-06-30");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary")}?startDate=2026-06-01&endDate=2026-06-30");
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
 
         Assert.Equal(100, summary!.TotalInvoiced); // only the June invoice
@@ -168,11 +166,11 @@ public class DashboardEndpointsTests
         var today = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
         // Registered accounts default to AUD (AccountRegistrationService) - a USD invoice should
         // not contribute to totals denominated in AUD.
-        var usdResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-USD", currency: "USD", issueDate: today, dueDate: today));
+        var usdResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-USD", currency: "USD", issueDate: today, dueDate: today));
         var usd = await usdResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         await SetInvoiceStatusAsync(factory, usd!.Id, InvoiceStatus.Sent);
 
-        var response = await client.GetAsync(SummaryEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
 
         Assert.Equal(0, summary!.TotalInvoiced);
@@ -188,10 +186,10 @@ public class DashboardEndpointsTests
         using var client = await RegisteredClientAsync(factory, "dash-recent@example.com");
         for (var i = 1; i <= 6; i++)
         {
-            await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest($"INV-000{i}"));
+            await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest($"INV-000{i}"));
         }
 
-        var response = await client.GetAsync(SummaryEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
 
         Assert.Equal(5, summary!.RecentInvoices.Count);
@@ -203,10 +201,10 @@ public class DashboardEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "dash-owner@example.com");
-        await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-0001"));
+        await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(ownerClient), ValidRequest("INV-0001"));
 
         using var otherClient = await RegisteredClientAsync(factory, "dash-other@example.com");
-        var response = await otherClient.GetAsync(SummaryEndpoint);
+        var response = await otherClient.GetAsync(await DefaultBusinessRoutes.RouteAsync(otherClient, "/dashboard/summary"));
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
 
         Assert.Empty(summary!.RecentInvoices);

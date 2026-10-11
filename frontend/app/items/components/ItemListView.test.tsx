@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ItemListView } from "./ItemListView";
+
+beforeEach(() => {
+  window.localStorage.setItem("selectedBusinessId", "biz-1");
+});
 
 const sampleItem = {
   id: "i1",
@@ -75,7 +79,7 @@ describe("ItemListView", () => {
     await user.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => expect(screen.queryByText("Consulting Hour")).not.toBeInTheDocument());
-    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/v1/items/i1"), expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/v1/businesses/biz-1/items/i1"), expect.objectContaining({ method: "DELETE" }));
   });
 
   it("shows an error when archiving fails, keeping the item in the list", async () => {
@@ -110,7 +114,7 @@ describe("ItemListView", () => {
     await user.click(screen.getByRole("button", { name: "Duplicate" }));
 
     expect(await screen.findByText("Consulting Hour (Copy)")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/v1/items/i1/duplicate"), expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/api/v1/businesses/biz-1/items/i1/duplicate"), expect.objectContaining({ method: "POST" }));
   });
 
   it("shows an error when duplicating fails", async () => {

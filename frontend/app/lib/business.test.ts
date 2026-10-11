@@ -146,7 +146,7 @@ describe("formatInvoiceNumberPreview", () => {
 
 describe("stripeConnectUrl", () => {
   it("points at the backend's Stripe connect endpoint", () => {
-    expect(stripeConnectUrl()).toBe("http://localhost:5094/api/v1/business/stripe/connect");
+    expect(stripeConnectUrl("biz-1")).toBe("http://localhost:5094/api/v1/businesses/biz-1/stripe/connect");
   });
 });
 
@@ -155,11 +155,11 @@ describe("disconnectStripe", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ ...sampleProfile, stripeAccountId: null }) });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await disconnectStripe();
+    const result = await disconnectStripe("biz-1");
 
     expect(result.stripeAccountId).toBeNull();
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("/api/v1/business/stripe/disconnect");
+    expect(url).toContain("/api/v1/businesses/biz-1/stripe/disconnect");
     expect(init.method).toBe("POST");
     expect(init.credentials).toBe("include");
   });
@@ -167,6 +167,6 @@ describe("disconnectStripe", () => {
   it("throws the server's error detail on failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve({ detail: "Failed to disconnect Stripe." }) }));
 
-    await expect(disconnectStripe()).rejects.toThrow("Failed to disconnect Stripe.");
+    await expect(disconnectStripe("biz-1")).rejects.toThrow("Failed to disconnect Stripe.");
   });
 });

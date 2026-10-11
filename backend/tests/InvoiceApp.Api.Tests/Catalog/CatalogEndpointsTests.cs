@@ -14,7 +14,6 @@ namespace InvoiceApp.Api.Tests.Catalog;
 /// </summary>
 public class CatalogEndpointsTests
 {
-    private const string ItemsEndpoint = "/api/v1/items";
 
     [Fact]
     public async Task Missing_session_cannot_list_items()
@@ -22,7 +21,7 @@ public class CatalogEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync(ItemsEndpoint);
+        var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -34,14 +33,14 @@ public class CatalogEndpointsTests
         using var client = factory.CreateClient();
         await RegisterAsync(client, "creator@example.com");
 
-        var response = await client.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"), ValidRequest());
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<CatalogItemDto>();
         Assert.NotNull(created);
         Assert.Equal("Consulting Hour", created!.Name);
         Assert.False(created.IsArchived);
-        Assert.Equal($"{ItemsEndpoint}/{created.Id}", response.Headers.Location?.OriginalString);
+        Assert.Equal($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}/{created.Id}", response.Headers.Location?.OriginalString);
     }
 
     [Fact]
@@ -51,7 +50,7 @@ public class CatalogEndpointsTests
         using var client = factory.CreateClient();
         await RegisterAsync(client, "invalid.item@example.com");
 
-        var response = await client.PostAsJsonAsync(ItemsEndpoint, ValidRequest() with { Name = "" });
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"), ValidRequest() with { Name = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -63,7 +62,7 @@ public class CatalogEndpointsTests
         using var client = factory.CreateClient();
         await RegisterAsync(client, "invalid.price@example.com");
 
-        var response = await client.PostAsJsonAsync(ItemsEndpoint, ValidRequest() with { UnitPrice = -1 });
+        var response = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"), ValidRequest() with { UnitPrice = -1 });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -75,12 +74,12 @@ public class CatalogEndpointsTests
 
         using var ownerClient = factory.CreateClient();
         await RegisterAsync(ownerClient, "owner@example.com");
-        await ownerClient.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/items"), ValidRequest());
 
         using var otherClient = factory.CreateClient();
         await RegisterAsync(otherClient, "other@example.com");
 
-        var response = await otherClient.GetAsync(ItemsEndpoint);
+        var response = await otherClient.GetAsync(await DefaultBusinessRoutes.RouteAsync(otherClient, "/items"));
 
         var items = await response.Content.ReadFromJsonAsync<List<CatalogItemDto>>();
         Assert.Empty(items!);
@@ -93,13 +92,13 @@ public class CatalogEndpointsTests
 
         using var ownerClient = factory.CreateClient();
         await RegisterAsync(ownerClient, "owner2@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/items"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemDto>();
 
         using var otherClient = factory.CreateClient();
         await RegisterAsync(otherClient, "other2@example.com");
 
-        var response = await otherClient.GetAsync($"{ItemsEndpoint}/{created!.Id}");
+        var response = await otherClient.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(otherClient, "/items")}/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -110,10 +109,10 @@ public class CatalogEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
         await RegisterAsync(client, "updater@example.com");
-        var createResponse = await client.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemDto>();
 
-        var response = await client.PutAsJsonAsync($"{ItemsEndpoint}/{created!.Id}", ValidRequest() with { UnitPrice = 200m });
+        var response = await client.PutAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}/{created!.Id}", ValidRequest() with { UnitPrice = 200m });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<CatalogItemDto>();
@@ -126,16 +125,16 @@ public class CatalogEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
         await RegisterAsync(client, "archiver@example.com");
-        var createResponse = await client.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemDto>();
 
-        var archiveResponse = await client.DeleteAsync($"{ItemsEndpoint}/{created!.Id}");
+        var archiveResponse = await client.DeleteAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}/{created!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, archiveResponse.StatusCode);
 
-        var defaultList = await (await client.GetAsync(ItemsEndpoint)).Content.ReadFromJsonAsync<List<CatalogItemDto>>();
+        var defaultList = await (await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"))).Content.ReadFromJsonAsync<List<CatalogItemDto>>();
         Assert.Empty(defaultList!);
 
-        var fullList = await (await client.GetAsync($"{ItemsEndpoint}?includeArchived=true")).Content.ReadFromJsonAsync<List<CatalogItemDto>>();
+        var fullList = await (await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}?includeArchived=true")).Content.ReadFromJsonAsync<List<CatalogItemDto>>();
         Assert.Single(fullList!);
         Assert.True(fullList![0].IsArchived);
     }
@@ -146,10 +145,10 @@ public class CatalogEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
         await RegisterAsync(client, "duplicator@example.com");
-        var createResponse = await client.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(client, "/items"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemDto>();
 
-        var duplicateResponse = await client.PostAsync($"{ItemsEndpoint}/{created!.Id}/duplicate", null);
+        var duplicateResponse = await client.PostAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}/{created!.Id}/duplicate", null);
 
         Assert.Equal(HttpStatusCode.Created, duplicateResponse.StatusCode);
         var duplicate = await duplicateResponse.Content.ReadFromJsonAsync<CatalogItemDto>();
@@ -160,8 +159,8 @@ public class CatalogEndpointsTests
 
         // Editing the duplicate must not affect the original - proves it's a real independent
         // copy, not a shared reference.
-        await client.PutAsJsonAsync($"{ItemsEndpoint}/{duplicate.Id}", ValidRequest() with { UnitPrice = 999m });
-        var originalAfter = await (await client.GetAsync($"{ItemsEndpoint}/{created.Id}")).Content.ReadFromJsonAsync<CatalogItemDto>();
+        await client.PutAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}/{duplicate.Id}", ValidRequest() with { UnitPrice = 999m });
+        var originalAfter = await (await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}/{created.Id}")).Content.ReadFromJsonAsync<CatalogItemDto>();
         Assert.Equal(created.UnitPrice, originalAfter!.UnitPrice);
     }
 
@@ -172,13 +171,13 @@ public class CatalogEndpointsTests
 
         using var ownerClient = factory.CreateClient();
         await RegisterAsync(ownerClient, "owner3@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(ItemsEndpoint, ValidRequest());
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.RouteAsync(ownerClient, "/items"), ValidRequest());
         var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemDto>();
 
         using var otherClient = factory.CreateClient();
         await RegisterAsync(otherClient, "other3@example.com");
 
-        var response = await otherClient.PostAsync($"{ItemsEndpoint}/{created!.Id}/duplicate", null);
+        var response = await otherClient.PostAsync($"{await DefaultBusinessRoutes.RouteAsync(otherClient, "/items")}/{created!.Id}/duplicate", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

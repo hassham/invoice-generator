@@ -76,6 +76,49 @@ public static class BusinessProfileRequestValidator
         }
     }
 
+    /// <summary>IG-295: a new business gets the same field rules as a profile update, plus the
+    /// estimate numbering fields, which only a new business sets at creation time.</summary>
+    public static void ValidateNew(CreateBusinessRequest request)
+    {
+        Validate(new BusinessProfileRequest(
+            BusinessName: request.BusinessName,
+            LegalName: null,
+            Email: null,
+            Phone: null,
+            Website: null,
+            AddressLine1: null,
+            AddressLine2: null,
+            City: null,
+            State: null,
+            PostalCode: null,
+            Country: request.Country,
+            RegistrationNumber: null,
+            TaxNumber: null,
+            DefaultCurrency: request.DefaultCurrency,
+            DefaultTaxRate: request.DefaultTaxRate,
+            TaxCalculationMethod: request.TaxCalculationMethod,
+            DefaultPaymentTerms: request.DefaultPaymentTerms,
+            DefaultPaymentTermsDays: request.DefaultPaymentTermsDays,
+            DefaultInvoiceNotes: null,
+            DefaultTermsAndConditions: null,
+            DefaultTemplateId: null,
+            InvoicePrefix: request.InvoicePrefix,
+            NextInvoiceNumber: 1,
+            InvoiceNumberPadding: request.InvoiceNumberPadding));
+
+        var errors = new List<string>();
+        CheckMaxLength(request.EstimatePrefix, 20, "Estimate prefix", errors);
+        if (request.EstimateNumberPadding is < 1 or > 10)
+        {
+            errors.Add("Estimate number padding must be between 1 and 10.");
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(string.Join(" ", errors));
+        }
+    }
+
     private static void CheckMaxLength(string? value, int maxLength, string fieldName, List<string> errors)
     {
         if (value is not null && value.Length > maxLength)

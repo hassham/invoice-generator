@@ -17,7 +17,6 @@ namespace InvoiceApp.Api.Tests.Invoicing;
 /// independent identifier, and that editing the duplicate never touches the source.</summary>
 public class InvoiceDuplicateTests
 {
-    private const string InvoicesEndpoint = "/api/v1/invoices";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -51,7 +50,7 @@ public class InvoiceDuplicateTests
 
     private static async Task<InvoiceDetailDto> GetDetailAsync(HttpClient client, Guid id)
     {
-        var response = await client.GetAsync($"{InvoicesEndpoint}/{id}");
+        var response = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{id}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions))!;
     }
@@ -61,10 +60,10 @@ public class InvoiceDuplicateTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "duplicate-copy@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-1"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SRC-1"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var response = await client.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source!.Id}/duplicate", null);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var duplicate = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -88,10 +87,10 @@ public class InvoiceDuplicateTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "duplicate-not-copy@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-2"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SRC-2"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var response = await client.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source!.Id}/duplicate", null);
         var duplicate = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         var duplicateDetail = await GetDetailAsync(client, duplicate!.Id);
 
@@ -109,10 +108,10 @@ public class InvoiceDuplicateTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "duplicate-dates@example.com");
         // 15-day term (Jan 1 -> Jan 16).
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-3", issueDate: "2030-01-01", dueDate: "2030-01-16"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SRC-3", issueDate: "2030-01-01", dueDate: "2030-01-16"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var response = await client.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null);
+        var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source!.Id}/duplicate", null);
         var duplicate = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), duplicate!.IssueDate);
@@ -124,11 +123,11 @@ public class InvoiceDuplicateTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "duplicate-twice@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-4"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SRC-4"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var first = await (await client.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        var second = await (await client.PostAsync($"{InvoicesEndpoint}/{source.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var first = await (await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source!.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var second = await (await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         Assert.Equal("INV-SRC-4-COPY", first!.InvoiceNumber);
         Assert.Equal("INV-SRC-4-COPY-2", second!.InvoiceNumber);
@@ -140,12 +139,12 @@ public class InvoiceDuplicateTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "duplicate-independent@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-5"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SRC-5"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        var duplicate = await (await client.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var duplicate = await (await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source!.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         var updateRequest = ValidRequest(duplicate!.InvoiceNumber) with { Notes = "Edited only on the duplicate" };
-        await client.PutAsJsonAsync($"{InvoicesEndpoint}/{duplicate.Id}", updateRequest);
+        await client.PutAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{duplicate.Id}", updateRequest);
 
         var sourceDetail = await GetDetailAsync(client, source.Id);
         Assert.Equal("Thanks for your business", sourceDetail.Notes);
@@ -156,9 +155,9 @@ public class InvoiceDuplicateTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "duplicate-audit@example.com");
-        var createResponse = await client.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-6"));
+        var createResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SRC-6"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        var duplicate = await (await client.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        var duplicate = await (await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{source!.Id}/duplicate", null)).Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -172,11 +171,11 @@ public class InvoiceDuplicateTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var ownerClient = await RegisteredClientAsync(factory, "duplicate-owner@example.com");
-        var createResponse = await ownerClient.PostAsJsonAsync(InvoicesEndpoint, ValidRequest("INV-SRC-7"));
+        var createResponse = await ownerClient.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(ownerClient), ValidRequest("INV-SRC-7"));
         var source = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         using var otherClient = await RegisteredClientAsync(factory, "duplicate-other@example.com");
 
-        var response = await otherClient.PostAsync($"{InvoicesEndpoint}/{source!.Id}/duplicate", null);
+        var response = await otherClient.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(otherClient)}/{source!.Id}/duplicate", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -187,7 +186,7 @@ public class InvoiceDuplicateTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.PostAsync($"{InvoicesEndpoint}/{Guid.NewGuid()}/duplicate", null);
+        var response = await anonymousClient.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(anonymousClient)}/{Guid.NewGuid()}/duplicate", null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }

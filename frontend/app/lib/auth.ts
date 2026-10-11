@@ -1,3 +1,5 @@
+import { clearSelectedBusinessId } from "./business";
+
 export interface LoggedInAccount {
   userId: string;
   email: string;
@@ -86,6 +88,9 @@ export async function login(request: LoginRequest): Promise<LoggedInAccount> {
 
 export async function logout(): Promise<void> {
   await fetch(`${baseUrl()}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
+  // IG-296: the stored business selection belongs to the account that just signed out; the next
+  // account to sign in on this browser must not inherit it.
+  clearSelectedBusinessId();
 }
 
 /**

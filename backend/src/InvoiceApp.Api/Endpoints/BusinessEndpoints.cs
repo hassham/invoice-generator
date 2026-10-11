@@ -17,8 +17,14 @@ public static class BusinessEndpoints
 
     public static IEndpointRouteBuilder MapBusinessEndpoints(this IEndpointRouteBuilder app)
     {
-        // Account-owned (FSD sections 62/63 / IG-53 AC) - every account has exactly one Business
-        // row (created at registration), so there's no id in the route, just GET/PUT.
+        // IG-295: multi-business support
+        app.MapGet("/api/v1/businesses", ListAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses", CreateAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}", GetByIdAsync).RequireAuthorization();
+        app.MapPut("/api/v1/businesses/{businessId:guid}", UpdateByIdAsync).RequireAuthorization();
+
+        // Account-owned (FSD sections 62/63 / IG-53 AC) - backward compatibility for the user's
+        // default (first) business. These remain unchanged for compatibility.
         app.MapGet("/api/v1/business", GetAsync).RequireAuthorization();
         app.MapPut("/api/v1/business", UpdateAsync).RequireAuthorization();
         // IG-54: has a side effect (increments NextInvoiceNumber), so POST rather than GET even
@@ -43,10 +49,54 @@ public static class BusinessEndpoints
         // IG-219: "Connect with Stripe" - a genuine top-level browser redirect out to Stripe's own
         // consent screen and back (same reasoning LoginForm's Google link documents: this can't be
         // a fetch/XHR call), so these three are plain GETs/a POST, not RPC-shaped JSON calls.
-        app.MapGet("/api/v1/business/stripe/connect", ConnectStripeAsync).RequireAuthorization();
+        app.MapGet("/api/v1/businesses/{businessId:guid}/stripe/connect", ConnectStripeAsync).RequireAuthorization();
         app.MapGet("/api/v1/business/stripe/callback", StripeCallbackAsync).RequireAuthorization();
-        app.MapPost("/api/v1/business/stripe/disconnect", DisconnectStripeAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/stripe/disconnect", DisconnectStripeAsync).RequireAuthorization();
         return app;
+    }
+
+    private static async Task<IResult> ListAsync(
+        ClaimsPrincipal user,
+        IBusinessService businessService,
+        CancellationToken cancellationToken)
+    {
+        var businesses = await businessService.ListAsync(UserId(user), cancellationToken);
+        return Results.Ok(businesses);
+    }
+
+    private static async Task<IResult> CreateAsync(
+        CreateBusinessRequest request,
+        ClaimsPrincipal user,
+        IBusinessService businessService,
+        CancellationToken cancellationToken)
+    {
+        BusinessProfileRequestValidator.ValidateNew(request);
+
+        var business = await businessService.CreateAsync(UserId(user), request, cancellationToken);
+        return Results.Created($"/api/v1/businesses/{business.Id}", business);
+    }
+
+    private static async Task<IResult> GetByIdAsync(
+        Guid businessId,
+        ClaimsPrincipal user,
+        IBusinessService businessService,
+        CancellationToken cancellationToken)
+    {
+        var profile = await businessService.GetAsync(UserId(user), businessId, cancellationToken);
+        return Results.Ok(profile);
+    }
+
+    private static async Task<IResult> UpdateByIdAsync(
+        Guid businessId,
+        BusinessProfileRequest request,
+        ClaimsPrincipal user,
+        IBusinessService businessService,
+        CancellationToken cancellationToken)
+    {
+        BusinessProfileRequestValidator.Validate(request);
+
+        var profile = await businessService.UpdateAsync(UserId(user), businessId, request, cancellationToken);
+        return Results.Ok(profile);
     }
 
     private static async Task<IResult> GetAsync(
@@ -122,15 +172,24 @@ public static class BusinessEndpoints
         return Results.File(bytes, located.ContentType);
     }
 
-    /// <summary>IG-219: redirects to Stripe's own consent screen. Unlike GoogleLogin (a framework
-    /// Results.Challenge - ASP.NET's Google handler generates and verifies its own correlation
-    /// state internally), Stripe Connect isn't a built-in provider, so the anti-CSRF state token
-    /// is hand-rolled here: a random value carried in a short-lived cookie, verified against the
-    /// query-string value StripeCallbackAsync receives back.</summary>
-    private static IResult ConnectStripeAsync(HttpContext httpContext, IStripeConnectService stripeConnectService)
+    /// <summary>IG-219 / IG-296: redirects to Stripe's own consent screen for one business. Unlike
+    /// GoogleLogin (a framework Results.Challenge - ASP.NET's Google handler generates and verifies its
+    /// own correlation state internally), Stripe Connect isn't a built-in provider, so the anti-CSRF
+    /// state token is hand-rolled here. The state cookie carries that token and the business it was
+    /// issued for, so the callback can only connect the business the user actually started with.</summary>
+    private static async Task<IResult> ConnectStripeAsync(
+        Guid businessId,
+        HttpContext httpContext,
+        ClaimsPrincipal user,
+        IStripeConnectService stripeConnectService,
+        IBusinessService businessService,
+        CancellationToken cancellationToken)
     {
+        // Another account's business is reported as not found, the same as every business-scoped route.
+        await businessService.GetAsync(UserId(user), businessId, cancellationToken);
+
         var state = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
-        httpContext.Response.Cookies.Append(StripeOAuthStateCookieName, state, new CookieOptions
+        httpContext.Response.Cookies.Append(StripeOAuthStateCookieName, $"{state}.{businessId}", new CookieOptions
         {
             HttpOnly = true,
             Secure = httpContext.Request.IsHttps,
@@ -138,6 +197,7 @@ public static class BusinessEndpoints
             MaxAge = TimeSpan.FromMinutes(10),
         });
 
+        // The callback path stays where it always was: it is the redirect URI registered with Stripe.
         var redirectUri = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}/api/v1/business/stripe/callback";
         return Results.Redirect(stripeConnectService.BuildAuthorizeUrl(redirectUri, state));
     }
@@ -153,18 +213,18 @@ public static class BusinessEndpoints
         var frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
         var settingsUrl = $"{frontendBaseUrl}/settings/business";
 
-        var cookieState = httpContext.Request.Cookies[StripeOAuthStateCookieName];
+        var cookieValue = httpContext.Request.Cookies[StripeOAuthStateCookieName];
         httpContext.Response.Cookies.Delete(StripeOAuthStateCookieName);
+        var (cookieState, cookieBusinessId) = ParseStateCookie(cookieValue);
 
         // Stripe declining/failing, the state cookie missing/mismatched (expired, or a forged
         // callback with no corresponding /connect redirect), and the exchange itself failing
         // (invalid/already-used code) all land the visitor back on Settings with a friendly inline
-        // banner instead of a raw error response - a lower-stakes, more recoverable flow than
-        // GoogleCallbackAsync's sign-in path (throwing there is fine because a failed *login*
-        // leaves the visitor with nothing to do but retry; a failed *connect* attempt should let
-        // them just try again from the same settings page they were already on).
+        // banner instead of a raw error response - a failed connect attempt should let them just
+        // try again from the same settings page they were already on.
         if (httpContext.Request.Query.ContainsKey("error")
-            || string.IsNullOrEmpty(cookieState)
+            || cookieState is null
+            || cookieBusinessId is null
             || cookieState != httpContext.Request.Query["state"]
             || !httpContext.Request.Query.TryGetValue("code", out var code))
         {
@@ -174,7 +234,7 @@ public static class BusinessEndpoints
         try
         {
             var stripeAccountId = await stripeConnectService.ExchangeCodeForAccountIdAsync(code.ToString(), cancellationToken);
-            await businessService.ConnectStripeAsync(UserId(user), stripeAccountId, cancellationToken);
+            await businessService.ConnectStripeAsync(UserId(user), cookieBusinessId.Value, stripeAccountId, cancellationToken);
         }
         catch (Exception)
         {
@@ -184,18 +244,30 @@ public static class BusinessEndpoints
         return Results.Redirect($"{settingsUrl}?stripeConnected=1");
     }
 
+    private static (string? State, Guid? BusinessId) ParseStateCookie(string? value)
+    {
+        var parts = value?.Split('.', 2);
+        if (parts is not { Length: 2 } || !Guid.TryParse(parts[1], out var businessId))
+        {
+            return (null, null);
+        }
+
+        return (parts[0], businessId);
+    }
+
     private static async Task<IResult> DisconnectStripeAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IStripeConnectService stripeConnectService,
         IBusinessService businessService,
         CancellationToken cancellationToken)
     {
         var userId = UserId(user);
-        var profile = await businessService.GetAsync(userId, cancellationToken);
+        var profile = await businessService.GetAsync(userId, businessId, cancellationToken);
         if (profile.StripeAccountId is { } stripeAccountId)
         {
             await stripeConnectService.DeauthorizeAsync(stripeAccountId, cancellationToken);
-            profile = await businessService.DisconnectStripeAsync(userId, cancellationToken);
+            profile = await businessService.DisconnectStripeAsync(userId, businessId, cancellationToken);
         }
 
         return Results.Ok(profile);

@@ -117,7 +117,7 @@ public sealed class RecurringInvoiceGenerationService(
                         else
                         {
                             pendingSends.Add(new PendingAutoSend(
-                                schedule.Id, generated.Id, ownerId, recipient, generated.InvoiceNumber));
+                                schedule.Id, schedule.BusinessId, generated.Id, ownerId, recipient, generated.InvoiceNumber));
                         }
                     }
 
@@ -212,7 +212,7 @@ public sealed class RecurringInvoiceGenerationService(
 
             try
             {
-                await dispatcher.SendAsync(send.UserId, send.InvoiceId, request, cancellationToken);
+                await dispatcher.SendAsync(send.UserId, send.BusinessId, send.InvoiceId, request, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -229,7 +229,7 @@ public sealed class RecurringInvoiceGenerationService(
     }
 
     /// <summary>An invoice generated from a schedule that asked for it to be sent automatically.</summary>
-    private sealed record PendingAutoSend(Guid ScheduleId, Guid InvoiceId, Guid UserId, string Recipient, string InvoiceNumber);
+    private sealed record PendingAutoSend(Guid ScheduleId, Guid BusinessId, Guid InvoiceId, Guid UserId, string Recipient, string InvoiceNumber);
 
     private async Task<Invoice?> GenerateInvoiceFromScheduleAsync(
         ApplicationDbContext dbContext,

@@ -16,11 +16,11 @@ namespace InvoiceApp.Application.Estimates;
 /// </summary>
 public interface IEstimateService
 {
-    Task<EstimateDto> SaveAsync(Guid userId, Guid? estimateId, EstimateSaveRequest request, CancellationToken cancellationToken);
+    Task<EstimateDto> SaveAsync(Guid userId, Guid businessId, Guid? estimateId, EstimateSaveRequest request, CancellationToken cancellationToken);
 
-    Task<EstimateDetailDto> GetAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken);
+    Task<EstimateDetailDto> GetAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken);
 
-    Task<EstimateListResponse> ListAsync(Guid userId, EstimateListQuery query, CancellationToken cancellationToken);
+    Task<EstimateListResponse> ListAsync(Guid userId, Guid businessId, EstimateListQuery query, CancellationToken cancellationToken);
 
     /// <summary>IG-221: anonymous, token-keyed - same precedent as
     /// IInvoiceService.GetHostedInvoiceAsync.</summary>
@@ -35,18 +35,18 @@ public interface IEstimateService
     /// creation - IG-220 shipped before this Story existed - so this is the first point one is
     /// needed). Does not itself render the PDF or send the email - same split as
     /// IInvoiceService.PrepareInvoiceEmailAsync.</summary>
-    Task<InvoiceEmailContext> PrepareEstimateEmailAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken);
+    Task<InvoiceEmailContext> PrepareEstimateEmailAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken);
 
     /// <summary>IG-221/262: records one send attempt, successful or not. A successful send
     /// (status Sent) also transitions the estimate's own Status to Sent, but only the first time -
     /// idempotent, and never regresses an estimate already Accepted/Declined/Converted back to
     /// Sent. A failed attempt is still recorded (visibility for the account owner) but never
     /// transitions status.</summary>
-    Task RecordEstimateEmailSentAsync(Guid userId, Guid estimateId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken);
+    Task RecordEstimateEmailSentAsync(Guid userId, Guid businessId, Guid estimateId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken);
 
     /// <summary>IG-221/262: newest first, account-owned - same precedent as
     /// IInvoiceService.GetEmailHistoryAsync.</summary>
-    Task<IReadOnlyList<InvoiceEmailLogDto>> GetEstimateEmailHistoryAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<InvoiceEmailLogDto>> GetEstimateEmailHistoryAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken);
 
     /// <summary>IG-222: anonymous, token-keyed - the customer's Accept action on the hosted page.
     /// Only valid from Sent; already-Accepted is idempotent (returns the current state rather than
@@ -63,5 +63,5 @@ public interface IEstimateService
     /// as Draft with all line items, totals, and customer data copied from the estimate.
     /// Estimate status transitions to Converted. Only valid from Accepted; Sent/Declined/Draft/
     /// Converted all reject with a client-safe ConflictException.</summary>
-    Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid estimateId, CancellationToken cancellationToken);
+    Task<Guid> ConvertToInvoiceAsync(Guid userId, Guid businessId, Guid estimateId, CancellationToken cancellationToken);
 }

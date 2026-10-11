@@ -46,7 +46,7 @@ public class UnsafeInputTests
         using var client = await RegisteredClientAsync(factory, "sql-injection@example.com");
         var request = new CustomerRequest(SqlInjectionPayload, null, null, null, null, null, null, null, null, null, null, null);
 
-        var createResponse = await client.PostAsJsonAsync("/api/v1/customers", request);
+        var createResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}", request);
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var created = await createResponse.Content.ReadFromJsonAsync<CustomerDto>();
@@ -54,7 +54,7 @@ public class UnsafeInputTests
 
         // The underlying table must still be intact and queryable - proves the payload was never
         // executed as SQL, just stored as an ordinary string value.
-        var listResponse = await client.GetAsync("/api/v1/customers");
+        var listResponse = await client.GetAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}");
         Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
         var list = await listResponse.Content.ReadFromJsonAsync<List<CustomerDto>>();
         Assert.Contains(list!, c => c.Id == created.Id && c.BusinessName == SqlInjectionPayload);
@@ -67,7 +67,7 @@ public class UnsafeInputTests
         using var client = await RegisteredClientAsync(factory, "xss-customer@example.com");
         var request = new CustomerRequest("Acme Pty Ltd", null, null, null, null, null, null, null, null, null, null, XssPayload);
 
-        var createResponse = await client.PostAsJsonAsync("/api/v1/customers", request);
+        var createResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.CustomersRouteAsync(client)}", request);
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var created = await createResponse.Content.ReadFromJsonAsync<CustomerDto>();
@@ -101,12 +101,12 @@ public class UnsafeInputTests
             TemplateId: null,
             TemplateCustomization: null);
 
-        var createResponse = await client.PostAsJsonAsync("/api/v1/invoices", request);
+        var createResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", request);
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var created = await createResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
 
-        var getResponse = await client.GetAsync($"/api/v1/invoices/{created!.Id}");
+        var getResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{created!.Id}");
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
         var detail = await getResponse.Content.ReadFromJsonAsync<InvoiceDetailDto>(JsonOptions);
 
@@ -119,7 +119,7 @@ public class UnsafeInputTests
         Assert.Equal(SqlInjectionPayload, detail.Terms);
 
         // The database itself is still intact and queryable afterward.
-        var listResponse = await client.GetAsync("/api/v1/invoices");
+        var listResponse = await client.GetAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}");
         Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
     }
 
@@ -130,7 +130,7 @@ public class UnsafeInputTests
         using var client = await RegisteredClientAsync(factory, "unsafe-item@example.com");
         var request = new CatalogItemRequest(SqlInjectionPayload, XssPayload, XssPayload, null, 100m, 10m);
 
-        var createResponse = await client.PostAsJsonAsync("/api/v1/items", request);
+        var createResponse = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/items")}", request);
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemDto>();

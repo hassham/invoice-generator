@@ -14,6 +14,7 @@ public interface IReportingService
     /// </summary>
     Task<RevenueReportDto> GetRevenueReportAsync(
         Guid userId,
+        Guid businessId,
         string periodType,
         DateOnly? startDate,
         DateOnly? endDate,
@@ -24,6 +25,7 @@ public interface IReportingService
     /// </summary>
     Task<List<OutstandingInvoiceDto>> GetOutstandingReportAsync(
         Guid userId,
+        Guid businessId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -31,6 +33,7 @@ public interface IReportingService
     /// </summary>
     Task<List<OverdueInvoiceDto>> GetOverdueReportAsync(
         Guid userId,
+        Guid businessId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -40,6 +43,7 @@ public interface IReportingService
     /// </summary>
     Task<List<RevenueByCustomerDto>> GetRevenueByCustomerAsync(
         Guid userId,
+        Guid businessId,
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken);
@@ -51,6 +55,7 @@ public interface IReportingService
     /// </summary>
     Task<TaxSummaryDto> GetTaxSummaryAsync(
         Guid userId,
+        Guid businessId,
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken);

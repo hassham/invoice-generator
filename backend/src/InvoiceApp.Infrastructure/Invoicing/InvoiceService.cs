@@ -13,9 +13,9 @@ namespace InvoiceApp.Infrastructure.Invoicing;
 
 public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogService auditLogService) : IInvoiceService
 {
-    public async Task<InvoiceDto> SaveAsync(Guid userId, Guid? invoiceId, InvoiceSaveRequest request, CancellationToken cancellationToken)
+    public async Task<InvoiceDto> SaveAsync(Guid userId, Guid businessId, Guid? invoiceId, InvoiceSaveRequest request, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
 
         var invoice = invoiceId is { } id
             ? await LoadOwnedAsync(businessId, id, cancellationToken)
@@ -142,9 +142,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return ToDto(invoice);
     }
 
-    public async Task<InvoiceDetailDto> GetAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<InvoiceDetailDto> GetAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
         return ToDetailDto(invoice);
     }
@@ -183,9 +183,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return await BuildPdfRequestAsync(invoice, cancellationToken);
     }
 
-    public async Task<InvoiceEmailContext> PrepareInvoiceEmailAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<InvoiceEmailContext> PrepareInvoiceEmailAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
 
         if (invoice.PublicToken is null)
@@ -200,9 +200,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return new InvoiceEmailContext(pdfRequest, invoice.PublicToken, business.Email);
     }
 
-    public async Task RecordEmailSentAsync(Guid userId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
+    public async Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         // Confirms ownership without loading Items - RecordEmailSentAsync has no use for them,
         // same "just enough of LoadOwnedAsync's check" reasoning as any other narrow write.
         var owned = await dbContext.Invoices.AnyAsync(invoice => invoice.Id == invoiceId && invoice.BusinessId == businessId && !invoice.IsDeleted, cancellationToken);
@@ -225,9 +225,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<InvoiceEmailLogDto>> GetEmailHistoryAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<InvoiceEmailLogDto>> GetEmailHistoryAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         // Same ownership check as RecordEmailSentAsync - an invoice belonging to someone else
         // 404s, it never returns an empty history (which would be indistinguishable from "yours,
         // just never emailed" and leak nothing extra either way, but consistency with every other
@@ -257,9 +257,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
             .ToList();
     }
 
-    public async Task<InvoiceDto> CancelAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<InvoiceDto> CancelAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
 
         // FSD section 52: a Paid invoice has already received real money with no reversal
@@ -283,9 +283,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return ToDto(invoice);
     }
 
-    public async Task DeleteAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task DeleteAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
 
         invoice.IsDeleted = true;
@@ -296,9 +296,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<InvoiceDto> DuplicateAsync(Guid userId, Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<InvoiceDto> DuplicateAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         var source = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
 
         // FSD section 51: "Issue date: Current date" / "Due date: calculated using current
@@ -398,9 +398,9 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return candidate;
     }
 
-    public async Task<InvoiceListResponse> ListAsync(Guid userId, InvoiceListQuery query, CancellationToken cancellationToken)
+    public async Task<InvoiceListResponse> ListAsync(Guid userId, Guid businessId, InvoiceListQuery query, CancellationToken cancellationToken)
     {
-        var businessId = await ResolveBusinessIdAsync(userId, cancellationToken);
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         // FSD section 112: default 25 per page, with 25/50/100 offered as the frontend's page-size
         // choices - 100 is the upper bound the backend enforces either way, but any value in
         // between is accepted rather than snapped to exactly one of those three, so a missing or
@@ -501,11 +501,19 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return owned ? customerId : throw new NotFoundException("Customer not found.");
     }
 
-    private async Task<Guid> ResolveBusinessIdAsync(Guid userId, CancellationToken cancellationToken) =>
-        await dbContext.Businesses
-            .Where(business => business.UserId == userId)
-            .Select(business => business.Id)
-            .SingleAsync(cancellationToken);
+    /// <summary>The business must belong to the signed-in account; another account's business id is
+    /// reported as not found, never as forbidden.</summary>
+    private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
+    {
+        var owned = await dbContext.Businesses.AnyAsync(
+            business => business.Id == businessId && business.UserId == userId,
+            cancellationToken);
+
+        if (!owned)
+        {
+            throw new NotFoundException("Business not found.");
+        }
+    }
 
     private async Task<Invoice> LoadOwnedAsync(Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {

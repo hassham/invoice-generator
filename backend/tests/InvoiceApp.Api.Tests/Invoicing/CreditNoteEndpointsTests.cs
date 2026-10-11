@@ -64,7 +64,7 @@ public class CreditNoteEndpointsTests
 
     private static async Task<Guid> InvoiceIdAsync(HttpClient client, string invoiceNumber = "INV-CN-1")
     {
-        var response = await client.PostAsJsonAsync("/api/v1/invoices", InvoiceRequest(invoiceNumber));
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}", InvoiceRequest(invoiceNumber));
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
         return created!.Id;
@@ -112,7 +112,7 @@ public class CreditNoteEndpointsTests
     /// <summary>Records a payment so the invoice's amount due drops below its total.</summary>
     private static async Task PayAsync(HttpClient client, Guid invoiceId, decimal amount)
     {
-        var response = await client.PostAsJsonAsync($"/api/v1/invoices/{invoiceId}/payments",
+        var response = await client.PostAsJsonAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/payments",
             new PaymentRequest(new DateOnly(2030, 8, 2), amount, PaymentMethod.BankTransfer, null, null));
         response.EnsureSuccessStatusCode();
     }
