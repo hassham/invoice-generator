@@ -27,6 +27,10 @@ export interface BusinessProfileFormValues {
   country: string;
   registrationNumber: string;
   taxNumber: string;
+  bankName: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  bankRoutingCode: string;
   defaultCurrency: string;
   defaultTaxRate: string;
   taxCalculationMethod: TaxCalculationMethod;
@@ -64,6 +68,10 @@ function toRequest(values: BusinessProfileFormValues): BusinessProfileRequest {
     country: values.country.trim().toUpperCase(),
     registrationNumber: trimmedOrNull(values.registrationNumber),
     taxNumber: trimmedOrNull(values.taxNumber),
+    bankName: trimmedOrNull(values.bankName),
+    bankAccountName: trimmedOrNull(values.bankAccountName),
+    bankAccountNumber: trimmedOrNull(values.bankAccountNumber),
+    bankRoutingCode: trimmedOrNull(values.bankRoutingCode),
     defaultCurrency: values.defaultCurrency.trim().toUpperCase(),
     defaultTaxRate: Number.isFinite(parsedTaxRate) ? parsedTaxRate : 0,
     taxCalculationMethod: values.taxCalculationMethod,
@@ -166,6 +174,17 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
           <TextField id="business-website" label="Website" value={values.website} onChange={setField("website")} />
           <TextField id="business-registration-number" label="Registration Number" value={values.registrationNumber} onChange={setField("registrationNumber")} />
           <TextField id="business-tax-number" label="Tax Number" value={values.taxNumber} onChange={setField("taxNumber")} />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-base font-semibold text-slate-950">Bank Details</legend>
+        <p className="mt-1 text-sm text-slate-600">Shown on this business&apos;s invoices so customers know where to pay.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <TextField id="business-bank-name" label="Bank Name" value={values.bankName} onChange={setField("bankName")} />
+          <TextField id="business-bank-account-name" label="Account Name" value={values.bankAccountName} onChange={setField("bankAccountName")} />
+          <TextField id="business-bank-account-number" label="Account Number" value={values.bankAccountNumber} onChange={setField("bankAccountNumber")} />
+          <TextField id="business-bank-routing" label="BSB / Routing Number" value={values.bankRoutingCode} onChange={setField("bankRoutingCode")} />
         </div>
       </fieldset>
 

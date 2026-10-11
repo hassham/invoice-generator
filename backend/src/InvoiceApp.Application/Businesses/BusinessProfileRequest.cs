@@ -29,4 +29,8 @@ public sealed record BusinessProfileRequest(
     // IG-54 / FSD section 64.
     string InvoicePrefix,
     int NextInvoiceNumber,
-    int InvoiceNumberPadding);
+    int InvoiceNumberPadding,
+    string? BankName = null,
+    string? BankAccountName = null,
+    string? BankAccountNumber = null,
+    string? BankRoutingCode = null);

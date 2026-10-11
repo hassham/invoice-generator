@@ -32,6 +32,7 @@ import {
 import {
   createEmptySupportingContent,
   hasAnySupportingContentError,
+  paymentInstructionsFromBusiness,
   TERMS_FIELD,
   validateSupportingContent,
   type SupportingContentErrors,
@@ -362,10 +363,16 @@ export function CreateInvoiceEditor() {
           return next;
         });
         setSupportingContent((current) => {
+          const bank = paymentInstructionsFromBusiness(profile);
           const next = {
             ...current,
             notes: profile.defaultInvoiceNotes ?? current.notes,
             terms: profile.defaultTermsAndConditions ?? current.terms,
+            // IG-295: prefill the bank details of the business issuing the invoice, field by field,
+            // without overwriting anything already typed.
+            paymentInstructions: Object.fromEntries(
+              Object.entries(current.paymentInstructions).map(([name, value]) => [name, value || bank[name] || ""])
+            ),
           };
           pristineSupportingContentRef.current = next;
           return next;

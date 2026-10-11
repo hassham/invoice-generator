@@ -27,6 +27,10 @@ public sealed class BusinessConfiguration : IEntityTypeConfiguration<Business>
         builder.Property(business => business.Country).HasMaxLength(2).IsRequired();
         builder.Property(business => business.RegistrationNumber).HasMaxLength(100);
         builder.Property(business => business.TaxNumber).HasMaxLength(100);
+        builder.Property(business => business.BankName).HasMaxLength(200);
+        builder.Property(business => business.BankAccountName).HasMaxLength(200);
+        builder.Property(business => business.BankAccountNumber).HasMaxLength(50);
+        builder.Property(business => business.BankRoutingCode).HasMaxLength(50);
         builder.Property(business => business.DefaultCurrency).HasMaxLength(3).IsRequired();
         builder.Property(business => business.DefaultTaxRate).HasColumnType("decimal(9,4)");
         builder.Property(business => business.TaxCalculationMethod).HasConversion<string>().HasMaxLength(20);

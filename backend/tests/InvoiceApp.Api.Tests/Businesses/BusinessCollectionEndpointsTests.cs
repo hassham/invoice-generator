@@ -135,6 +135,48 @@ public class BusinessCollectionEndpointsTests
     }
 
     [Fact]
+    public async Task Bank_details_are_saved_per_business_and_do_not_leak_to_the_default_business()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "collection-bank@example.com");
+        var defaultBusiness = await DefaultBusinessAsync(client);
+        var created = await CreateBusinessAsync(client, "Bank Co");
+
+        var request = ProfileRequest("Bank Co") with
+        {
+            BankName = "Example Bank",
+            BankAccountName = "Bank Co Pty Ltd",
+            BankAccountNumber = "12345678",
+            BankRoutingCode = "062-000",
+        };
+        var response = await client.PutAsJsonAsync($"{BusinessesEndpoint}/{created.Id}", request);
+
+        response.EnsureSuccessStatusCode();
+        var saved = await response.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
+        Assert.Equal("Example Bank", saved!.BankName);
+        Assert.Equal("12345678", saved.BankAccountNumber);
+        Assert.Equal("062-000", saved.BankRoutingCode);
+
+        var untouched = await DefaultBusinessAsync(client);
+        Assert.Equal(defaultBusiness.Id, untouched.Id);
+        Assert.Null(untouched.BankName);
+    }
+
+    [Fact]
+    public async Task A_bank_account_number_longer_than_the_column_is_rejected()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "collection-bank-long@example.com");
+        var created = await CreateBusinessAsync(client, "Bank Long");
+
+        var response = await client.PutAsJsonAsync(
+            $"{BusinessesEndpoint}/{created.Id}",
+            ProfileRequest("Bank Long") with { BankAccountNumber = new string('1', 51) });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Getting_a_business_by_id_returns_that_business()
     {
         using var factory = new AuthenticatedRouteTestFactory();

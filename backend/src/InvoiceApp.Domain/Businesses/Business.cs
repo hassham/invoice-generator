@@ -32,6 +32,13 @@ public sealed class Business
 
     public string? TaxNumber { get; set; }
 
+    // IG-295: each business's own bank details - used to prefill the payment instructions on its
+    // invoices, so the bank a customer pays into is the one of the business that issued the invoice.
+    public string? BankName { get; set; }
+    public string? BankAccountName { get; set; }
+    public string? BankAccountNumber { get; set; }
+    public string? BankRoutingCode { get; set; }
+
     public string DefaultCurrency { get; set; } = string.Empty;
 
     public decimal DefaultTaxRate { get; set; }

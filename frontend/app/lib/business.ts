@@ -58,6 +58,11 @@ export interface BusinessProfile {
   /** IG-219: null means no Stripe account is connected - also what IG-216's hosted-invoice Pay
    * Now button will key off of. */
   stripeAccountId: string | null;
+  /** IG-295: this business's own bank details, shown on its invoices. */
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankRoutingCode?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +92,10 @@ export interface BusinessProfileRequest {
   invoicePrefix: string;
   nextInvoiceNumber: number;
   invoiceNumberPadding: number;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankRoutingCode?: string | null;
 }
 
 export interface CreateBusinessRequest {

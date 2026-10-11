@@ -69,6 +69,10 @@ public static class BusinessProfileRequestValidator
         CheckMaxLength(request.PostalCode, 20, "Postal code", errors);
         CheckMaxLength(request.RegistrationNumber, 100, "Registration number", errors);
         CheckMaxLength(request.TaxNumber, 100, "Tax number", errors);
+        CheckMaxLength(request.BankName, 200, "Bank name", errors);
+        CheckMaxLength(request.BankAccountName, 200, "Bank account name", errors);
+        CheckMaxLength(request.BankAccountNumber, 50, "Bank account number", errors);
+        CheckMaxLength(request.BankRoutingCode, 50, "BSB or routing number", errors);
 
         if (errors.Count > 0)
         {

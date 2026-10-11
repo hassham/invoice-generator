@@ -99,6 +99,10 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         business.Country = request.Country.Trim().ToUpperInvariant();
         business.RegistrationNumber = NullIfEmpty(request.RegistrationNumber);
         business.TaxNumber = NullIfEmpty(request.TaxNumber);
+        business.BankName = NullIfEmpty(request.BankName);
+        business.BankAccountName = NullIfEmpty(request.BankAccountName);
+        business.BankAccountNumber = NullIfEmpty(request.BankAccountNumber);
+        business.BankRoutingCode = NullIfEmpty(request.BankRoutingCode);
         business.DefaultCurrency = request.DefaultCurrency.Trim().ToUpperInvariant();
         business.DefaultTaxRate = request.DefaultTaxRate;
         business.TaxCalculationMethod = request.TaxCalculationMethod;
@@ -268,6 +272,10 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         business.Country,
         business.RegistrationNumber,
         business.TaxNumber,
+        business.BankName,
+        business.BankAccountName,
+        business.BankAccountNumber,
+        business.BankRoutingCode,
         business.DefaultCurrency,
         business.DefaultTaxRate,
         business.TaxCalculationMethod,

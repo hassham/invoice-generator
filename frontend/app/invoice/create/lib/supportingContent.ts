@@ -81,3 +81,19 @@ export function hasAnyPaymentInstructionContent(values: SupportingContentValues)
     Object.values(values.paymentInstructions).some((value) => value.trim().length > 0)
   );
 }
+
+/** IG-295: the bank details a business has saved on its profile, mapped onto the invoice's payment
+ * instruction fields. Blank profile values stay blank rather than filling the invoice with "null". */
+export function paymentInstructionsFromBusiness(profile: {
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankRoutingCode?: string | null;
+  bankAccountNumber?: string | null;
+}): Record<string, string> {
+  return {
+    bankName: profile.bankName ?? "",
+    accountName: profile.bankAccountName ?? "",
+    bsb: profile.bankRoutingCode ?? "",
+    accountNumber: profile.bankAccountNumber ?? "",
+  };
+}
