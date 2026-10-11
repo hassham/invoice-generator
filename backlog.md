@@ -736,3 +736,15 @@ Left alone deliberately: choosing cash basis (group and filter by payment date) 
 which one is right is a product decision, not an implementation detail. Raise it before touching
 it. The current behaviour is a hybrid that is neither.
 
+Now tracked as **`IG-313`** ("Decide whether the revenue report is cash basis or accrual, and make
+it consistent"), a Subtask under `IG-224` in To Do. It carries the measurement above, both
+consequences, a recommendation of cash basis as the smaller internally-consistent change (the
+report already sums payments and the DTO's own doc comment says "the sum of paid amounts"), and
+scope notes: `GetRevenueByCustomerAsync` and the tax summary may share the defect;
+`/reports/outstanding` and `/reports/overdue` are invoice-state reports and are unaffected; the
+chosen basis belongs in `docs/FSD.md` so a reader can tell which numbers they are looking at.
+
+`IG-268` transitioned to **Done** in Jira 2026-10-11. The closing comment summarising the two
+criteria and the `IG-313` carve-out could not be posted from this session (tool permission), so
+the issue is Done without it.
+
