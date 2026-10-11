@@ -687,7 +687,7 @@ is not an `IG-313` leftover. `IG-314` also records a second finding in the same 
 `totalTaxCollected / totalTaxable`, which matches no actual rate once an account mixes 0% and 10%
 lines, and fixing it properly may need a read-model change.
 
-**IG-314: Tax summary no longer counts cancelled invoices — PARTIAL 2026-10-11**
+**IG-314: Tax summary no longer counts cancelled invoices — Done in Jira 2026-10-11, draft half split to `IG-315`**
 
 `GetTaxSummaryAsync` selected `i.Status` and never read it, so every invoice in the issue-date
 range contributed its tax. Now filters `Status != Cancelled`. Measured before and after on local
@@ -714,10 +714,19 @@ would drop real taxable supplies and **under**-report tax, which is the worse di
 knowingly left in. One test pins that explicitly and says to change it only alongside a stored
 "issued" signal.
 
-That missing signal is probably also why **`IG-246`** ("Test delivery/opened status tracking",
-still To Do under a Done `IG-213`) cannot be met: `InvoiceEmailLog`/`InvoiceEmailStatus` record
-email delivery, but nothing feeds that back into the invoice's own status. Worth treating as one
-piece of work rather than two.
+That missing signal is now **`IG-315`** ("An invoice has no stored signal that it was ever
+issued"), a Subtask under `IG-213` in To Do, sitting beside `IG-246`. It also carries the design
+question that makes it more than a one-line change: emailing is not the only way an invoice reaches
+a customer — a user may download the PDF and send it themselves, or pass on the hosted link — so
+defining "issued" as "we emailed it" leaves the tax figure wrong for exactly the users who never
+touch the email feature. Three options are written up there. `IG-315` also notes that `Sent` and
+`Viewed` should either start being assigned or be removed from the enum, since unreachable status
+values invite exactly the bug `IG-314` was.
+
+**`IG-246`** ("Test delivery/opened status tracking", still To Do under a Done `IG-213`) looks
+blocked on the same signal: `InvoiceEmailLog`/`InvoiceEmailStatus` record email delivery, but
+nothing feeds that back into the invoice's own status, so there is no invoice-level signal to
+assert against. Treat the two as one piece of work.
 
 Verified while here, no change needed: the revenue reports do **not** share this oversight. A
 payment cannot be recorded against a `Cancelled` invoice, and paying a `Draft` moves it off Draft,
