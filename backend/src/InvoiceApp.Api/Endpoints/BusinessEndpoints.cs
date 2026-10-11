@@ -37,8 +37,8 @@ public static class BusinessEndpoints
         // (protected instead by the strict CORS allowlist + AllowCredentials() in Program.cs) -
         // without this the endpoint 500s with "no middleware was found that supports
         // anti-forgery" on every request, confirmed by actually hitting it, not assumed.
-        app.MapPost("/api/v1/business/logo", UploadLogoAsync).RequireAuthorization().DisableAntiforgery();
-        app.MapDelete("/api/v1/business/logo", RemoveLogoAsync).RequireAuthorization();
+        app.MapPost("/api/v1/businesses/{businessId:guid}/logo", UploadLogoAsync).RequireAuthorization().DisableAntiforgery();
+        app.MapDelete("/api/v1/businesses/{businessId:guid}/logo", RemoveLogoAsync).RequireAuthorization();
         // IG-52: deliberately anonymous and keyed by businessId, not the caller's session - unlike
         // every other IBusinessService method (see its own doc comment on "never a
         // caller-supplied id"). A logo needs to render in <img> tags and PDF/print output that an
@@ -139,6 +139,7 @@ public static class BusinessEndpoints
     }
 
     private static async Task<IResult> UploadLogoAsync(
+        Guid businessId,
         IFormFile file,
         ClaimsPrincipal user,
         IBusinessService businessService,
@@ -147,16 +148,17 @@ public static class BusinessEndpoints
         await using var content = file.OpenReadStream();
         await BusinessLogoValidator.ValidateAsync(content, file.ContentType, file.Length, cancellationToken);
 
-        var profile = await businessService.UploadLogoAsync(UserId(user), content, file.ContentType, cancellationToken);
+        var profile = await businessService.UploadLogoAsync(UserId(user), businessId, content, file.ContentType, cancellationToken);
         return Results.Ok(profile);
     }
 
     private static async Task<IResult> RemoveLogoAsync(
+        Guid businessId,
         ClaimsPrincipal user,
         IBusinessService businessService,
         CancellationToken cancellationToken)
     {
-        var profile = await businessService.RemoveLogoAsync(UserId(user), cancellationToken);
+        var profile = await businessService.RemoveLogoAsync(UserId(user), businessId, cancellationToken);
         return Results.Ok(profile);
     }
 

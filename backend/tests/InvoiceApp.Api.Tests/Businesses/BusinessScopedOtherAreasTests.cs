@@ -167,6 +167,28 @@ public class BusinessScopedOtherAreasTests
     }
 
     [Fact]
+    public async Task Another_accounts_business_logo_cannot_be_uploaded_or_removed()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var owner = await RegisteredClientAsync(factory, "scope-logo-owner@example.com");
+        using var intruder = await RegisteredClientAsync(factory, "scope-logo-intruder@example.com");
+        var ownersBusinessId = await DefaultBusinessIdAsync(owner);
+
+        var png = new byte[64];
+        new byte[] { 0x89, 0x50, 0x4E, 0x47 }.CopyTo(png, 0);
+        var form = new MultipartFormDataContent();
+        var file = new ByteArrayContent(png);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        form.Add(file, "file", "logo.png");
+
+        var upload = await intruder.PostAsync($"/api/v1/businesses/{ownersBusinessId}/logo", form);
+        var remove = await intruder.DeleteAsync($"/api/v1/businesses/{ownersBusinessId}/logo");
+
+        Assert.Equal(HttpStatusCode.NotFound, upload.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, remove.StatusCode);
+    }
+
+    [Fact]
     public async Task Another_accounts_business_cannot_start_a_stripe_connect()
     {
         using var factory = new AuthenticatedRouteTestFactory();

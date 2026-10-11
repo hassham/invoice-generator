@@ -32,9 +32,9 @@ public interface IBusinessService
     /// <paramref name="content"/> via BusinessLogoValidator before calling this - same convention
     /// as UpdateAsync's BusinessProfileRequestValidator call happening in the endpoint layer, not
     /// here.</summary>
-    Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Stream content, string contentType, CancellationToken cancellationToken);
+    Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Guid businessId, Stream content, string contentType, CancellationToken cancellationToken);
 
-    Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, CancellationToken cancellationToken);
+    Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, Guid businessId, CancellationToken cancellationToken);
 
     /// <summary>IG-219: persists the connected account id (already exchanged/verified by
     /// IStripeConnectService before this is called - same "parse-then-delegate" split as

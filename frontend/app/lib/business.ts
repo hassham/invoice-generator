@@ -239,11 +239,11 @@ export async function generateNextEstimateNumber(): Promise<GeneratedEstimateNum
 /** IG-52: sends the raw file as-is - resizing/validation already happened client-side
  * (lib/logoUpload.ts) before this is called, and the server repeats the same checks itself
  * (defense in depth), so nothing here needs to duplicate that logic. */
-export async function uploadBusinessLogo(file: Blob, fileName: string): Promise<BusinessProfile> {
+export async function uploadBusinessLogo(businessId: string, file: Blob, fileName: string): Promise<BusinessProfile> {
   const formData = new FormData();
   formData.append("file", file, fileName);
 
-  const response = await fetch(`${baseUrl()}/api/v1/business/logo`, {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses/${businessId}/logo`, {
     method: "POST",
     credentials: "include",
     body: formData,
@@ -256,8 +256,8 @@ export async function uploadBusinessLogo(file: Blob, fileName: string): Promise<
   return response.json();
 }
 
-export async function removeBusinessLogo(): Promise<BusinessProfile> {
-  const response = await fetch(`${baseUrl()}/api/v1/business/logo`, { method: "DELETE", credentials: "include" });
+export async function removeBusinessLogo(businessId: string): Promise<BusinessProfile> {
+  const response = await fetch(`${baseUrl()}/api/v1/businesses/${businessId}/logo`, { method: "DELETE", credentials: "include" });
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to remove your logo."));

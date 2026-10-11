@@ -70,11 +70,11 @@ describe("BusinessLogoUpload", () => {
     const updatedProfile = makeProfile({ logoUrl: "/api/v1/business/logo/business-1" });
     mockedUploadBusinessLogo.mockResolvedValue(updatedProfile);
     const onChange = vi.fn();
-    render(<BusinessLogoUpload logoUrl={null} onChange={onChange} />);
+    render(<BusinessLogoUpload businessId="biz-1" logoUrl={null} onChange={onChange} />);
 
     await user.upload(screen.getByLabelText("Upload logo"), makeFile());
 
-    expect(mockedUploadBusinessLogo).toHaveBeenCalledWith(expect.any(Blob), "logo.png");
+    expect(mockedUploadBusinessLogo).toHaveBeenCalledWith("biz-1", expect.any(Blob), "logo.png");
     expect(onChange).toHaveBeenCalledWith(updatedProfile);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -83,7 +83,7 @@ describe("BusinessLogoUpload", () => {
     const user = userEvent.setup();
     mockedProcessLogoUpload.mockResolvedValue({ error: "Logo must be 5 MB or smaller." });
     const onChange = vi.fn();
-    render(<BusinessLogoUpload logoUrl={null} onChange={onChange} />);
+    render(<BusinessLogoUpload businessId="biz-1" logoUrl={null} onChange={onChange} />);
 
     await user.upload(screen.getByLabelText("Upload logo"), makeFile());
 
@@ -97,7 +97,7 @@ describe("BusinessLogoUpload", () => {
     mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,AQID" });
     mockedUploadBusinessLogo.mockRejectedValue(new Error("This file doesn't look like a valid image."));
     const onChange = vi.fn();
-    render(<BusinessLogoUpload logoUrl={null} onChange={onChange} />);
+    render(<BusinessLogoUpload businessId="biz-1" logoUrl={null} onChange={onChange} />);
 
     await user.upload(screen.getByLabelText("Upload logo"), makeFile());
 
@@ -106,11 +106,11 @@ describe("BusinessLogoUpload", () => {
   });
 
   it("shows a thumbnail and 'Remove logo' only when a logo is already set", () => {
-    const { rerender } = render(<BusinessLogoUpload logoUrl={null} onChange={vi.fn()} />);
+    const { rerender } = render(<BusinessLogoUpload businessId="biz-1" logoUrl={null} onChange={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Remove logo" })).not.toBeInTheDocument();
     expect(screen.queryByAltText("Business logo")).not.toBeInTheDocument();
 
-    rerender(<BusinessLogoUpload logoUrl="/api/v1/business/logo/business-1" onChange={vi.fn()} />);
+    rerender(<BusinessLogoUpload businessId="biz-1" logoUrl="/api/v1/business/logo/business-1" onChange={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Remove logo" })).toBeInTheDocument();
     expect(screen.getByAltText("Business logo")).toHaveAttribute("src", expect.stringContaining("/api/v1/business/logo/business-1"));
   });
@@ -120,7 +120,7 @@ describe("BusinessLogoUpload", () => {
     const updatedProfile = makeProfile({ logoUrl: null });
     mockedRemoveBusinessLogo.mockResolvedValue(updatedProfile);
     const onChange = vi.fn();
-    render(<BusinessLogoUpload logoUrl="/api/v1/business/logo/business-1" onChange={onChange} />);
+    render(<BusinessLogoUpload businessId="biz-1" logoUrl="/api/v1/business/logo/business-1" onChange={onChange} />);
 
     await user.click(screen.getByRole("button", { name: "Remove logo" }));
 

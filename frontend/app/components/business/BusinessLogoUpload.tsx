@@ -19,6 +19,7 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 interface BusinessLogoUploadProps {
+  businessId: string;
   logoUrl: string | null;
   onChange: (profile: BusinessProfile) => void;
 }
@@ -30,7 +31,7 @@ interface BusinessLogoUploadProps {
  * real, persisted business profile (IG-52) instead of holding it in local draft state, since
  * server-side storage now exists (IBusinessLogoStorage).
  */
-export function BusinessLogoUpload({ logoUrl, onChange }: BusinessLogoUploadProps) {
+export function BusinessLogoUpload({ businessId, logoUrl, onChange }: BusinessLogoUploadProps) {
   const inputId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -54,7 +55,7 @@ export function BusinessLogoUpload({ logoUrl, onChange }: BusinessLogoUploadProp
     }
 
     try {
-      const profile = await uploadBusinessLogo(dataUrlToBlob(result.dataUrl), file.name);
+      const profile = await uploadBusinessLogo(businessId, dataUrlToBlob(result.dataUrl), file.name);
       onChange(profile);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Failed to upload your logo.");
@@ -67,7 +68,7 @@ export function BusinessLogoUpload({ logoUrl, onChange }: BusinessLogoUploadProp
     setBusy(true);
     setError(undefined);
     try {
-      const profile = await removeBusinessLogo();
+      const profile = await removeBusinessLogo(businessId);
       onChange(profile);
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : "Failed to remove your logo.");

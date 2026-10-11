@@ -177,9 +177,9 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return new GeneratedEstimateNumberDto(formatted);
     }
 
-    public async Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Stream content, string contentType, CancellationToken cancellationToken)
+    public async Task<BusinessProfileDto> UploadLogoAsync(Guid userId, Guid businessId, Stream content, string contentType, CancellationToken cancellationToken)
     {
-        var business = await FindOwnedAsync(userId, cancellationToken);
+        var business = await FindOwnedAsync(userId, businessId, cancellationToken);
 
         await logoStorage.SaveAsync(business.Id, content, contentType, cancellationToken);
         business.LogoUrl = $"/api/v1/business/logo/{business.Id}";
@@ -190,9 +190,9 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         return ToDto(business);
     }
 
-    public async Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<BusinessProfileDto> RemoveLogoAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var business = await FindOwnedAsync(userId, cancellationToken);
+        var business = await FindOwnedAsync(userId, businessId, cancellationToken);
 
         logoStorage.Delete(business.Id);
         business.LogoUrl = null;

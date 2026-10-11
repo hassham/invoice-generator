@@ -163,7 +163,7 @@ export function BusinessProfileSettings() {
       ) : null}
 
       <div className="mt-6">
-        <BusinessLogoUpload logoUrl={profile.logoUrl} onChange={setProfile} />
+        <BusinessLogoUpload businessId={profile.id} logoUrl={profile.logoUrl} onChange={setProfile} />
       </div>
 
       <div className="mt-6">

@@ -189,7 +189,7 @@ export function OnboardingWizard() {
           </div>
         ) : null}
 
-        {step === "logo" ? <BusinessLogoUpload logoUrl={profile.logoUrl} onChange={setProfile} /> : null}
+        {step === "logo" ? <BusinessLogoUpload businessId={profile.id} logoUrl={profile.logoUrl} onChange={setProfile} /> : null}
       </div>
 
       <div className="mt-8 flex items-center gap-3">

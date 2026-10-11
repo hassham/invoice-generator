@@ -17,7 +17,6 @@ namespace InvoiceApp.Api.Tests.Businesses;
 /// </summary>
 public class BusinessLogoEndpointsTests
 {
-    private const string LogoEndpoint = "/api/v1/business/logo";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -57,7 +56,7 @@ public class BusinessLogoEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "logo-upload@example.com");
 
-        var response = await client.PostAsync(LogoEndpoint, LogoFormContent(ValidPngBytes(), "image/png"));
+        var response = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent(ValidPngBytes(), "image/png"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var profile = await response.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
@@ -70,7 +69,7 @@ public class BusinessLogoEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "logo-serve@example.com");
-        var uploadResponse = await client.PostAsync(LogoEndpoint, LogoFormContent(ValidPngBytes(), "image/png"));
+        var uploadResponse = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent(ValidPngBytes(), "image/png"));
         var profile = await uploadResponse.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
 
         // A fresh, unauthenticated client - the whole point of this endpoint is that no session is
@@ -89,7 +88,7 @@ public class BusinessLogoEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync($"{LogoEndpoint}/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/business/logo/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -100,7 +99,7 @@ public class BusinessLogoEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "logo-bad-type@example.com");
 
-        var response = await client.PostAsync(LogoEndpoint, LogoFormContent([1, 2, 3, 4], "application/pdf"));
+        var response = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent([1, 2, 3, 4], "application/pdf"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -113,7 +112,7 @@ public class BusinessLogoEndpointsTests
 
         // Claims to be a PNG via content type, but the bytes don't have a PNG (or any accepted)
         // signature - exactly the "reject renamed files" requirement (FSD section 14).
-        var response = await client.PostAsync(LogoEndpoint, LogoFormContent([1, 2, 3, 4, 5, 6, 7, 8], "image/png"));
+        var response = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent([1, 2, 3, 4, 5, 6, 7, 8], "image/png"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -124,7 +123,7 @@ public class BusinessLogoEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "logo-too-big@example.com");
 
-        var response = await client.PostAsync(LogoEndpoint, LogoFormContent(ValidPngBytes(5 * 1024 * 1024 + 1), "image/png"));
+        var response = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent(ValidPngBytes(5 * 1024 * 1024 + 1), "image/png"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -134,10 +133,10 @@ public class BusinessLogoEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "logo-remove@example.com");
-        var uploadResponse = await client.PostAsync(LogoEndpoint, LogoFormContent(ValidPngBytes(), "image/png"));
+        var uploadResponse = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent(ValidPngBytes(), "image/png"));
         var uploaded = await uploadResponse.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
 
-        var removeResponse = await client.DeleteAsync(LogoEndpoint);
+        var removeResponse = await client.DeleteAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"));
 
         Assert.Equal(HttpStatusCode.OK, removeResponse.StatusCode);
         var removed = await removeResponse.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
@@ -153,9 +152,9 @@ public class BusinessLogoEndpointsTests
     {
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "logo-replace@example.com");
-        await client.PostAsync(LogoEndpoint, LogoFormContent(ValidPngBytes(), "image/png"));
+        await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent(ValidPngBytes(), "image/png"));
 
-        var replaceResponse = await client.PostAsync(LogoEndpoint, LogoFormContent(ValidJpegBytes(), "image/jpeg"));
+        var replaceResponse = await client.PostAsync(await DefaultBusinessRoutes.RouteAsync(client, "/logo"), LogoFormContent(ValidJpegBytes(), "image/jpeg"));
         var profile = await replaceResponse.Content.ReadFromJsonAsync<BusinessProfileDto>(JsonOptions);
 
         using var anonymousClient = factory.CreateClient();
@@ -171,7 +170,7 @@ public class BusinessLogoEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.PostAsync(LogoEndpoint, LogoFormContent(ValidPngBytes(), "image/png"));
+        var response = await anonymousClient.PostAsync(await DefaultBusinessRoutes.RouteAsync(anonymousClient, "/logo"), LogoFormContent(ValidPngBytes(), "image/png"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -182,7 +181,7 @@ public class BusinessLogoEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var anonymousClient = factory.CreateClient();
 
-        var response = await anonymousClient.DeleteAsync(LogoEndpoint);
+        var response = await anonymousClient.DeleteAsync(await DefaultBusinessRoutes.RouteAsync(anonymousClient, "/logo"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
