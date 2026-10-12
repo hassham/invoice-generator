@@ -5,6 +5,7 @@ using InvoiceApp.Application.Purchasing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Purchasing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,7 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 {
     public async Task<PurchaseOrderDto> CreateAsync(Guid userId, Guid businessId, CreatePurchaseOrderCommand command, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        var business = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
         var supplier = await dbContext.Customers.FirstOrDefaultAsync(c => c.Id == command.SupplierId && c.BusinessId == businessId, cancellationToken)
@@ -103,7 +104,7 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
     public async Task<List<PurchaseOrderDto>> ListByBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        var business = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
         var pos = await dbContext.PurchaseOrders
@@ -118,7 +119,7 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
     public async Task<List<PurchaseOrderDto>> ListBySupplierAsync(Guid userId, Guid businessId, Guid supplierId, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        var business = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
         var pos = await dbContext.PurchaseOrders
@@ -133,7 +134,7 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
     public async Task<PurchaseOrderDto> GetAsync(Guid userId, Guid businessId, Guid id, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        var business = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
         var po = await dbContext.PurchaseOrders
@@ -146,7 +147,7 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
     public async Task DeleteAsync(Guid userId, Guid businessId, Guid id, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        var business = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
         var po = await dbContext.PurchaseOrders.FirstOrDefaultAsync(po => po.Id == id && po.BusinessId == businessId && !po.IsDeleted, cancellationToken)
@@ -158,7 +159,7 @@ public sealed class PurchaseOrderService(ApplicationDbContext dbContext) : IPurc
 
     public async Task<InvoicePdfRequest> GetPdfRequestAsync(Guid userId, Guid businessId, Guid id, CancellationToken cancellationToken)
     {
-        _ = await dbContext.Businesses.FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        _ = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
         var po = await dbContext.PurchaseOrders

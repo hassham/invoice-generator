@@ -4,6 +4,7 @@ using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Application.Payments;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Payments;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -123,8 +124,8 @@ public sealed class PaymentService(ApplicationDbContext dbContext, IAuditLogServ
     /// must belong to the caller. Anything else is reported as not found, with no hint which part failed.</summary>
     private async Task<Invoice> LoadOwnedInvoiceAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
     {
-        var owned = await dbContext.Businesses.AnyAsync(
-            business => business.Id == businessId && business.UserId == userId,
+        var owned = await dbContext.AccessibleBusinesses(userId).AnyAsync(
+            business => business.Id == businessId,
             cancellationToken);
         if (!owned)
         {

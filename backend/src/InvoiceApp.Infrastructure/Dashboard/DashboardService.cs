@@ -2,6 +2,7 @@ using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Application.Dashboard;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,8 +14,8 @@ public sealed class DashboardService(ApplicationDbContext dbContext) : IDashboar
 
     public async Task<DashboardSummaryDto> GetSummaryAsync(Guid userId, Guid businessId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .SingleOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new NotFoundException("Business not found.");
 
         var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);

@@ -22,8 +22,7 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
 
     public async Task<List<BusinessProfileDto>> ListAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var businesses = await dbContext.Businesses
-            .Where(b => b.UserId == userId)
+        var businesses = await dbContext.AccessibleBusinesses(userId)
             .OrderBy(b => b.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -243,8 +242,8 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
     // doesn't exist at all, so the API never confirms another account's business ids.
     private async Task<Business> FindOwnedAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses.FirstOrDefaultAsync(
-            b => b.UserId == userId && b.Id == businessId,
+        var business = await dbContext.AccessibleBusinesses(userId).FirstOrDefaultAsync(
+            b => b.Id == businessId,
             cancellationToken);
 
         return business ?? throw new NotFoundException("Business not found.");

@@ -2,6 +2,7 @@ using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Domain.Estimates;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -58,8 +59,8 @@ public sealed class DocumentListService(ApplicationDbContext dbContext) : IDocum
     public async Task<DocumentListResponse> ListAsync(Guid userId, Guid businessId, DocumentListQuery query, CancellationToken cancellationToken)
     {
         // IG-296: the business must belong to the caller; another account's id is not found.
-        var owned = await dbContext.Businesses.AnyAsync(
-            business => business.Id == businessId && business.UserId == userId,
+        var owned = await dbContext.AccessibleBusinesses(userId).AnyAsync(
+            business => business.Id == businessId,
             cancellationToken);
         if (!owned)
         {

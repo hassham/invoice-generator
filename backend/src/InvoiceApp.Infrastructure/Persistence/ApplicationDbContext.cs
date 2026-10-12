@@ -19,6 +19,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<Business> Businesses => Set<Business>();
 
+    public DbSet<BusinessMembership> BusinessMemberships => Set<BusinessMembership>();
+
+    public DbSet<BusinessInvitation> BusinessInvitations => Set<BusinessInvitation>();
+
     public DbSet<Customer> Customers => Set<Customer>();
 
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();

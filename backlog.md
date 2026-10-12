@@ -42,42 +42,39 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 
 ## Current Focus / Next Task
 
-**IG-315 (Subtask under `IG-213`): an invoice has a stored "issued" signal. DONE in Jira 2026-10-12 (In Progress → Done with a completion comment, approved by the user). Committed and pushed.**
+**IG-239 (Story, under `IG-211`): invite a team member to a business. Slice 1 done 2026-10-13: IG-297 and IG-298 are Done in Jira. IG-239 stays In Progress until IG-240 (restricted roles) is done. Committed and pushed.**
 
-Decisions, as chosen by the user:
+What exists now:
 
-- Issued = first successful email send (a failed send does not count), or an explicit "Mark as Issued" action. Option (a) + (c).
-- Option (x): `Invoice.IssuedAt` is added and the status is unchanged. `InvoiceStatus.Sent` and `Viewed` are removed.
+- Model: `BusinessMembership` (owner is still `Business.UserId`; revoked members keep their row) and `BusinessInvitation` (only a SHA-256 hash of the token is stored; 7-day expiry; accept requires the signed-in account's email to match exactly).
+- Access: every business-scoped check now goes through `ApplicationDbContext.AccessibleBusinesses(userId)` (owner or active member). This replaced 32 checks across 13 services, plus the business list and the by-id lookup. The account's default business (`FindOwnedAsync(userId)`) stays owner-only.
+- Owner-only team management: `GET /businesses/{id}/team`, `POST /businesses/{id}/invitations`, `POST .../invitations/{id}/cancel`, `DELETE /businesses/{id}/members/{membershipId}`. A member gets 403 (`ForbiddenException`, now mapped to 403); a non-member gets 404.
+- Invitee: `GET /api/v1/invitations/{token}` (preview) and `POST .../accept`. Accept is idempotent for the same user. Errors: wrong email 403; cancelled, expired or already-used 409.
+- Email: invite email via `IEmailSender`, link `{Frontend:BaseUrl}/invitations/{token}`. If the send fails, the invitation is cancelled and the error is rethrown.
+- Frontend: "Manage team" link on `/businesses`; `/settings/team` (invite form, pending list with Cancel, member list with Remove); `/invitations/[token]` (sign-in prompt for signed-out visitors, accept button, reasons for refusal).
+- Migration `AddBusinessTeamInvitations` (applied to the dev DB).
 
-Changes:
-
-- Domain: `Invoice.IssuedAt`; `InvoiceStatus` loses `Sent` and `Viewed`.
-- Migration `AddInvoiceIssuedAt` (generated with `dotnet ef migrations add`). Its Up backfills `IssuedAt` from successful rows in `invoice_email_logs`. Applied to the dev DB; the backfill was checked.
-- Write paths: `RecordEmailSentAsync` stamps `IssuedAt` on a successful send. New `POST /businesses/{b}/invoices/{id}/mark-issued` (idempotent; a cancelled invoice gets 409; another account gets 404). Writes an audit entry.
-- Reports: the tax summary and the dashboard's "total invoiced" count an invoice when `IssuedAt` is set or `AmountPaid > 0`. Cancelled is still excluded.
-- Frontend: "Mark as Issued" button on the invoice detail page, hidden once issued or cancelled. Status filter loses "Sent". Fixtures moved to `Draft`.
-- FSD section 142 rewritten for the issued rule.
+**Important: members currently have the same rights as the owner.** IG-240 (restricted roles) is what blocks payment-settings and business-deletion changes for members. Until IG-240 is done, do not invite anyone you would not trust with the full account.
 
 Verification (2026-10-12):
 
-- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 251/251, API 430/430.
-- Frontend: eslint 0, tsc 0, vitest 795/795, `next build` 0.
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 443/443. New: `BusinessTeamInvitationTests` (13), a 403 mapping test.
+- Frontend: eslint 0, tsc 0, vitest 805/805, `next build` 0. New tests: `TeamSettings` (6), `InvitationAccept` (4).
 
-Not done / decisions left:
+Not done:
 
-- The outstanding and overdue reports still list never-issued drafts. Changing that changes what "owed" means, so it needs a decision.
-- `docs/FSD.md` still lists "Sent" and "Viewed" as invoice statuses in several sections (around lines 985, 1214, 1282, 1357, 2432) and "Sent" as a status filter in section 47. Those are the product spec and need a pass.
-- `IG-246` is unblocked by the signal, but its opened-status tracking is still out of scope.
-- No browser check of the new button yet.
+- IG-240 roles and permissions (restricted role enforced server-side).
+- A browser check of the team page and the accept flow.
+- Jira: IG-239 is In Progress. It can close only after IG-240.
 
-**Exact next task:** (1) Decide the outstanding and overdue report question (should never-issued drafts count as owed?). (2) Do the FSD status-list pass (Sent/Viewed in the product spec). (3) Pick the next open item; `IG-238` still awaits acceptance. `frontend/next-env.d.ts` is build-generated and stays out of commits.
+**Exact next task:** (1) Start IG-240: restricted role and server-side permission checks (claim it in Jira first, with approval). (2) Until IG-240 is in, do not invite people who should not have full account access.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-12):** `IG-315`, `IG-266` and `IG-276` are Done. `IG-211` and `IG-238` are In Progress. `IG-239`-`IG-242` and `IG-246` are To Do.
+**Jira sync state (2026-10-13):** IG-238, IG-266, IG-276, IG-297, IG-298 and IG-315 are Done. IG-211 and IG-239 are In Progress. IG-240 to IG-242 and IG-246 are To Do.
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**

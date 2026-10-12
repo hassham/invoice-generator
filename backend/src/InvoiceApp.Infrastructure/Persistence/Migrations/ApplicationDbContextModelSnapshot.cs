@@ -279,6 +279,105 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                     b.ToTable("businesses", "business");
                 });
 
+            modelBuilder.Entity("InvoiceApp.Domain.Businesses.BusinessInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<Guid?>("AcceptedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accepted_by_user_id");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("business_id");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("InvitedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_by_user_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("Id")
+                        .HasName("pk_business_invitations");
+
+                    b.HasIndex("InvitedByUserId")
+                        .HasDatabaseName("ix_business_invitations_invited_by_user_id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_business_invitations_token_hash");
+
+                    b.HasIndex("BusinessId", "Email")
+                        .HasDatabaseName("ix_business_invitations_business_id_email");
+
+                    b.ToTable("business_invitations", "business");
+                });
+
+            modelBuilder.Entity("InvoiceApp.Domain.Businesses.BusinessMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("business_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_business_memberships");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_business_memberships_user_id");
+
+                    b.HasIndex("BusinessId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_business_memberships_business_id_user_id");
+
+                    b.ToTable("business_memberships", "business");
+                });
+
             modelBuilder.Entity("InvoiceApp.Domain.Catalog.CatalogItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2125,6 +2224,40 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_businesses_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("InvoiceApp.Domain.Businesses.BusinessInvitation", b =>
+                {
+                    b.HasOne("InvoiceApp.Domain.Businesses.Business", null)
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_invitations_businesses_business_id");
+
+                    b.HasOne("InvoiceApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("InvitedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_invitations_asp_net_users_invited_by_user_id");
+                });
+
+            modelBuilder.Entity("InvoiceApp.Domain.Businesses.BusinessMembership", b =>
+                {
+                    b.HasOne("InvoiceApp.Domain.Businesses.Business", null)
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_memberships_businesses_business_id");
+
+                    b.HasOne("InvoiceApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_memberships_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("InvoiceApp.Domain.Catalog.CatalogItem", b =>

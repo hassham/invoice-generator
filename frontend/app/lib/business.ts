@@ -132,6 +132,11 @@ function baseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5094";
 }
 
+/** The API origin, for modules that build their own /api/v1 URLs (e.g. teamInvitations). */
+export function apiBaseUrl(): string {
+  return baseUrl();
+}
+
 async function parseErrorDetail(response: Response, fallback: string): Promise<string> {
   const problem = await response.json().catch(() => null);
   return problem?.detail ?? fallback;

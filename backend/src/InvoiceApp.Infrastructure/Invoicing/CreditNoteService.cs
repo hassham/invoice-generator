@@ -4,6 +4,7 @@ using InvoiceApp.Application.Documents;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +18,8 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         CreateCreditNoteCommand command,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -82,8 +83,8 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         Guid invoiceId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -101,8 +102,8 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         Guid businessId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -121,8 +122,8 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         Guid creditNoteId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -142,8 +143,8 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         Guid creditNoteId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -181,8 +182,8 @@ public sealed class CreditNoteService(ApplicationDbContext dbContext) : ICreditN
         Guid creditNoteId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");

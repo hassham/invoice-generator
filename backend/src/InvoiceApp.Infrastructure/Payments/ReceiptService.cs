@@ -4,6 +4,7 @@ using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Domain.Payments;
 using InvoiceApp.Infrastructure.Persistence;
+using InvoiceApp.Infrastructure.Businesses;
 
 namespace InvoiceApp.Infrastructure.Payments;
 
@@ -18,7 +19,7 @@ public sealed class ReceiptService(ApplicationDbContext dbContext) : IReceiptSer
         var business = await dbContext.Businesses.FindAsync([businessId], cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
-        if (business.UserId != userId)
+        if (!await dbContext.AccessibleBusinesses(userId).AnyAsync(b => b.Id == business.Id, cancellationToken))
             throw new InvalidOperationException("Access denied.");
 
         var payment = await dbContext.Payments.FindAsync([command.PaymentId], cancellationToken)
@@ -80,7 +81,7 @@ public sealed class ReceiptService(ApplicationDbContext dbContext) : IReceiptSer
         var business = await dbContext.Businesses.FindAsync([businessId], cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
-        if (business.UserId != userId)
+        if (!await dbContext.AccessibleBusinesses(userId).AnyAsync(b => b.Id == business.Id, cancellationToken))
             throw new InvalidOperationException("Access denied.");
 
         var receipts = await dbContext.Receipts
@@ -99,7 +100,7 @@ public sealed class ReceiptService(ApplicationDbContext dbContext) : IReceiptSer
         var business = await dbContext.Businesses.FindAsync([businessId], cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
-        if (business.UserId != userId)
+        if (!await dbContext.AccessibleBusinesses(userId).AnyAsync(b => b.Id == business.Id, cancellationToken))
             throw new InvalidOperationException("Access denied.");
 
         var receipts = await dbContext.Receipts
@@ -125,7 +126,7 @@ public sealed class ReceiptService(ApplicationDbContext dbContext) : IReceiptSer
         var business = await dbContext.Businesses.FindAsync([businessId], cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
-        if (business.UserId != userId)
+        if (!await dbContext.AccessibleBusinesses(userId).AnyAsync(b => b.Id == business.Id, cancellationToken))
             throw new InvalidOperationException("Access denied.");
 
         return MapToDto(receipt);
@@ -146,7 +147,7 @@ public sealed class ReceiptService(ApplicationDbContext dbContext) : IReceiptSer
         var business = await dbContext.Businesses.FindAsync([businessId], cancellationToken)
             ?? throw new InvalidOperationException("Business not found.");
 
-        if (business.UserId != userId)
+        if (!await dbContext.AccessibleBusinesses(userId).AnyAsync(b => b.Id == business.Id, cancellationToken))
             throw new InvalidOperationException("Access denied.");
 
         dbContext.Receipts.Remove(receipt);

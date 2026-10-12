@@ -76,9 +76,15 @@ export function BusinessesPage() {
   return (
     <div className="space-y-8">
       <section aria-labelledby="business-list-heading" className="space-y-4">
-        <h1 id="business-list-heading" className="text-2xl font-semibold text-slate-900">
-          Your businesses
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 id="business-list-heading" className="text-2xl font-semibold text-slate-900">
+            Your businesses
+          </h1>
+          {/* IG-239: team invitations are managed per selected business. */}
+          <Link href="/settings/team" className="text-sm font-semibold text-slate-700 underline">
+            Manage team
+          </Link>
+        </div>
 
         <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
           {businesses.map((business) => {

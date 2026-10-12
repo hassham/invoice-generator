@@ -3,6 +3,7 @@ using InvoiceApp.Application.Reporting;
 using InvoiceApp.Domain.Invoicing;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using InvoiceApp.Infrastructure.Businesses;
 
 namespace InvoiceApp.Infrastructure.Reporting;
 
@@ -16,9 +17,9 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         DateOnly? endDate,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
+        var business = await dbContext.AccessibleBusinesses(userId)
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            .SingleOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new NotFoundException("Business not found.");
 
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -121,9 +122,9 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         Guid businessId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
+        var business = await dbContext.AccessibleBusinesses(userId)
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            .SingleOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new NotFoundException("Business not found.");
 
         var invoices = await dbContext.Invoices
@@ -161,9 +162,9 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         Guid businessId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
+        var business = await dbContext.AccessibleBusinesses(userId)
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            .SingleOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new NotFoundException("Business not found.");
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -205,9 +206,9 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         DateOnly? endDate,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
+        var business = await dbContext.AccessibleBusinesses(userId)
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            .SingleOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new NotFoundException("Business not found.");
 
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -270,9 +271,9 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         DateOnly? endDate,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
+        var business = await dbContext.AccessibleBusinesses(userId)
             .AsNoTracking()
-            .SingleOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken)
+            .SingleOrDefaultAsync(b => b.Id == businessId, cancellationToken)
             ?? throw new NotFoundException("Business not found.");
 
         var now = DateOnly.FromDateTime(DateTime.UtcNow);

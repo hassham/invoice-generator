@@ -1,5 +1,6 @@
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -62,8 +63,8 @@ public sealed class RecurringGenerationFailureService(ApplicationDbContext dbCon
 
     private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var owned = await dbContext.Businesses
-            .AnyAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var owned = await dbContext.AccessibleBusinesses(userId)
+            .AnyAsync(b => b.Id == businessId, cancellationToken);
 
         if (!owned)
             throw new InvalidOperationException("Business not found or access denied.");

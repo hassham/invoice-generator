@@ -1,5 +1,6 @@
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,8 +13,8 @@ public sealed class ReminderRuleService(ApplicationDbContext dbContext) : IRemin
         Guid businessId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -32,8 +33,8 @@ public sealed class ReminderRuleService(ApplicationDbContext dbContext) : IRemin
         Guid ruleId,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");
@@ -54,8 +55,8 @@ public sealed class ReminderRuleService(ApplicationDbContext dbContext) : IRemin
         UpdateReminderRuleCommand command,
         CancellationToken cancellationToken)
     {
-        var business = await dbContext.Businesses
-            .FirstOrDefaultAsync(b => b.Id == businessId && b.UserId == userId, cancellationToken);
+        var business = await dbContext.AccessibleBusinesses(userId)
+            .FirstOrDefaultAsync(b => b.Id == businessId, cancellationToken);
 
         if (business == null)
             throw new InvalidOperationException("Business not found or access denied.");

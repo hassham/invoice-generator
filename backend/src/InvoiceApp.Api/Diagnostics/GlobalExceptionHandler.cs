@@ -59,6 +59,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         NotFoundException => (StatusCodes.Status404NotFound, "Resource not found.", exception.Message),
         ConflictException => (StatusCodes.Status409Conflict, "Conflict.", exception.Message),
         UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized.", exception.Message),
+        ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden.", exception.Message),
         // IG-237: ASP.NET Core throws this when a route or query parameter cannot be bound - an
         // unparseable enum, a malformed Guid, a non-numeric page. It already carries the right
         // status (400), but without this case it fell through to the catch-all and every malformed

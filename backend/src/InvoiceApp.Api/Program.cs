@@ -163,6 +163,7 @@ app.MapReceiptEndpoints();
 app.MapPurchaseOrderEndpoints();
 app.MapDashboardEndpoints();
 app.MapBusinessEndpoints();
+app.MapBusinessInvitationEndpoints();
 app.MapStripeWebhookEndpoints();
 
 // Liveness: the process is running. No dependency checks - a dependency outage must not make the

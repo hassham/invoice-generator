@@ -1,6 +1,7 @@
 using InvoiceApp.Application.Catalog;
 using InvoiceApp.Application.Exceptions;
 using InvoiceApp.Domain.Catalog;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -117,8 +118,8 @@ public sealed class CatalogItemService(ApplicationDbContext dbContext) : ICatalo
     /// someone else" return the same 404, so another account's business ids are never disclosed.</summary>
     private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var owned = await dbContext.Businesses.AnyAsync(
-            business => business.Id == businessId && business.UserId == userId,
+        var owned = await dbContext.AccessibleBusinesses(userId).AnyAsync(
+            business => business.Id == businessId,
             cancellationToken);
 
         if (!owned)

@@ -48,6 +48,15 @@ public class GlobalExceptionHandlerTests
     }
 
     [Fact]
+    public void Maps_forbidden_exception_to_403_with_its_message()
+    {
+        var (statusCode, _, detail) = GlobalExceptionHandler.Map(new ForbiddenException("Only the business owner can manage the team."));
+
+        Assert.Equal(403, statusCode);
+        Assert.Equal("Only the business owner can manage the team.", detail);
+    }
+
+    [Fact]
     public void Maps_an_unexpected_exception_to_500_without_disclosing_its_message()
     {
         var (statusCode, title, detail) = GlobalExceptionHandler.Map(

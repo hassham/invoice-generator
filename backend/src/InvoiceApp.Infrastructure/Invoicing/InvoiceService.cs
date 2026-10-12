@@ -6,6 +6,7 @@ using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Customers;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Businesses;
 using InvoiceApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -540,8 +541,8 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
     /// reported as not found, never as forbidden.</summary>
     private async Task EnsureOwnedBusinessAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
-        var owned = await dbContext.Businesses.AnyAsync(
-            business => business.Id == businessId && business.UserId == userId,
+        var owned = await dbContext.AccessibleBusinesses(userId).AnyAsync(
+            business => business.Id == businessId,
             cancellationToken);
 
         if (!owned)
