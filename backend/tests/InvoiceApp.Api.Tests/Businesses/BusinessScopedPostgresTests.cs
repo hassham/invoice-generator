@@ -7,6 +7,8 @@ using InvoiceApp.Application.Identity;
 using InvoiceApp.Application.Invoicing;
 using InvoiceApp.Domain.Businesses;
 using InvoiceApp.Domain.Invoicing;
+using InvoiceApp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace InvoiceApp.Api.Tests.Businesses;
@@ -21,14 +23,19 @@ public class BusinessScopedPostgresTests
 {
     private const string PostgresConnectionString = "Host=localhost;Port=5433;Database=invoiceapp;Username=invoiceapp;Password=invoiceapp";
 
+    // Asks the database directly. An HTTP probe (e.g. /api/v1/auth/me) answers anonymous callers
+    // without touching the database, so it wrongly reports Postgres as available on CI, which has
+    // no database container, and the tests then fail with a 500 on registration.
     private static async Task<bool> PostgresIsAvailableAsync()
     {
-        using var probe = new AuthenticatedRouteTestFactory(postgresConnectionStringOverride: PostgresConnectionString);
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql(PostgresConnectionString)
+            .UseSnakeCaseNamingConvention()
+            .Options;
         try
         {
-            using var client = probe.CreateClient();
-            var response = await client.GetAsync("/api/v1/auth/me");
-            return response.StatusCode != HttpStatusCode.InternalServerError;
+            await using var context = new ApplicationDbContext(options);
+            return await context.Database.CanConnectAsync();
         }
         catch
         {
