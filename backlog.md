@@ -38,40 +38,32 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 | `IG-315` | An invoice has no stored signal that it was ever issued (under `IG-213`) | To Do | Not built. `Invoice` has no issued marker. Needs a product decision (three options written up in `IG-315`). |
 | `IG-246` | Test delivery/opened status tracking (under `IG-213`) | To Do | Delivery tests exist (`InvoiceEmailHistoryEndpointTests`). Opened tracking is explicitly out of scope in code. Blocked on `IG-315`, per the notes there. |
 | `IG-266` | Test conversion data integrity and traceability (under `IG-223`) | Done (2026-10-12) | Estimate records its converted invoice; conversion is one transaction with a race-safe claim. Committed and pushed as `2651fee`. |
-| `IG-276` | Test export correctness across filters (under `IG-228`) | To Do | Partial. `ReportPdfExportEndpointsTests` covers CSV/PDF parity, filenames, tenant isolation and outstanding figures. Not confirmed that every filter combination is asserted; check before closing. |
+| `IG-276` | Test export correctness across filters (under `IG-228`) | Done (2026-10-12) | Export content now checked across date ranges. Code uncommitted. |
 
 ## Current Focus / Next Task
 
-**IG-266 (Subtask under `IG-223`): estimate records its converted invoice, and conversion is atomic and race-safe. DONE in Jira 2026-10-12 (transitioned To Do → In Progress → Done with a completion comment, approved by the user). Committed and pushed as `2651fee`.**
+**IG-276 (Subtask under `IG-228`): exports for different date ranges and filters produce correspondingly different, correct output. DONE in Jira 2026-10-12 (To Do → In Progress → Done, completion comment 10330, approved by the user). Code uncommitted.**
 
-Changes:
+Changes (test-only, no production code changed):
 
-- Domain: `Estimate.ConvertedInvoiceId` (`Guid?`). EF FK to `invoice.invoices` with Restrict, so a hard-deleted invoice cannot erase the trail.
-- Migration `20261011232418_AddEstimateConvertedInvoiceId`, generated with `dotnet ef migrations add`. Applied to the local dev database.
-- `EstimateService.ConvertToInvoiceAsync`: on Postgres it runs in one transaction. A conditional `UPDATE ... WHERE status = 'Accepted'` takes the row lock, so a concurrent second conversion matches zero rows and is refused before any invoice is created. Then the invoice is saved, the estimate gets Converted plus the link, the audit entry is written, and the transaction commits. The InMemory path skips the transaction and the claim (`IsRelational()` gate, same as `AccountRegistrationService`).
-- `EstimateDetailDto.ConvertedInvoiceId` is returned on the estimate detail GET.
+- New `tests/InvoiceApp.Api.Tests/Reporting/ReportExportFilterTests.cs` (6 tests). Fixture: an August invoice (1,000 + 10% tax, paid 1,100 in August) and a September invoice (500 + 10%, paid 550 in September).
+- Revenue CSV: August-only lists `2030-08,1100.00` and no September row; August–September lists both with their own figures; the two outputs differ; a range with no payments reports no revenue.
+- By-customer CSV: `Acme Pty Ltd,1100.00,AUD` for August, `1650.00` for both months.
+- Tax summary CSV: `Total Tax Collected` is `100.00` for August and `150.00` for both months.
+- **Mutation check:** the by-customer CSV call was changed to ignore the date range; `Revenue_by_customer_csv_totals_follow_the_date_range` failed. Source restored.
 
-Tests:
+Verification (2026-10-12): `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 253/253, API 422/422, all passing.
 
-- `tests/InvoiceApp.Api.Tests/Estimates/EstimateConversionEndpointsTests.cs` (4, InMemory): accepted estimate converts and records the invoice; draft refused; sent-but-not-accepted refused; second conversion refused, still one invoice, first link kept.
-- `tests/InvoiceApp.Infrastructure.Tests/Estimates/EstimateConversionConcurrencyTests.cs` (1, real Postgres): two concurrent conversions produce exactly one invoice and one 409. **Mutation check:** removing the status condition from the claim made it fail with two winners. The fix was restored and the file re-verified.
+Not covered: outstanding and overdue CSVs have no date filter, so there is nothing to vary. The tax-summary test pays both invoices so draft status (the IG-315 question) does not affect it.
 
-Verification (2026-10-12): `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 253/253, API 416/416, all passing. Docker Desktop was not running, so it was started and the `invoiceapp-postgres` container (port 5433) was used for the Postgres test. No frontend files changed, so the frontend gate was not re-run.
-
-Not done:
-
-- The estimate detail page does not show or link the converted invoice yet. The field is in the API response only.
-- No test forces an invoice-save failure inside the transaction to prove rollback. The rollback path relies on EF/Npgsql transaction disposal and is not directly tested.
-- The Postgres stub writes its invoice on a separate connection, so it tests the claim race but not invoice rollback.
-
-**Exact next task:** (1) Decide whether the estimate page should show the converted invoice link; that is UI scope beyond IG-266's criterion. (3) Pick the next open Jira item; none is claimed.
+**Exact next task:** (1) Decide whether to commit the IG-266 and IG-276 changes locally. (2) Pick the next open item; none is claimed. Other open items: `IG-238` awaits acceptance; `IG-239`-`IG-242` are unstarted features; `IG-315` needs a product decision and blocks `IG-246`.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-12):** `IG-266` transitioned To Do → In Progress → Done, with a completion comment (comment id 10329), both writes approved by the user. `IG-211` and `IG-238` are In Progress. `IG-239`-`IG-242` and the other open subtasks are To Do. `IG-295` and `IG-296` are Done.
+**Jira sync state (2026-10-12):** `IG-266` and `IG-276` are Done (transitions and completion comments approved by the user; comments 10329 and 10330). `IG-211` and `IG-238` are In Progress. `IG-239`-`IG-242` and the other open subtasks are To Do.
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**
