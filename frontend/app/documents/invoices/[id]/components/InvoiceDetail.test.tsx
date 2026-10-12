@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchTemplates, type Template } from "../../../../invoice/create/lib/templates";
 import { updateInvoice } from "../../../../invoice/create/lib/invoiceSave";
 import { downloadInvoicePdf } from "../../../../invoice/create/lib/invoicePdf";
-import { cancelInvoice, deleteInvoice, duplicateInvoice, getInvoice, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
+import { cancelInvoice, deleteInvoice, duplicateInvoice, getInvoice, markInvoiceIssued, type InvoiceDetail as InvoiceDetailData } from "../../../../lib/invoiceDetail";
 import { InvoiceDetail } from "./InvoiceDetail";
 
 const pushMock = vi.fn();
@@ -23,6 +23,7 @@ vi.mock("../../../../lib/invoiceDetail", async (importOriginal) => ({
   cancelInvoice: vi.fn(),
   deleteInvoice: vi.fn(),
   duplicateInvoice: vi.fn(),
+  markInvoiceIssued: vi.fn(),
 }));
 
 vi.mock("../../../../invoice/create/lib/invoiceSave", async (importOriginal) => ({
@@ -64,6 +65,7 @@ const mockedUpdateInvoice = vi.mocked(updateInvoice);
 const mockedCancelInvoice = vi.mocked(cancelInvoice);
 const mockedDeleteInvoice = vi.mocked(deleteInvoice);
 const mockedDuplicateInvoice = vi.mocked(duplicateInvoice);
+const mockedMarkInvoiceIssued = vi.mocked(markInvoiceIssued);
 const mockedDownloadInvoicePdf = vi.mocked(downloadInvoicePdf);
 
 const STUB_TEMPLATES: Template[] = [
@@ -214,6 +216,40 @@ describe("InvoiceDetail", () => {
         expect.objectContaining({ customInstructions: "Bank Name: Big Bank\nPay within 14 days", paymentInstructions: null }),
       ),
     );
+  });
+
+  describe("mark as issued (IG-315)", () => {
+    it("shows Mark as Issued for an invoice that has not been issued", async () => {
+      mockedGetInvoice.mockResolvedValue({ ...sampleDetail, issuedAt: null });
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      expect(screen.getByRole("button", { name: "Mark as Issued" })).toBeInTheDocument();
+    });
+
+    it("marks the invoice issued and hides the button", async () => {
+      mockedGetInvoice.mockResolvedValue({ ...sampleDetail, issuedAt: null });
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      mockedMarkInvoiceIssued.mockResolvedValue({ ...sampleDetail, issuedAt: "2026-08-02T00:00:00Z" });
+      const user = userEvent.setup();
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      await user.click(screen.getByRole("button", { name: "Mark as Issued" }));
+
+      await waitFor(() => expect(mockedMarkInvoiceIssued).toHaveBeenCalledWith("invoice-1"));
+      await waitFor(() => expect(screen.queryByRole("button", { name: "Mark as Issued" })).not.toBeInTheDocument());
+    });
+
+    it("hides Mark as Issued for a Cancelled invoice", async () => {
+      mockedGetInvoice.mockResolvedValue({ ...sampleDetail, status: "Cancelled", issuedAt: null });
+      mockedFetchTemplates.mockResolvedValue(STUB_TEMPLATES);
+      render(<InvoiceDetail invoiceId="invoice-1" />);
+      await screen.findByLabelText("From", { exact: false });
+
+      expect(screen.queryByRole("button", { name: "Mark as Issued" })).not.toBeInTheDocument();
+    });
   });
 
   describe("cancel and delete (IG-49)", () => {

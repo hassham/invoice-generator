@@ -32,6 +32,7 @@ import {
   deleteInvoice,
   duplicateInvoice,
   getInvoice,
+  markInvoiceIssued,
   toEditableInvoice,
   type EditableInvoice,
   type InvoiceDetail as InvoiceDetailData,
@@ -300,6 +301,17 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     }
   };
 
+  // IG-315: non-destructive, so no confirmation dialog. The server keeps the first issue date.
+  const handleMarkIssued = async () => {
+    setSaveError(null);
+    try {
+      const updated = await markInvoiceIssued(invoiceId);
+      setDetail((current) => (current ? { ...current, ...updated } : current));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to mark this invoice as issued.");
+    }
+  };
+
   const handleConfirmDelete = async () => {
     setDialogPending(true);
     setDialogError(null);
@@ -387,6 +399,15 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           >
             Send by Email
           </button>
+          {!detail.issuedAt && detail.status !== "Cancelled" ? (
+            <button
+              type="button"
+              onClick={() => void handleMarkIssued()}
+              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Mark as Issued
+            </button>
+          ) : null}
           {detail.status !== "Cancelled" && detail.status !== "Paid" ? (
             <button
               type="button"

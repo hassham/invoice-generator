@@ -12,6 +12,12 @@ public sealed class Invoice
 
     public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
 
+    /// <summary>IG-315: when the invoice was first issued to the customer - by its first successful
+    /// email send, or by an explicit "mark as issued". Null means never issued, which Status cannot
+    /// say: an unpaid invoice is Draft whether or not it was sent. Set once and kept: later edits
+    /// and a deleted payment do not clear it.</summary>
+    public DateTimeOffset? IssuedAt { get; set; }
+
     public DateOnly IssueDate { get; set; }
 
     public DateOnly DueDate { get; set; }

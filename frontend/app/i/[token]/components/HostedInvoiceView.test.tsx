@@ -29,7 +29,7 @@ const SAMPLE = {
   businessName: "Acme Pty Ltd",
   logoUrl: "/api/v1/business/logo/business-1",
   invoiceNumber: "INV-000123",
-  status: "Sent",
+  status: "Draft",
   issueDate: "2026-09-01",
   dueDate: "2026-09-15",
   currency: "AUD",
@@ -62,7 +62,7 @@ describe("HostedInvoiceView", () => {
     expect(screen.getByText("INV-000123")).toBeInTheDocument();
     // Appears twice: once under "Total", once under "Amount due" (both 220.00 in this fixture).
     expect(screen.getAllByText("AUD 220.00")).toHaveLength(2);
-    expect(screen.getByText("Sent")).toBeInTheDocument();
+    expect(screen.getByText("Draft")).toBeInTheDocument();
   });
 
   it("links Download PDF to the token's PDF endpoint", async () => {

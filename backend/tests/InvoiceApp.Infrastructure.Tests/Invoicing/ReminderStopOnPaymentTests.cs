@@ -17,7 +17,7 @@ public class ReminderStopOnPaymentTests
     private static readonly int[] TriggerDayOffsets = [3, 0, -3, -7, -14];
 
     private static async Task<(ReminderTestHarness Harness, List<Guid> InvoiceIds)> SeedAllRulesAsync(
-        InvoiceStatus status = InvoiceStatus.Sent)
+        InvoiceStatus status = InvoiceStatus.Draft)
     {
         var harness = new ReminderTestHarness();
         var (businessId, customerId) = await harness.SeedBusinessAsync();
@@ -146,8 +146,6 @@ public class ReminderStopOnPaymentTests
 
     [Theory]
     [InlineData(InvoiceStatus.Draft, true)]
-    [InlineData(InvoiceStatus.Sent, true)]
-    [InlineData(InvoiceStatus.Viewed, true)]
     [InlineData(InvoiceStatus.PartiallyPaid, true)]
     [InlineData(InvoiceStatus.Overdue, true)]
     [InlineData(InvoiceStatus.Paid, false)]

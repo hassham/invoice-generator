@@ -122,16 +122,16 @@ public class InvoiceListFilteringTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "filter-status@example.com");
         var draftResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-DRAFT"));
-        var sentResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SENT"));
-        var sent = await sentResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        await SetInvoiceStatusAsync(factory, sent!.Id, InvoiceStatus.Sent);
+        var cancelledResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-CANCELLED"));
+        var cancelled = await cancelledResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
+        await SetInvoiceStatusAsync(factory, cancelled!.Id, InvoiceStatus.Cancelled);
         Assert.NotNull(await draftResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions));
 
         var draftOnly = await InvoiceNumbersAsync(client, "?status=Draft");
-        var sentOnly = await InvoiceNumbersAsync(client, "?status=Sent");
+        var cancelledOnly = await InvoiceNumbersAsync(client, "?status=Cancelled");
 
         Assert.Equal(["INV-DRAFT"], draftOnly);
-        Assert.Equal(["INV-SENT"], sentOnly);
+        Assert.Equal(["INV-CANCELLED"], cancelledOnly);
     }
 
     [Fact]

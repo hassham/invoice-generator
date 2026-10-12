@@ -26,6 +26,8 @@ public static class InvoiceEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/invoices", ListAsync).RequireAuthorization();
         // IG-49: same DELETE-archives-not-hard-deletes convention as CustomerEndpoints.
         app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/cancel", CancelAsync).RequireAuthorization();
+        // IG-315: explicit "mark as issued" for invoices handed over without the email feature.
+        app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/mark-issued", MarkIssuedAsync).RequireAuthorization();
         app.MapDelete("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}", DeleteAsync).RequireAuthorization();
         app.MapPost("/api/v1/businesses/{businessId:guid}/invoices/{id:guid}/duplicate", DuplicateAsync).RequireAuthorization();
         // IG-212: authenticated (unlike the anonymous PDF endpoint) since it has a real external
@@ -113,6 +115,17 @@ public static class InvoiceEndpoints
         CancellationToken cancellationToken)
     {
         var invoice = await invoiceService.CancelAsync(UserId(user), businessId, id, cancellationToken);
+        return Results.Ok(invoice);
+    }
+
+    private static async Task<IResult> MarkIssuedAsync(
+        Guid id,
+        Guid businessId,
+        ClaimsPrincipal user,
+        IInvoiceService invoiceService,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await invoiceService.MarkIssuedAsync(UserId(user), businessId, id, cancellationToken);
         return Results.Ok(invoice);
     }
 

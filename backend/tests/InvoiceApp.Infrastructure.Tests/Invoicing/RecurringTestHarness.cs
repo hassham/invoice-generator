@@ -157,7 +157,7 @@ public sealed class RecurringTestHarness : IDisposable
             BusinessId = business.Id,
             CustomerId = customer.Id,
             InvoiceNumber = "INV-TEMPLATE",
-            Status = InvoiceStatus.Sent,
+            Status = InvoiceStatus.Draft,
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-30),
             DueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-16),
             Currency = "AUD",

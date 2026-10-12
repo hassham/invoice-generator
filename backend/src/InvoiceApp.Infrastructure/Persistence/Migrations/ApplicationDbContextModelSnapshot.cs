@@ -1009,6 +1009,10 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("issue_date");
 
+                    b.Property<DateTimeOffset?>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");

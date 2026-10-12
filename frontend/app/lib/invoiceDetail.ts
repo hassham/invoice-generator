@@ -19,6 +19,8 @@ export interface InvoiceDetail {
   customerId: string;
   invoiceNumber: string;
   status: string;
+  /** IG-315: null/absent until the invoice is issued by an email send or "Mark as Issued". */
+  issuedAt?: string | null;
   issueDate: string;
   dueDate: string;
   reference: string | null;
@@ -199,6 +201,19 @@ export async function cancelInvoice(id: string): Promise<InvoiceSummary> {
 
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, "Failed to cancel this invoice."));
+  }
+
+  return response.json();
+}
+
+/** IG-315: explicit "Mark as Issued" for an invoice handed over without the email feature. The
+ * server keeps the first issue date, so calling it again is harmless. A cancelled invoice is
+ * rejected with a 409 (surfaced via the thrown error's message). */
+export async function markInvoiceIssued(id: string): Promise<InvoiceDetail> {
+  const response = await fetch(await businessRoute(`/invoices/${id}/mark-issued`), { method: "POST", credentials: "include" });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, "Failed to mark this invoice as issued."));
   }
 
   return response.json();

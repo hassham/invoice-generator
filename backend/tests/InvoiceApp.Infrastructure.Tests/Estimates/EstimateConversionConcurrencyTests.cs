@@ -245,6 +245,7 @@ public sealed class EstimateConversionConcurrencyTests : IClassFixture<PostgresA
         public Task<InvoiceDetailDto> GetAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<InvoiceListResponse> ListAsync(Guid userId, Guid businessId, InvoiceListQuery query, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<InvoiceDto> CancelAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<InvoiceDetailDto> MarkIssuedAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task DeleteAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<InvoiceDto> DuplicateAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<HostedInvoiceDto> GetHostedInvoiceAsync(string token, CancellationToken cancellationToken) => throw new NotSupportedException();

@@ -32,7 +32,7 @@ describe("OutstandingAndOverdueView", () => {
         dueDate: "2026-09-15",
         currency: "USD",
         amountDue: 1500,
-        status: "Sent",
+        status: "Draft",
       },
       {
         id: "inv-2",
@@ -42,7 +42,7 @@ describe("OutstandingAndOverdueView", () => {
         dueDate: "2026-09-20",
         currency: "USD",
         amountDue: 2500,
-        status: "Sent",
+        status: "Draft",
       },
     ];
 
@@ -72,7 +72,7 @@ describe("OutstandingAndOverdueView", () => {
         dueDate: "2026-08-15",
         currency: "AUD",
         amountDue: 3000,
-        status: "Sent",
+        status: "Draft",
       },
     ];
 
@@ -129,7 +129,7 @@ describe("OutstandingAndOverdueView", () => {
         dueDate: "2026-09-15",
         currency: "USD",
         amountDue: 1000,
-        status: "Sent",
+        status: "Draft",
       },
       {
         id: "inv-2",
@@ -139,7 +139,7 @@ describe("OutstandingAndOverdueView", () => {
         dueDate: "2026-09-20",
         currency: "USD",
         amountDue: 2000,
-        status: "Sent",
+        status: "Draft",
       },
     ];
 

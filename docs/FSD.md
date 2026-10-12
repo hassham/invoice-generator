@@ -3262,17 +3262,22 @@ The tax summary totals tax on invoices **issued** in the range, paid or not. It 
 
 Added under `IG-314`.
 
-The tax summary excludes **`Cancelled`** invoices. Every other status counts, `Draft` included. Payment state is irrelevant to the tax summary, because it is accrual — an issued but unpaid invoice still charged tax.
+The tax summary excludes **`Cancelled`** invoices, and excludes any invoice that has never been issued and has no payment against it.
 
-A cancellation is the clearest available statement that the sale did not happen, so it is not a taxable supply. This figure is what a user transcribes onto a BAS or VAT return, and counting voided sales overstates the tax they owe.
+An invoice is a taxable supply once it has been **issued** to the customer, or once any payment has been received against it. "Issued" means one of:
 
-### Why `Draft` still counts, although it should not
+- its first **successful** email send (a failed send does not count), or
+- an explicit **Mark as Issued** action, for an invoice handed over directly as a PDF or hosted link.
 
-A never-issued invoice is not a taxable supply either, but the stored data cannot currently identify one. **Nothing in this codebase ever assigns `InvoiceStatus.Sent` or `Viewed`**, and `Invoice` has no `SentAt` column, so an invoice that has been saved and emailed to a customer sits at `Draft` exactly like one that was abandoned half-written. `Draft` therefore means "unpaid", not "not issued".
+Both set `Invoice.IssuedAt`, which is kept once set. An issued but unpaid invoice still counts. A never-issued, unpaid `Draft` does not. This figure is what a user transcribes onto a BAS or VAT return, so it should neither count voided sales nor drop sales that were actually made.
 
-Filtering `Draft` out would drop real taxable supplies and **under**-report tax, which is the more dangerous error of the two. So it is left in, knowingly, until there is a stored signal for "this invoice was issued" — a data-model change, not a query change. Until then the tax summary may overstate tax on abandoned drafts.
+### Why `Status` cannot say this
 
-This is the same missing signal behind the `Sent`/`Viewed` statuses existing in the enum but never being reachable.
+An unpaid invoice is `Draft` whether or not it was sent, so status alone does not identify an issued invoice. `IssuedAt` is the stored signal. The `Sent` and `Viewed` statuses were removed (`IG-315`): nothing ever assigned them, and an issued invoice's status is unchanged by being issued.
+
+The dashboard's "total invoiced" uses the same rule: it excludes `Cancelled` invoices and any never-issued, unpaid `Draft`.
+
+Not yet changed: the outstanding and overdue reports still list every unpaid invoice, including never-issued drafts. Changing that alters what "owed" means and needs its own decision.
 
 The revenue reports need no equivalent rule, and this was checked rather than assumed:
 

@@ -23,6 +23,11 @@ public interface IInvoiceService
     /// received.</summary>
     Task<InvoiceDto> CancelAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken);
 
+    /// <summary>IG-315: records that the invoice was issued to the customer outside the email feature
+    /// (a PDF or hosted link handed over directly). Idempotent: an invoice already issued keeps its
+    /// original date. A cancelled invoice cannot be issued (ConflictException).</summary>
+    Task<InvoiceDetailDto> MarkIssuedAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken);
+
     /// <summary>FSD section 53: always a soft delete (IsDeleted/DeletedAt), regardless of status -
     /// "prefer soft deletion... do not permanently remove financial history" applied uniformly
     /// rather than branching a real hard-delete path this codebase has never had.</summary>

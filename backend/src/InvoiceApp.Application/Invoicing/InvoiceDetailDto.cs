@@ -44,4 +44,5 @@ public sealed record InvoiceDetailDto(
     decimal AmountPaid,
     decimal AmountDue,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? IssuedAt);

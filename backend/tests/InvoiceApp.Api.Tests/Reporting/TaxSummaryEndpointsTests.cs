@@ -69,6 +69,16 @@ public class TaxSummaryEndpointsTests
         return (await response.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions))!.Id;
     }
 
+    // IG-315: tax counts once an invoice is issued or paid, so tests of the tax figure issue
+    // the invoices they expect to be counted. The never-issued cases call InvoiceAsync directly.
+    private static async Task<Guid> IssuedInvoiceAsync(HttpClient client, string number, DateOnly issueDate, decimal amount)
+    {
+        var invoiceId = await InvoiceAsync(client, number, issueDate, amount);
+        var marked = await client.PostAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/mark-issued", null);
+        marked.EnsureSuccessStatusCode();
+        return invoiceId;
+    }
+
     private static async Task CancelAsync(HttpClient client, Guid invoiceId)
     {
         var response = await client.PostAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{invoiceId}/cancel", null);
@@ -119,8 +129,8 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "tax-cancelled@example.com");
 
-        await InvoiceAsync(client, "TAX-KEEP", new DateOnly(2030, 8, 10), 1_000);
-        var cancelled = await InvoiceAsync(client, "TAX-VOID", new DateOnly(2030, 8, 12), 2_000);
+        await IssuedInvoiceAsync(client, "TAX-KEEP", new DateOnly(2030, 8, 10), 1_000);
+        var cancelled = await IssuedInvoiceAsync(client, "TAX-VOID", new DateOnly(2030, 8, 12), 2_000);
         await CancelAsync(client, cancelled);
 
         var summary = await SummaryAsync(client);
@@ -137,7 +147,7 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "tax-cancelled-only@example.com");
 
-        var cancelled = await InvoiceAsync(client, "TAX-VOID-ONLY", new DateOnly(2030, 8, 10), 5_000);
+        var cancelled = await IssuedInvoiceAsync(client, "TAX-VOID-ONLY", new DateOnly(2030, 8, 10), 5_000);
         await CancelAsync(client, cancelled);
 
         var summary = await SummaryAsync(client);
@@ -157,7 +167,7 @@ public class TaxSummaryEndpointsTests
         // route to a Cancelled invoice that has real money against it. Its tax still goes, because
         // the supply was voided; the money that did arrive is reported by the revenue report
         // instead, which is cash basis and deliberately keeps it (docs/FSD.md section 142).
-        var invoiceId = await InvoiceAsync(client, "TAX-VOID-PART", new DateOnly(2030, 8, 10), 1_000);
+        var invoiceId = await IssuedInvoiceAsync(client, "TAX-VOID-PART", new DateOnly(2030, 8, 10), 1_000);
         await PayAsync(client, invoiceId, new DateOnly(2030, 8, 15), 400);
         await CancelAsync(client, invoiceId);
 
@@ -172,7 +182,7 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "tax-unpaid@example.com");
 
-        await InvoiceAsync(client, "TAX-UNPAID", new DateOnly(2030, 8, 10), 1_000);
+        await IssuedInvoiceAsync(client, "TAX-UNPAID", new DateOnly(2030, 8, 10), 1_000);
 
         var summary = await SummaryAsync(client);
 
@@ -187,7 +197,7 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "tax-paid@example.com");
 
-        var invoiceId = await InvoiceAsync(client, "TAX-PAID", new DateOnly(2030, 8, 10), 1_000);
+        var invoiceId = await IssuedInvoiceAsync(client, "TAX-PAID", new DateOnly(2030, 8, 10), 1_000);
         await PayAsync(client, invoiceId, new DateOnly(2030, 8, 15), 600);
         await PayAsync(client, invoiceId, new DateOnly(2030, 8, 20), 500);
 
@@ -199,23 +209,49 @@ public class TaxSummaryEndpointsTests
         Assert.Equal(1_000m, summary.TotalTaxableAmount);
     }
 
+    // IG-315: an invoice is a taxable supply once it is issued or paid. Status alone cannot say
+    // this - an unpaid invoice is Draft whether or not it was sent - so these tests pin the rule
+    // through the stored IssuedAt signal.
+
     [Fact]
-    public async Task A_draft_invoice_still_counts_and_that_is_a_known_gap()
+    public async Task A_never_issued_unpaid_draft_is_not_a_taxable_supply()
     {
         using var factory = new AuthenticatedRouteTestFactory();
-        using var client = await RegisteredClientAsync(factory, "tax-draft@example.com");
+        using var client = await RegisteredClientAsync(factory, "tax-draft-unissued@example.com");
 
         await InvoiceAsync(client, "TAX-DRAFT", new DateOnly(2030, 8, 10), 1_000);
 
         var summary = await SummaryAsync(client);
 
-        // This pins current behaviour rather than desired behaviour, and IG-314's criterion is
-        // only half met because of it. A never-issued invoice is not a taxable supply - but
-        // nothing in this codebase assigns InvoiceStatus.Sent or Viewed and Invoice has no SentAt
-        // column, so an invoice emailed to a customer is stored at Draft exactly like one
-        // abandoned half-written. Excluding Draft would drop real taxable supplies and
-        // UNDER-report tax, which is the worse error. Change this test only together with a
-        // stored "issued" signal.
+        Assert.Equal(0m, summary.TotalTaxCollected);
+    }
+
+    [Fact]
+    public async Task An_issued_but_unpaid_invoice_still_counts_its_tax()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "tax-issued-unpaid@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "TAX-ISSUED", new DateOnly(2030, 8, 10), 1_000);
+        var marked = await client.PostAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/invoices")}/{invoiceId}/mark-issued", null);
+        marked.EnsureSuccessStatusCode();
+
+        var summary = await SummaryAsync(client);
+
+        Assert.Equal(100m, summary.TotalTaxCollected);
+    }
+
+    [Fact]
+    public async Task A_paid_invoice_counts_its_tax_even_if_it_was_never_issued()
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = await RegisteredClientAsync(factory, "tax-paid-unissued@example.com");
+
+        var invoiceId = await InvoiceAsync(client, "TAX-PAID", new DateOnly(2030, 8, 10), 1_000);
+        await PayAsync(client, invoiceId, new DateOnly(2030, 8, 15), 1_100);
+
+        var summary = await SummaryAsync(client);
+
         Assert.Equal(100m, summary.TotalTaxCollected);
     }
 
@@ -225,8 +261,8 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "tax-range@example.com");
 
-        await InvoiceAsync(client, "TAX-IN", new DateOnly(2030, 8, 10), 1_000);
-        await InvoiceAsync(client, "TAX-OUT", new DateOnly(2030, 9, 10), 7_000);
+        await IssuedInvoiceAsync(client, "TAX-IN", new DateOnly(2030, 8, 10), 1_000);
+        await IssuedInvoiceAsync(client, "TAX-OUT", new DateOnly(2030, 9, 10), 7_000);
 
         var summary = await SummaryAsync(client);
 
@@ -239,10 +275,10 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
 
         using var owner = await RegisteredClientAsync(factory, "tax-owner@example.com");
-        await InvoiceAsync(owner, "TAX-OWNER", new DateOnly(2030, 8, 10), 1_000);
+        await IssuedInvoiceAsync(owner, "TAX-OWNER", new DateOnly(2030, 8, 10), 1_000);
 
         using var other = await RegisteredClientAsync(factory, "tax-other@example.com");
-        await InvoiceAsync(other, "TAX-OTHER", new DateOnly(2030, 8, 10), 90_000);
+        await IssuedInvoiceAsync(other, "TAX-OTHER", new DateOnly(2030, 8, 10), 90_000);
 
         var summary = await SummaryAsync(owner);
 
@@ -256,8 +292,8 @@ public class TaxSummaryEndpointsTests
         using var factory = new AuthenticatedRouteTestFactory();
         using var client = await RegisteredClientAsync(factory, "tax-deleted@example.com");
 
-        await InvoiceAsync(client, "TAX-D-KEEP", new DateOnly(2030, 8, 10), 1_000);
-        var removed = await InvoiceAsync(client, "TAX-D-GONE", new DateOnly(2030, 8, 11), 4_000);
+        await IssuedInvoiceAsync(client, "TAX-D-KEEP", new DateOnly(2030, 8, 10), 1_000);
+        var removed = await IssuedInvoiceAsync(client, "TAX-D-GONE", new DateOnly(2030, 8, 11), 4_000);
         (await client.DeleteAsync($"{await DefaultBusinessRoutes.InvoicesRouteAsync(client)}/{removed}")).EnsureSuccessStatusCode();
 
         var summary = await SummaryAsync(client);

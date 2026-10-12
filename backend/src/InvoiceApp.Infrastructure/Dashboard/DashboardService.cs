@@ -27,10 +27,11 @@ public sealed class DashboardService(ApplicationDbContext dbContext) : IDashboar
         // doc comment).
         var scoped = dbContext.Invoices.Where(invoice => invoice.BusinessId == businessId && !invoice.IsDeleted && invoice.Currency == business.DefaultCurrency);
 
-        // "Sum invoice totals excluding Draft, Cancelled" - period-scoped by issue date (FSD
-        // section 42's "financial summary ... period").
+        // "Sum invoice totals excluding never-issued and Cancelled" - period-scoped by issue date
+        // (FSD section 42's "financial summary ... period"). IG-315: a Draft that was sent or has a
+        // payment against it is issued, so it counts; an unsent, unpaid Draft does not.
         var totalInvoiced = await scoped
-            .Where(invoice => invoice.Status != InvoiceStatus.Draft && invoice.Status != InvoiceStatus.Cancelled)
+            .Where(invoice => invoice.Status != InvoiceStatus.Cancelled && (invoice.IssuedAt != null || invoice.AmountPaid > 0))
             .Where(invoice => invoice.IssueDate >= periodStart && invoice.IssueDate <= periodEnd)
             .SumAsync(invoice => (decimal?)invoice.TotalAmount, cancellationToken) ?? 0m;
 

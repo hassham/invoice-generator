@@ -281,20 +281,16 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
 
         // IG-314: a cancelled invoice is not a taxable supply, and this figure is what a user
         // transcribes onto a BAS or VAT return - counting voided sales overstates the tax they
-        // owe. Before this the query selected i.Status and then never read it, so every invoice in
-        // the range contributed its tax regardless of status.
+        // owe.
         //
-        // Draft is deliberately NOT excluded, though a never-issued invoice plainly is not a
-        // taxable supply either. Nothing in this codebase ever assigns InvoiceStatus.Sent or
-        // Viewed, and Invoice has no SentAt column, so a saved-but-unpaid invoice sits at Draft
-        // whether or not it was emailed to the customer. Draft therefore means "unpaid", not "not
-        // issued", and filtering it out would drop real taxable supplies - under-reporting tax
-        // instead of over-reporting it. Fixing that half needs a stored "issued" signal, which is
-        // a data-model change rather than a query change. See docs/FSD.md section 142.
+        // IG-315: an invoice is a taxable supply once it has been issued to the customer or any
+        // payment has been received against it. A Draft that was never sent and never paid is
+        // neither, so it is excluded. Issued-but-unpaid invoices still count, so this does not
+        // under-report tax on invoices the customer was actually sent. See docs/FSD.md section 142.
         var invoices = await dbContext.Invoices
             .AsNoTracking()
             .Where(i => i.BusinessId == business.Id && !i.IsDeleted && i.Currency == business.DefaultCurrency)
-            .Where(i => i.Status != InvoiceStatus.Cancelled)
+            .Where(i => i.Status != InvoiceStatus.Cancelled && (i.IssuedAt != null || i.AmountPaid > 0))
             .Where(i => i.IssueDate >= effectiveStart && i.IssueDate <= effectiveEnd)
             .Select(i => new
             {

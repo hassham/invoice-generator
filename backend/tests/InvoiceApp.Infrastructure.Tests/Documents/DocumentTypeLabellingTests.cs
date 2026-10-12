@@ -71,7 +71,7 @@ public class DocumentTypeLabellingTests : IDisposable
             BusinessId = business.Id,
             CustomerId = customer.Id,
             InvoiceNumber = "INV-1",
-            Status = InvoiceStatus.Sent,
+            Status = InvoiceStatus.Draft,
             IssueDate = new DateOnly(2030, 8, 1),
             DueDate = new DateOnly(2030, 8, 15),
             Currency = "AUD",

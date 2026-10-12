@@ -108,7 +108,7 @@ public sealed class ReminderTestHarness : IDisposable
         Guid businessId,
         Guid customerId,
         int dueInDays,
-        InvoiceStatus status = InvoiceStatus.Sent,
+        InvoiceStatus status = InvoiceStatus.Draft,
         string invoiceNumber = "INV-1")
     {
         await using var db = NewDbContext();

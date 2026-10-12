@@ -55,7 +55,7 @@ describe("listInvoices", () => {
       page: 1,
       pageSize: 25,
       search: "acme",
-      status: "Sent",
+      status: "Draft",
       startDate: "2026-06-01",
       endDate: "2026-06-30",
       customerId: "customer-1",
@@ -64,7 +64,7 @@ describe("listInvoices", () => {
 
     const [url] = fetchMock.mock.calls[0];
     expect(url).toContain("search=acme");
-    expect(url).toContain("status=Sent");
+    expect(url).toContain("status=Draft");
     expect(url).toContain("startDate=2026-06-01");
     expect(url).toContain("endDate=2026-06-30");
     expect(url).toContain("customerId=customer-1");

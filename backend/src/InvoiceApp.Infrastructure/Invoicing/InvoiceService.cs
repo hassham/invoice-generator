@@ -203,25 +203,34 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
     public async Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
     {
         await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
-        // Confirms ownership without loading Items - RecordEmailSentAsync has no use for them,
-        // same "just enough of LoadOwnedAsync's check" reasoning as any other narrow write.
-        var owned = await dbContext.Invoices.AnyAsync(invoice => invoice.Id == invoiceId && invoice.BusinessId == businessId && !invoice.IsDeleted, cancellationToken);
-        if (!owned)
+        // Loads only the scalar columns this write needs (no Items) - same "just enough of
+        // LoadOwnedAsync's check" reasoning as any other narrow write. The tracked entity is needed
+        // so a successful send can stamp IssuedAt (IG-315).
+        var invoice = await dbContext.Invoices.FirstOrDefaultAsync(i => i.Id == invoiceId && i.BusinessId == businessId && !i.IsDeleted, cancellationToken);
+        if (invoice is null)
         {
             throw new NotFoundException("Invoice not found.");
         }
 
+        var now = DateTimeOffset.UtcNow;
         dbContext.InvoiceEmailLogs.Add(new InvoiceEmailLog
         {
             Id = Guid.NewGuid(),
             InvoiceId = invoiceId,
-            SentAt = DateTimeOffset.UtcNow,
+            SentAt = now,
             To = JsonSerializer.Serialize(request.To),
             Cc = JsonSerializer.Serialize(request.Cc),
             Subject = request.Subject,
             Status = status,
             ErrorMessage = errorMessage,
         });
+
+        // IG-315: only a delivered email makes the invoice issued. A failed send leaves it unissued.
+        if (status == InvoiceEmailStatus.Sent)
+        {
+            invoice.IssuedAt ??= now;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -281,6 +290,32 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         }
 
         return ToDto(invoice);
+    }
+
+    /// <summary>IG-315: explicit "mark as issued" for invoices handed over without the email feature.
+    /// Only the first call writes IssuedAt; later calls return the same invoice unchanged.</summary>
+    public async Task<InvoiceDetailDto> MarkIssuedAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
+    {
+        await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
+        var invoice = await LoadOwnedAsync(businessId, invoiceId, cancellationToken);
+
+        if (invoice.Status == InvoiceStatus.Cancelled)
+        {
+            throw new ConflictException("A cancelled invoice cannot be marked as issued.");
+        }
+
+        if (invoice.IssuedAt is null)
+        {
+            var now = DateTimeOffset.UtcNow;
+            invoice.IssuedAt = now;
+            invoice.UpdatedAt = now;
+
+            await auditLogService.RecordAsync(userId, businessId, "Invoice", invoice.Id, "Invoice marked as issued", new { invoice.InvoiceNumber }, cancellationToken);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return await GetAsync(userId, businessId, invoiceId, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)
@@ -762,7 +797,8 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
             invoice.AmountPaid,
             invoice.AmountDue,
             invoice.CreatedAt,
-            invoice.UpdatedAt);
+            invoice.UpdatedAt,
+            invoice.IssuedAt);
     }
 
     private sealed record SellerSnapshotPayload(string Text);

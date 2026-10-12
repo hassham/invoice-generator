@@ -5,7 +5,7 @@ const SAMPLE: import("./hostedInvoice").HostedInvoice = {
   businessName: "Acme Pty Ltd",
   logoUrl: "/api/v1/business/logo/business-1",
   invoiceNumber: "INV-000123",
-  status: "Sent",
+  status: "Draft",
   issueDate: "2026-09-01",
   dueDate: "2026-09-15",
   currency: "AUD",

@@ -18,9 +18,9 @@ export interface InvoiceListResult {
   totalCount: number;
 }
 
-/** FSD section 47's Status filter options - deliberately the 6 it lists, not every InvoiceStatus
- * value (it omits "Viewed"). */
-export const INVOICE_STATUS_FILTER_OPTIONS = ["Draft", "Sent", "Paid", "PartiallyPaid", "Overdue", "Cancelled"] as const;
+/** FSD section 47's Status filter options. "Sent" is no longer a status (IG-315): an issued,
+ * unpaid invoice is Draft, so it is filtered by Draft. */
+export const INVOICE_STATUS_FILTER_OPTIONS = ["Draft", "Paid", "PartiallyPaid", "Overdue", "Cancelled"] as const;
 export type InvoiceStatusFilter = (typeof INVOICE_STATUS_FILTER_OPTIONS)[number];
 
 /** FSD section 48's 5 sort options. */

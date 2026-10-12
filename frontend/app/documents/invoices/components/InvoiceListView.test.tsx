@@ -134,7 +134,7 @@ describe("InvoiceListView", () => {
   });
 
   it("navigates to the next page via the Next button, preserving other criteria", async () => {
-    currentSearchParams = new URLSearchParams("page=1&pageSize=25&status=Sent");
+    currentSearchParams = new URLSearchParams("page=1&pageSize=25&status=Draft");
     mockedListInvoices.mockResolvedValue({ items: [sampleItem], page: 1, pageSize: 25, totalCount: 50 });
     const user = userEvent.setup();
 
@@ -145,7 +145,7 @@ describe("InvoiceListView", () => {
 
     const [url] = pushMock.mock.calls[0];
     expect(url).toContain("page=2");
-    expect(url).toContain("status=Sent");
+    expect(url).toContain("status=Draft");
   });
 
   it("disables Previous on the first page and Next on the last page", async () => {
@@ -188,17 +188,17 @@ describe("InvoiceListView", () => {
     });
 
     it("requests the search/status/customerId/sort criteria given in the URL", async () => {
-      currentSearchParams = new URLSearchParams("search=acme&status=Sent&customerId=customer-1&sort=AmountHighest");
+      currentSearchParams = new URLSearchParams("search=acme&status=Draft&customerId=customer-1&sort=AmountHighest");
       mockedListInvoices.mockResolvedValue({ items: [sampleItem], page: 1, pageSize: 25, totalCount: 1 });
 
       render(<InvoiceListView />);
 
       await waitFor(() =>
         expect(mockedListInvoices).toHaveBeenCalledWith(
-          expect.objectContaining({ search: "acme", status: "Sent", customerId: "customer-1", sort: "AmountHighest" }),
+          expect.objectContaining({ search: "acme", status: "Draft", customerId: "customer-1", sort: "AmountHighest" }),
         ),
       );
-      expect(screen.getByLabelText("Status")).toHaveValue("Sent");
+      expect(screen.getByLabelText("Status")).toHaveValue("Draft");
       expect(screen.getByLabelText("Sort")).toHaveValue("AmountHighest");
     });
 
@@ -265,7 +265,7 @@ describe("InvoiceListView", () => {
     });
 
     it("Clear filters navigates back to the bare page/pageSize URL", async () => {
-      currentSearchParams = new URLSearchParams("page=2&pageSize=50&search=acme&status=Sent");
+      currentSearchParams = new URLSearchParams("page=2&pageSize=50&search=acme&status=Draft");
       mockedListInvoices.mockResolvedValue({ items: [sampleItem], page: 2, pageSize: 50, totalCount: 1 });
       const user = userEvent.setup();
 

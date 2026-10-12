@@ -35,35 +35,49 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 | `IG-242` | View advanced cross-business reports (Story) | To Do | Not started. Reports are per-business only (`/businesses/{businessId}/reports/*`); there is no combined endpoint. |
 | `IG-303` | Implement per-business and combined report scoping | To Do | Not started. |
 | `IG-304` | Test combined report accuracy across currencies | To Do | Not started. |
-| `IG-315` | An invoice has no stored signal that it was ever issued (under `IG-213`) | To Do | Not built. `Invoice` has no issued marker. Needs a product decision (three options written up in `IG-315`). |
+| `IG-315` | An invoice has no stored signal that it was ever issued (under `IG-213`) | Done (2026-10-12). `Invoice.IssuedAt` set by a successful email send or Mark as Issued. Committed and pushed. |
 | `IG-246` | Test delivery/opened status tracking (under `IG-213`) | To Do | Delivery tests exist (`InvoiceEmailHistoryEndpointTests`). Opened tracking is explicitly out of scope in code. Blocked on `IG-315`, per the notes there. |
 | `IG-266` | Test conversion data integrity and traceability (under `IG-223`) | Done (2026-10-12) | Estimate records its converted invoice; conversion is one transaction with a race-safe claim. Committed and pushed as `2651fee`. |
 | `IG-276` | Test export correctness across filters (under `IG-228`) | Done (2026-10-12) | Export content now checked across date ranges. Code uncommitted. |
 
 ## Current Focus / Next Task
 
-**IG-276 (Subtask under `IG-228`): exports for different date ranges and filters produce correspondingly different, correct output. DONE in Jira 2026-10-12 (To Do → In Progress → Done, completion comment 10330, approved by the user). Code uncommitted.**
+**IG-315 (Subtask under `IG-213`): an invoice has a stored "issued" signal. DONE in Jira 2026-10-12 (In Progress → Done with a completion comment, approved by the user). Committed and pushed.**
 
-Changes (test-only, no production code changed):
+Decisions, as chosen by the user:
 
-- New `tests/InvoiceApp.Api.Tests/Reporting/ReportExportFilterTests.cs` (6 tests). Fixture: an August invoice (1,000 + 10% tax, paid 1,100 in August) and a September invoice (500 + 10%, paid 550 in September).
-- Revenue CSV: August-only lists `2030-08,1100.00` and no September row; August–September lists both with their own figures; the two outputs differ; a range with no payments reports no revenue.
-- By-customer CSV: `Acme Pty Ltd,1100.00,AUD` for August, `1650.00` for both months.
-- Tax summary CSV: `Total Tax Collected` is `100.00` for August and `150.00` for both months.
-- **Mutation check:** the by-customer CSV call was changed to ignore the date range; `Revenue_by_customer_csv_totals_follow_the_date_range` failed. Source restored.
+- Issued = first successful email send (a failed send does not count), or an explicit "Mark as Issued" action. Option (a) + (c).
+- Option (x): `Invoice.IssuedAt` is added and the status is unchanged. `InvoiceStatus.Sent` and `Viewed` are removed.
 
-Verification (2026-10-12): `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 253/253, API 422/422, all passing.
+Changes:
 
-Not covered: outstanding and overdue CSVs have no date filter, so there is nothing to vary. The tax-summary test pays both invoices so draft status (the IG-315 question) does not affect it.
+- Domain: `Invoice.IssuedAt`; `InvoiceStatus` loses `Sent` and `Viewed`.
+- Migration `AddInvoiceIssuedAt` (generated with `dotnet ef migrations add`). Its Up backfills `IssuedAt` from successful rows in `invoice_email_logs`. Applied to the dev DB; the backfill was checked.
+- Write paths: `RecordEmailSentAsync` stamps `IssuedAt` on a successful send. New `POST /businesses/{b}/invoices/{id}/mark-issued` (idempotent; a cancelled invoice gets 409; another account gets 404). Writes an audit entry.
+- Reports: the tax summary and the dashboard's "total invoiced" count an invoice when `IssuedAt` is set or `AmountPaid > 0`. Cancelled is still excluded.
+- Frontend: "Mark as Issued" button on the invoice detail page, hidden once issued or cancelled. Status filter loses "Sent". Fixtures moved to `Draft`.
+- FSD section 142 rewritten for the issued rule.
 
-**Exact next task:** (1) Decide whether to commit the IG-266 and IG-276 changes locally. (2) Pick the next open item; none is claimed. Other open items: `IG-238` awaits acceptance; `IG-239`-`IG-242` are unstarted features; `IG-315` needs a product decision and blocks `IG-246`.
+Verification (2026-10-12):
+
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 251/251, API 430/430.
+- Frontend: eslint 0, tsc 0, vitest 795/795, `next build` 0.
+
+Not done / decisions left:
+
+- The outstanding and overdue reports still list never-issued drafts. Changing that changes what "owed" means, so it needs a decision.
+- `docs/FSD.md` still lists "Sent" and "Viewed" as invoice statuses in several sections (around lines 985, 1214, 1282, 1357, 2432) and "Sent" as a status filter in section 47. Those are the product spec and need a pass.
+- `IG-246` is unblocked by the signal, but its opened-status tracking is still out of scope.
+- No browser check of the new button yet.
+
+**Exact next task:** (1) Decide the outstanding and overdue report question (should never-issued drafts count as owed?). (2) Do the FSD status-list pass (Sent/Viewed in the product spec). (3) Pick the next open item; `IG-238` still awaits acceptance. `frontend/next-env.d.ts` is build-generated and stays out of commits.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-12):** `IG-266` and `IG-276` are Done (transitions and completion comments approved by the user; comments 10329 and 10330). `IG-211` and `IG-238` are In Progress. `IG-239`-`IG-242` and the other open subtasks are To Do.
+**Jira sync state (2026-10-12):** `IG-315`, `IG-266` and `IG-276` are Done. `IG-211` and `IG-238` are In Progress. `IG-239`-`IG-242` and `IG-246` are To Do.
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**

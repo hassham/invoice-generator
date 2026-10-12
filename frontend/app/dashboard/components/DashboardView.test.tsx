@@ -14,7 +14,7 @@ const sampleInvoice = {
   id: "inv-1",
   invoiceNumber: "INV-0001",
   customerName: "Acme Pty Ltd",
-  status: "Sent",
+  status: "Draft",
   issueDate: "2026-06-01",
   dueDate: "2026-06-15",
   currency: "AUD",

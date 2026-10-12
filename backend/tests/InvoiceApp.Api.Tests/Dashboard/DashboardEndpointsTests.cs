@@ -63,6 +63,16 @@ public class DashboardEndpointsTests
         await db.SaveChangesAsync();
     }
 
+    // IG-315: an invoice that was sent is issued, whatever its status. Unpaid it stays Draft.
+    private static async Task SetIssuedAsync(AuthenticatedRouteTestFactory factory, Guid invoiceId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var invoice = await db.Invoices.SingleAsync(i => i.Id == invoiceId);
+        invoice.IssuedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task Missing_session_cannot_view_the_dashboard_summary()
     {
@@ -106,7 +116,7 @@ public class DashboardEndpointsTests
 
         var sentResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-SENT", issueDate: thisMonth, dueDate: thisMonth));
         var sent = await sentResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        await SetInvoiceStatusAsync(factory, sent!.Id, InvoiceStatus.Sent);
+        await SetIssuedAsync(factory, sent!.Id);
 
         var cancelledResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-CANCELLED", issueDate: thisMonth, dueDate: thisMonth));
         var cancelled = await cancelledResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
@@ -147,10 +157,10 @@ public class DashboardEndpointsTests
         using var client = await RegisteredClientAsync(factory, "dash-period@example.com");
         var insideResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-INSIDE", issueDate: "2026-06-15", dueDate: "2026-06-20"));
         var inside = await insideResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        await SetInvoiceStatusAsync(factory, inside!.Id, InvoiceStatus.Sent);
+        await SetIssuedAsync(factory, inside!.Id);
         var outsideResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-OUTSIDE", issueDate: "2026-01-15", dueDate: "2026-01-20"));
         var outside = await outsideResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        await SetInvoiceStatusAsync(factory, outside!.Id, InvoiceStatus.Sent);
+        await SetIssuedAsync(factory, outside!.Id);
 
         var response = await client.GetAsync($"{await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary")}?startDate=2026-06-01&endDate=2026-06-30");
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
@@ -168,7 +178,7 @@ public class DashboardEndpointsTests
         // not contribute to totals denominated in AUD.
         var usdResponse = await client.PostAsJsonAsync(await DefaultBusinessRoutes.InvoicesRouteAsync(client), ValidRequest("INV-USD", currency: "USD", issueDate: today, dueDate: today));
         var usd = await usdResponse.Content.ReadFromJsonAsync<InvoiceDto>(JsonOptions);
-        await SetInvoiceStatusAsync(factory, usd!.Id, InvoiceStatus.Sent);
+        await SetIssuedAsync(factory, usd!.Id);
 
         var response = await client.GetAsync(await DefaultBusinessRoutes.RouteAsync(client, "/dashboard/summary"));
         var summary = await response.Content.ReadFromJsonAsync<DashboardSummaryDto>(JsonOptions);
