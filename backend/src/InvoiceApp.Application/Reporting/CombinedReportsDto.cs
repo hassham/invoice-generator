@@ -17,6 +17,20 @@ public sealed record CombinedInvoiceListReportDto<T>(
     IReadOnlyList<CombinedBusinessInvoicesDto<T>> Businesses,
     IReadOnlyList<CurrencyAmountDto> AmountDueByCurrency);
 
+/// <summary>
+/// IG-242: one business's revenue-by-customer list. Customers are not merged across businesses: two customers
+/// with the same name in different businesses are different records, so each stays under its own business.
+/// </summary>
+public sealed record CombinedBusinessCustomersDto(
+    Guid BusinessId,
+    string BusinessName,
+    IReadOnlyList<RevenueByCustomerDto> Customers);
+
+/// <summary>IG-242: revenue by customer across businesses, grouped by business. Totals are per currency.</summary>
+public sealed record CombinedCustomerRevenueDto(
+    IReadOnlyList<CombinedBusinessCustomersDto> Businesses,
+    IReadOnlyList<CurrencyAmountDto> RevenueByCurrency);
+
 /// <summary>IG-242: one business's tax summary, in that business's currency.</summary>
 public sealed record CombinedBusinessTaxDto(
     Guid BusinessId,

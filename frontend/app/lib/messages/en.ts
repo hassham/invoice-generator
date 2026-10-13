@@ -56,6 +56,7 @@ export const en = {
   "combined.outstanding.heading": "Outstanding invoices",
   "combined.overdue.heading": "Overdue invoices",
   "combined.tax.heading": "Tax collected",
+  "combined.customers.heading": "Revenue by customer",
   "combined.totals": "Totals by currency",
   "combined.none": "None.",
   "combined.noBusinesses": "You don't have any businesses yet.",

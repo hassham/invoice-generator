@@ -20,6 +20,7 @@ public static class DashboardEndpoints
         app.MapGet("/api/v1/reports/combined/outstanding", GetCombinedOutstandingReportAsync).RequireAuthorization();
         app.MapGet("/api/v1/reports/combined/overdue", GetCombinedOverdueReportAsync).RequireAuthorization();
         app.MapGet("/api/v1/reports/combined/tax-summary", GetCombinedTaxSummaryAsync).RequireAuthorization();
+        app.MapGet("/api/v1/reports/combined/by-customer", GetCombinedRevenueByCustomerAsync).RequireAuthorization();
         // IG-225: outstanding and overdue invoice reports
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/outstanding", GetOutstandingReportAsync).RequireAuthorization();
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/overdue", GetOverdueReportAsync).RequireAuthorization();
@@ -86,6 +87,18 @@ public static class DashboardEndpoints
     {
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         return Results.Ok(await reportingService.GetCombinedOverdueReportAsync(userId, cancellationToken));
+    }
+
+    /// <summary>IG-242: revenue by customer across every business the caller can access, kept under each business.</summary>
+    private static async Task<IResult> GetCombinedRevenueByCustomerAsync(
+        ClaimsPrincipal user,
+        IReportingService reportingService,
+        CancellationToken cancellationToken,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return Results.Ok(await reportingService.GetCombinedRevenueByCustomerAsync(userId, startDate, endDate, cancellationToken));
     }
 
     /// <summary>IG-242: the combined tax summary across every business the caller can access.</summary>

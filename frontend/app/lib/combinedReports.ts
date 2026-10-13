@@ -29,6 +29,13 @@ export interface CombinedInvoiceList {
   amountDueByCurrency: CurrencyAmount[];
 }
 
+/** IG-242: customers are listed under the business they belong to. The same name in two businesses is two
+ * customers, so they are not merged. */
+export interface CombinedCustomers {
+  businesses: { businessId: string; businessName: string; customers: { customerId: string; customerName: string; currency: string; revenue: number }[] }[];
+  revenueByCurrency: CurrencyAmount[];
+}
+
 export interface CombinedTax {
   businesses: { businessId: string; businessName: string; summary: { currency: string; totalTaxableAmount: number; totalTaxCollected: number } }[];
   taxCollectedByCurrency: CurrencyAmount[];
@@ -52,6 +59,10 @@ export function getCombinedOutstanding(): Promise<CombinedInvoiceList> {
 
 export function getCombinedOverdue(): Promise<CombinedInvoiceList> {
   return getJson("/api/v1/reports/combined/overdue");
+}
+
+export function getCombinedCustomers(startDate: string, endDate: string): Promise<CombinedCustomers> {
+  return getJson(`/api/v1/reports/combined/by-customer?startDate=${startDate}&endDate=${endDate}`);
 }
 
 export function getCombinedTax(startDate: string, endDate: string): Promise<CombinedTax> {

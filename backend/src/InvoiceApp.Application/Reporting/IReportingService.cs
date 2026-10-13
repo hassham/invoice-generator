@@ -77,6 +77,10 @@ public interface IReportingService
     /// <summary>IG-242: overdue invoices across every business the caller can access, attributed per business.</summary>
     Task<CombinedInvoiceListReportDto<OverdueInvoiceDto>> GetCombinedOverdueReportAsync(Guid userId, CancellationToken cancellationToken);
 
+    /// <summary>IG-242: revenue by customer for every accessible business, kept under each business. Customers
+    /// are not merged across businesses.</summary>
+    Task<CombinedCustomerRevenueDto> GetCombinedRevenueByCustomerAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken);
+
     /// <summary>IG-242: tax summaries across every business the caller can access, attributed per business and totalled per currency.</summary>
     Task<CombinedTaxSummaryDto> GetCombinedTaxSummaryAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken);
 }

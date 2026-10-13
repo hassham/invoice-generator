@@ -42,40 +42,39 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 
 ## Current Focus / Next Task
 
-**IG-242 (Story, under `IG-211`): combined cross-business reports. IN PROGRESS. Jira In Progress (claimed with the user's approval). Subtasks IG-303 and IG-304 are not claimed yet.**
+**IG-242 (Story, under `IG-211`): combined cross-business reports. DONE in Jira 2026-10-13, with IG-303 and IG-304 (both Done). Committed and pushed.**
 
-Decisions (approved): combined totals are per currency. Amounts in different currencies are never added together. Each figure is attributed to its business.
+Decisions (approved): combined totals are per currency. Amounts in different currencies are never added together. Each figure is attributed to its business. Customers are not merged across businesses: a same-named customer in two businesses stays two entries, one under each business.
 
-Done (backend and frontend):
+Done:
 
-- Combined endpoints, all covering only the businesses the caller can access: `/api/v1/reports/combined/revenue`, `/outstanding`, `/overdue`, `/tax-summary`.
-- Each combined figure is built from the same per-business calculation the single-business report uses, so they cannot disagree.
-- Frontend: `/reports/combined` ("All businesses") shows the four combined reports, attributed per business with totals per currency. Linked from `/reports`.
-- Tests: `CombinedRevenueReportTests` (6), `CombinedReportsTests` (5), `CombinedReportsView` (4).
+- Combined endpoints under `/api/v1/reports/combined/`, all covering only the businesses the caller can access: `revenue`, `outstanding`, `overdue`, `tax-summary`, `by-customer`.
+- Each combined figure is built from the same per-business calculation as that business's own report.
+- Frontend: `/reports/combined` ("All businesses") shows all five, attributed per business, totals per currency. Linked from `/reports`.
+- Tests: `CombinedRevenueReportTests` (6), `CombinedReportsTests` (5), `CombinedCustomerRevenueTests` (3), `CombinedReportsView` (5).
 
 Not done:
 
-- Revenue by customer has no combined form. Customers belong to one business, so merging them by name across businesses needs a decision. The by-customer page is still single-business.
-- Subtasks IG-303 (implement) and IG-304 (test) are not claimed.
-- Browser check of `/reports/combined`.
+- A browser check of `/reports/combined`.
+- The existing single-business report pages are unchanged.
 
-**IG-241 (Story, under `IG-211`): other languages. In Progress in Jira. First slice done 2026-10-13.** The team and invitation pages take all their text from a message catalogue (`app/lib/messages/en.ts`, lookup `t(key, params)`). Criterion 1 is met for those pages only. The combined reports page uses the catalogue too. Criterion 2 (language per account or business) is not started: it needs a second language and a stored setting. Other pages still have inline text.
+**IG-241 (Story, under `IG-211`): other languages. In Progress. First slice done 2026-10-13.** The team, invitation and combined-report pages take their text from the message catalogue (`app/lib/messages/en.ts`). Criterion 2 (language per account or business) is not started: it needs a second language and a stored setting. Other pages still have inline text.
 
 Verification (2026-10-13):
 
-- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 465/465.
-- Frontend: eslint 0, tsc 0, vitest 816/816, `next build` 0.
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 468/468.
+- Frontend: eslint 0, tsc 0, vitest 817/817, `next build` 0.
 
-Uncommitted: all of the above since the last push (`e40debb`).
+Uncommitted: everything since the last push (`b6c9c51`).
 
-**Exact next task:** (1) Commit and push after review. (2) With approval, claim IG-303 and IG-304 and move them to Done with comments. (3) Decide the revenue-by-customer question, then close IG-242.
+**Exact next task:** (1) Browser check of `/reports/combined`. (2) IG-241 criterion 2: choose a second language and add per-account or per-business language selection. (3) Convert the remaining pages to the message catalogue.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-13):** IG-238, IG-239, IG-240, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300 and IG-315 are Done. IG-211, IG-241 and IG-242 are In Progress. IG-246 is To Do.
+**Jira sync state (2026-10-13):** IG-238, IG-239, IG-240, IG-242, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300, IG-303, IG-304 and IG-315 are Done. IG-211 and IG-241 are In Progress. IG-246 is To Do.
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**

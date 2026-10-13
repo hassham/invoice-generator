@@ -1,10 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getCombinedCustomers,
   getCombinedOutstanding,
   getCombinedOverdue,
   getCombinedRevenue,
   getCombinedTax,
+  type CombinedCustomers,
   type CombinedInvoiceList,
   type CombinedRevenue,
   type CombinedTax,
@@ -16,6 +18,7 @@ vi.mock("../../lib/combinedReports", async (importOriginal) => ({
   getCombinedRevenue: vi.fn(),
   getCombinedOutstanding: vi.fn(),
   getCombinedOverdue: vi.fn(),
+  getCombinedCustomers: vi.fn(),
   getCombinedTax: vi.fn(),
 }));
 
@@ -31,6 +34,18 @@ const mockedRevenue = vi.mocked(getCombinedRevenue);
 const mockedOutstanding = vi.mocked(getCombinedOutstanding);
 const mockedOverdue = vi.mocked(getCombinedOverdue);
 const mockedTax = vi.mocked(getCombinedTax);
+const mockedCustomers = vi.mocked(getCombinedCustomers);
+
+const customers: CombinedCustomers = {
+  businesses: [
+    { businessId: "aud", businessName: "Acme Pty Ltd", customers: [{ customerId: "c-aud", customerName: "Same Name Client", currency: "AUD", revenue: 1100 }] },
+    { businessId: "usd", businessName: "Harbour Goods Inc", customers: [{ customerId: "c-usd", customerName: "Same Name Client", currency: "USD", revenue: 400 }] },
+  ],
+  revenueByCurrency: [
+    { currency: "AUD", amount: 1100 },
+    { currency: "USD", amount: 400 },
+  ],
+};
 
 const revenue: CombinedRevenue = {
   periodType: "month",
@@ -74,6 +89,16 @@ describe("CombinedReportsView (IG-242)", () => {
     mockedOutstanding.mockResolvedValue(outstanding);
     mockedOverdue.mockResolvedValue({ businesses: [], amountDueByCurrency: [] });
     mockedTax.mockResolvedValue(tax);
+    mockedCustomers.mockResolvedValue(customers);
+  });
+
+  it("keeps same-named customers in different businesses as separate entries", async () => {
+    render(<CombinedReportsView />);
+
+    const entries = await screen.findAllByText("Same Name Client");
+    expect(entries).toHaveLength(2);
+    expect(screen.getAllByText("A$1,100.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$400.00").length).toBeGreaterThan(0);
   });
 
   it("attributes each business's figures to it, with its own currency", async () => {
@@ -100,6 +125,7 @@ describe("CombinedReportsView (IG-242)", () => {
     mockedOutstanding.mockResolvedValue({ businesses: [], amountDueByCurrency: [] });
     mockedOverdue.mockResolvedValue({ businesses: [], amountDueByCurrency: [] });
     mockedTax.mockResolvedValue({ businesses: [], taxCollectedByCurrency: [] });
+    mockedCustomers.mockResolvedValue({ businesses: [], revenueByCurrency: [] });
 
     render(<CombinedReportsView />);
 

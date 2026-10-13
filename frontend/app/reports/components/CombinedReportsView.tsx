@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  getCombinedCustomers,
   getCombinedOutstanding,
   getCombinedOverdue,
   getCombinedRevenue,
   getCombinedTax,
+  type CombinedCustomers,
   type CombinedInvoiceList,
   type CombinedRevenue,
   type CombinedTax,
@@ -18,6 +20,7 @@ interface CombinedData {
   revenue: CombinedRevenue;
   outstanding: CombinedInvoiceList;
   overdue: CombinedInvoiceList;
+  customers: CombinedCustomers;
   tax: CombinedTax;
 }
 
@@ -62,9 +65,15 @@ export function CombinedReportsView() {
     const startDate = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
     const endDate = isoDate(now);
 
-    Promise.all([getCombinedRevenue(startDate, endDate), getCombinedOutstanding(), getCombinedOverdue(), getCombinedTax(startDate, endDate)])
-      .then(([revenue, outstanding, overdue, tax]) => {
-        if (!cancelled) setData({ revenue, outstanding, overdue, tax });
+    Promise.all([
+      getCombinedRevenue(startDate, endDate),
+      getCombinedOutstanding(),
+      getCombinedOverdue(),
+      getCombinedCustomers(startDate, endDate),
+      getCombinedTax(startDate, endDate),
+    ])
+      .then(([revenue, outstanding, overdue, customers, tax]) => {
+        if (!cancelled) setData({ revenue, outstanding, overdue, customers, tax });
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : t("combined.error"));
@@ -142,6 +151,33 @@ export function CombinedReportsView() {
           </div>
         </section>
       ))}
+
+      <section aria-labelledby="combined-customers">
+        <h2 id="combined-customers" className="text-lg font-semibold text-slate-950">
+          {t("combined.customers.heading")} · {t("combined.period")}
+        </h2>
+        <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
+        <TotalsByCurrency totals={data.customers.revenueByCurrency} />
+        <div className="mt-4 space-y-4">
+          {data.customers.businesses.map((business) => (
+            <div key={business.businessId}>
+              <h3 className="text-sm font-semibold text-slate-900">{business.businessName}</h3>
+              {business.customers.length === 0 ? (
+                <p className="text-sm text-slate-600">{t("combined.none")}</p>
+              ) : (
+                <ul className="divide-y divide-slate-200">
+                  {business.customers.map((customer) => (
+                    <li key={customer.customerId} className="flex items-center justify-between py-2 text-sm">
+                      <span>{customer.customerName}</span>
+                      <span>{formatMoney(customer.revenue, customer.currency)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section aria-labelledby="combined-tax">
         <h2 id="combined-tax" className="text-lg font-semibold text-slate-950">

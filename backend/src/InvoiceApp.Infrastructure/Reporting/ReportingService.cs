@@ -215,6 +215,27 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         return new CombinedTaxSummaryDto(sections, totals);
     }
 
+    /// <summary>IG-242: revenue by customer for every accessible business. Each business's list is its own
+    /// (customers are per business and are not merged by name); totals are summed per currency.</summary>
+    public async Task<CombinedCustomerRevenueDto> GetCombinedRevenueByCustomerAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
+    {
+        var sections = new List<CombinedBusinessCustomersDto>();
+        foreach (var business in await AccessibleBusinessesAsync(userId, cancellationToken))
+        {
+            var customers = await GetRevenueByCustomerAsync(userId, business.Id, startDate, endDate, cancellationToken);
+            sections.Add(new CombinedBusinessCustomersDto(business.Id, business.Name, customers));
+        }
+
+        var totals = sections
+            .SelectMany(section => section.Customers)
+            .GroupBy(customer => customer.Currency)
+            .OrderBy(group => group.Key)
+            .Select(group => new CurrencyAmountDto(group.Key, group.Sum(customer => customer.Revenue)))
+            .ToList();
+
+        return new CombinedCustomerRevenueDto(sections, totals);
+    }
+
     private async Task<List<(Guid Id, string Name)>> AccessibleBusinessesAsync(Guid userId, CancellationToken cancellationToken)
     {
         var businesses = await dbContext.AccessibleBusinesses(userId)
