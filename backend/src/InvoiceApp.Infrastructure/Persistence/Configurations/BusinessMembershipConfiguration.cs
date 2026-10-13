@@ -14,6 +14,7 @@ public sealed class BusinessMembershipConfiguration : IEntityTypeConfiguration<B
         builder.HasKey(membership => membership.Id);
 
         builder.Property(membership => membership.CreatedAt).IsRequired();
+        builder.Property(membership => membership.Role).HasConversion<string>().HasMaxLength(20).IsRequired();
 
         // One row per (business, user). Re-inviting a revoked member reactivates this row rather than
         // inserting a second one, so the unique index holds across the membership's whole history.

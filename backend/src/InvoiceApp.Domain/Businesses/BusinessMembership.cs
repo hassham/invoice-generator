@@ -16,4 +16,7 @@ public sealed class BusinessMembership
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset? RevokedAt { get; set; }
+
+    /// <summary>IG-240: Restricted by default. Changed only by the owner.</summary>
+    public BusinessRole Role { get; set; } = BusinessRole.Restricted;
 }

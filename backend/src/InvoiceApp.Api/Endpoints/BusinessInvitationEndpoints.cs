@@ -12,6 +12,7 @@ public static class BusinessInvitationEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/team", GetTeamAsync).RequireAuthorization();
         app.MapPost("/api/v1/businesses/{businessId:guid}/invitations", InviteAsync).RequireAuthorization();
         app.MapPost("/api/v1/businesses/{businessId:guid}/invitations/{id:guid}/cancel", CancelInvitationAsync).RequireAuthorization();
+        app.MapPut("/api/v1/businesses/{businessId:guid}/members/{id:guid}/role", ChangeMemberRoleAsync).RequireAuthorization();
         app.MapDelete("/api/v1/businesses/{businessId:guid}/members/{id:guid}", RemoveMemberAsync).RequireAuthorization();
 
         app.MapGet("/api/v1/invitations/{token}", GetInvitationAsync).RequireAuthorization();
@@ -33,6 +34,12 @@ public static class BusinessInvitationEndpoints
     private static async Task<IResult> CancelInvitationAsync(Guid businessId, Guid id, ClaimsPrincipal user, IBusinessInvitationService invitations, CancellationToken cancellationToken)
     {
         await invitations.CancelInvitationAsync(UserId(user), businessId, id, cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ChangeMemberRoleAsync(Guid businessId, Guid id, ChangeMemberRoleRequest request, ClaimsPrincipal user, IBusinessInvitationService invitations, CancellationToken cancellationToken)
+    {
+        await invitations.ChangeMemberRoleAsync(UserId(user), businessId, id, request, cancellationToken);
         return Results.NoContent();
     }
 

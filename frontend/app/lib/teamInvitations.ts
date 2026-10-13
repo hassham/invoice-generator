@@ -1,11 +1,21 @@
 import { apiBaseUrl } from "./business";
 
-/** IG-239 / IG-297 / IG-298: client for team invitations and membership. Team management is
- * owner-only; the server returns 403 to a team member, which the page shows as a plain message. */
+/** IG-239 / IG-297 / IG-298 / IG-240: client for team invitations, membership and roles. Team
+ * management is owner-only; the server returns 403 to a team member, which the page shows as a plain
+ * message. Restricted members cannot change payment settings; the server enforces that, not the UI. */
+
+/** Restricted: works in the business but cannot change payment settings. Admin: also can. */
+export type BusinessRole = "Restricted" | "Admin";
+
+export const BUSINESS_ROLE_LABELS: Record<BusinessRole, string> = {
+  Restricted: "Restricted (no payment settings)",
+  Admin: "Admin (can change payment settings)",
+};
 
 export interface PendingInvitation {
   id: string;
   email: string;
+  role: BusinessRole;
   createdAt: string;
   expiresAt: string;
 }
@@ -14,6 +24,7 @@ export interface TeamMember {
   id: string;
   userId: string;
   email: string;
+  role: BusinessRole;
   joinedAt: string;
 }
 
@@ -61,17 +72,29 @@ export async function getTeam(businessId: string): Promise<TeamSnapshot> {
   return response.json();
 }
 
-export async function inviteMember(businessId: string, email: string): Promise<PendingInvitation> {
+export async function inviteMember(businessId: string, email: string, role: BusinessRole = "Restricted"): Promise<PendingInvitation> {
   const response = await fetch(`${apiBaseUrl()}/api/v1/businesses/${businessId}/invitations`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, role }),
   });
   if (!response.ok) {
     throw await errorFrom(response, "Failed to send the invitation.");
   }
   return response.json();
+}
+
+export async function changeMemberRole(businessId: string, memberId: string, role: BusinessRole): Promise<void> {
+  const response = await fetch(`${apiBaseUrl()}/api/v1/businesses/${businessId}/members/${memberId}/role`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response, "Failed to change this member's role.");
+  }
 }
 
 export async function cancelInvitation(businessId: string, invitationId: string): Promise<void> {

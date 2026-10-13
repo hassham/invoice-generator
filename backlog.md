@@ -42,39 +42,43 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 
 ## Current Focus / Next Task
 
-**IG-239 (Story, under `IG-211`): invite a team member to a business. Slice 1 done 2026-10-13: IG-297 and IG-298 are Done in Jira. IG-239 stays In Progress until IG-240 (restricted roles) is done. Committed and pushed.**
+**IG-240 (Story, under `IG-211`): control what a team member can do. DONE in Jira 2026-10-13, with IG-299 and IG-300 (both Done). Committed and pushed.**
 
-What exists now:
+Decisions:
 
-- Model: `BusinessMembership` (owner is still `Business.UserId`; revoked members keep their row) and `BusinessInvitation` (only a SHA-256 hash of the token is stored; 7-day expiry; accept requires the signed-in account's email to match exactly).
-- Access: every business-scoped check now goes through `ApplicationDbContext.AccessibleBusinesses(userId)` (owner or active member). This replaced 32 checks across 13 services, plus the business list and the by-id lookup. The account's default business (`FindOwnedAsync(userId)`) stays owner-only.
-- Owner-only team management: `GET /businesses/{id}/team`, `POST /businesses/{id}/invitations`, `POST .../invitations/{id}/cancel`, `DELETE /businesses/{id}/members/{membershipId}`. A member gets 403 (`ForbiddenException`, now mapped to 403); a non-member gets 404.
-- Invitee: `GET /api/v1/invitations/{token}` (preview) and `POST .../accept`. Accept is idempotent for the same user. Errors: wrong email 403; cancelled, expired or already-used 409.
-- Email: invite email via `IEmailSender`, link `{Frontend:BaseUrl}/invitations/{token}`. If the send fails, the invitation is cancelled and the error is rethrown.
-- Frontend: "Manage team" link on `/businesses`; `/settings/team` (invite form, pending list with Cancel, member list with Remove); `/invitations/[token]` (sign-in prompt for signed-out visitors, accept button, reasons for refusal).
-- Migration `AddBusinessTeamInvitations` (applied to the dev DB).
+- Two roles. `Restricted` (default for every invite): works in the business but cannot change payment settings or manage the team. `Admin`: as Restricted, plus payment settings. The owner is not a role; it stays `Business.UserId` and can do everything.
+- Payment settings = Stripe connect, callback and disconnect, and bank details in the business profile. Team management stays owner-only.
+- No business or account delete endpoint exists, so there is nothing to block yet. The `Restricted` doc comment says deletion must be owner-only when it is added.
 
-**Important: members currently have the same rights as the owner.** IG-240 (restricted roles) is what blocks payment-settings and business-deletion changes for members. Until IG-240 is done, do not invite anyone you would not trust with the full account.
+Changes:
 
-Verification (2026-10-12):
+- Domain: `BusinessRole` enum; `Role` on `BusinessMembership` and `BusinessInvitation`.
+- Migration `AddBusinessMemberRoles` (generated with `dotnet ef migrations add`). The default is edited to `Restricted`, so existing memberships become Restricted. Applied to the dev DB.
+- `ApplicationDbContext.AdministeredBusinesses(userId)`: owner or active Admin. `BusinessService.EnsurePaymentAdministratorAsync`: 404 when not accessible, 403 when accessible but not an administrator.
+- Enforced in `BusinessService`: `UpdateAsync` refuses a change to bank details (a re-save with the same values is allowed), `ConnectStripeAsync`, `DisconnectStripeAsync`. Enforced in endpoints before any side effect: connect (before the state cookie and redirect), disconnect (before Stripe deauthorisation).
+- Team: invite takes a role (default Restricted); accept copies it to the membership; `PUT /businesses/{id}/members/{membershipId}/role` is owner-only; team responses include roles.
+- Frontend: role select on the invite form; role select on each member, which calls the role change; roles shown on pending invites.
 
-- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 443/443. New: `BusinessTeamInvitationTests` (13), a 403 mapping test.
-- Frontend: eslint 0, tsc 0, vitest 805/805, `next build` 0. New tests: `TeamSettings` (6), `InvitationAccept` (4).
+Verification (2026-10-13):
+
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 454/454. New: `BusinessRolesTests` (11).
+- Frontend: eslint 0, tsc 0, vitest 807/807, `next build` 0.
 
 Not done:
 
-- IG-240 roles and permissions (restricted role enforced server-side).
-- A browser check of the team page and the accept flow.
-- Jira: IG-239 is In Progress. It can close only after IG-240.
+- IG-299 and IG-300 subtasks (claim needed).
+- Stripe connect for an Admin is not tested end-to-end, because the test factory does not stub Stripe connect. The gate is tested through disconnect and the connect-refusal path.
+- Browser check of the team page.
+- Commit and push (IG-239, IG-240 and IG-297/298 team work are uncommitted apart from the earlier push).
 
-**Exact next task:** (1) Start IG-240: restricted role and server-side permission checks (claim it in Jira first, with approval). (2) Until IG-240 is in, do not invite people who should not have full account access.
+**Exact next task:** (1) Close IG-239 (team invitations): all its acceptance criteria are covered by IG-297, IG-298 and IG-240. Needs your approval for the Jira move. (2) Next open items: IG-241 (language, needs a decision on the first language and scope) and IG-242 (combined reports, needs a currency-reconciliation rule). (3) IG-246 (opened-status tracking) is still out of scope.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-13):** IG-238, IG-266, IG-276, IG-297, IG-298 and IG-315 are Done. IG-211 and IG-239 are In Progress. IG-240 to IG-242 and IG-246 are To Do.
+**Jira sync state (2026-10-13):** IG-238, IG-240, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300 and IG-315 are Done. IG-211 and IG-239 are In Progress. IG-241, IG-242 and IG-246 are To Do.
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**

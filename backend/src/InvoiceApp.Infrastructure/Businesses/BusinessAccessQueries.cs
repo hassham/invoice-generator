@@ -15,4 +15,15 @@ public static class BusinessAccessQueries
             business.UserId == userId
             || dbContext.BusinessMemberships.Any(membership =>
                 membership.BusinessId == business.Id && membership.UserId == userId && membership.RevokedAt == null));
+
+    /// <summary>IG-240: the businesses whose payment settings this user may change - the owner, or an
+    /// active member with the Admin role. Restricted members are not in this set.</summary>
+    public static IQueryable<Business> AdministeredBusinesses(this ApplicationDbContext dbContext, Guid userId) =>
+        dbContext.Businesses.Where(business =>
+            business.UserId == userId
+            || dbContext.BusinessMemberships.Any(membership =>
+                membership.BusinessId == business.Id
+                && membership.UserId == userId
+                && membership.RevokedAt == null
+                && membership.Role == BusinessRole.Admin));
 }

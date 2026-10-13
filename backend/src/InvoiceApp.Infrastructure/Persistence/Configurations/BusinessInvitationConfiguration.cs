@@ -17,6 +17,7 @@ public sealed class BusinessInvitationConfiguration : IEntityTypeConfiguration<B
         builder.Property(invitation => invitation.TokenHash).HasMaxLength(64).IsRequired();
         builder.Property(invitation => invitation.CreatedAt).IsRequired();
         builder.Property(invitation => invitation.ExpiresAt).IsRequired();
+        builder.Property(invitation => invitation.Role).HasConversion<string>().HasMaxLength(20).IsRequired();
 
         builder.HasIndex(invitation => invitation.TokenHash).IsUnique();
         builder.HasIndex(invitation => new { invitation.BusinessId, invitation.Email });

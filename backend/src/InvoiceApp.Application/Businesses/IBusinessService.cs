@@ -44,4 +44,8 @@ public interface IBusinessService
     /// <summary>IG-219: caller (InvoiceApp.Api) is responsible for calling
     /// IStripeConnectService.DeauthorizeAsync first - this only ever forgets the id locally.</summary>
     Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, Guid businessId, CancellationToken cancellationToken);
+
+    /// <summary>IG-240: throws unless the caller is the owner or an Admin member of the business. Used
+    /// before any external side effect, so a refused caller never reaches Stripe.</summary>
+    Task EnsurePaymentAdministratorAsync(Guid userId, Guid businessId, CancellationToken cancellationToken);
 }

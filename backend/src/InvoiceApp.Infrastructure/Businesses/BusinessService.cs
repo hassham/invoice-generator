@@ -67,8 +67,41 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
     public async Task<BusinessProfileDto> UpdateAsync(Guid userId, Guid businessId, BusinessProfileRequest request, CancellationToken cancellationToken)
     {
         var business = await FindOwnedAsync(userId, businessId, cancellationToken);
+
+        // IG-240: bank details are payment settings. Changing them needs the owner or an admin; a
+        // restricted member may still edit the rest of the profile. Only an actual change is refused,
+        // so a restricted member re-saving the form with the bank details untouched still succeeds.
+        if (ChangesBankDetails(business, request))
+        {
+            await EnsurePaymentAdministratorAsync(userId, businessId, cancellationToken);
+        }
+
         return await UpdateCoreAsync(business, request, cancellationToken);
     }
+
+    /// <summary>IG-240: a business's payment settings may be changed only by its owner or an Admin member.
+    /// A business the caller cannot access is 404 (same as every other route); one they can access but
+    /// may not administer is 403.</summary>
+    public async Task EnsurePaymentAdministratorAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
+    {
+        var accessible = await dbContext.AccessibleBusinesses(userId).AnyAsync(b => b.Id == businessId, cancellationToken);
+        if (!accessible)
+        {
+            throw new NotFoundException("Business not found.");
+        }
+
+        var administers = await dbContext.AdministeredBusinesses(userId).AnyAsync(b => b.Id == businessId, cancellationToken);
+        if (!administers)
+        {
+            throw new ForbiddenException("Only the business owner or an admin can change payment settings.");
+        }
+    }
+
+    private static bool ChangesBankDetails(Business business, BusinessProfileRequest request) =>
+        business.BankName != NullIfEmpty(request.BankName)
+        || business.BankAccountName != NullIfEmpty(request.BankAccountName)
+        || business.BankAccountNumber != NullIfEmpty(request.BankAccountNumber)
+        || business.BankRoutingCode != NullIfEmpty(request.BankRoutingCode);
 
     private async Task<BusinessProfileDto> UpdateCoreAsync(Business business, BusinessProfileRequest request, CancellationToken cancellationToken)
     {
@@ -208,6 +241,7 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
 
     public async Task<BusinessProfileDto> ConnectStripeAsync(Guid userId, Guid businessId, string stripeAccountId, CancellationToken cancellationToken)
     {
+        await EnsurePaymentAdministratorAsync(userId, businessId, cancellationToken);
         var business = await FindOwnedAsync(userId, businessId, cancellationToken);
 
         business.StripeAccountId = stripeAccountId;
@@ -221,6 +255,7 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
 
     public async Task<BusinessProfileDto> DisconnectStripeAsync(Guid userId, Guid businessId, CancellationToken cancellationToken)
     {
+        await EnsurePaymentAdministratorAsync(userId, businessId, cancellationToken);
         var business = await FindOwnedAsync(userId, businessId, cancellationToken);
 
         business.StripeAccountId = null;

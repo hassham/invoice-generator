@@ -27,4 +27,7 @@ public sealed class BusinessInvitation
     public Guid? AcceptedByUserId { get; set; }
 
     public DateTimeOffset? CancelledAt { get; set; }
+
+    /// <summary>IG-240: the role the member gets on acceptance. The owner chooses it when inviting.</summary>
+    public BusinessRole Role { get; set; } = BusinessRole.Restricted;
 }

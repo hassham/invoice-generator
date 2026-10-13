@@ -188,7 +188,9 @@ public static class BusinessEndpoints
         CancellationToken cancellationToken)
     {
         // Another account's business is reported as not found, the same as every business-scoped route.
-        await businessService.GetAsync(UserId(user), businessId, cancellationToken);
+        // IG-240: connecting Stripe is a payment setting, so a restricted member is refused here - before
+        // the state cookie is set and the visitor is sent to Stripe.
+        await businessService.EnsurePaymentAdministratorAsync(UserId(user), businessId, cancellationToken);
 
         var state = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
         httpContext.Response.Cookies.Append(StripeOAuthStateCookieName, $"{state}.{businessId}", new CookieOptions
@@ -265,6 +267,9 @@ public static class BusinessEndpoints
         CancellationToken cancellationToken)
     {
         var userId = UserId(user);
+        // IG-240: checked before DeauthorizeAsync - otherwise a restricted member could revoke the
+        // Stripe connection at Stripe even though the database change that follows is refused.
+        await businessService.EnsurePaymentAdministratorAsync(userId, businessId, cancellationToken);
         var profile = await businessService.GetAsync(userId, businessId, cancellationToken);
         if (profile.StripeAccountId is { } stripeAccountId)
         {

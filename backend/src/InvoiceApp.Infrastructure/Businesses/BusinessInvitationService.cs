@@ -63,6 +63,7 @@ public sealed class BusinessInvitationService(ApplicationDbContext dbContext, IE
             Email = email,
             TokenHash = HashToken(token),
             InvitedByUserId = userId,
+            Role = request.Role,
             CreatedAt = now,
             ExpiresAt = now.Add(InvitationLifetime),
         };
@@ -97,13 +98,27 @@ public sealed class BusinessInvitationService(ApplicationDbContext dbContext, IE
 
         var members = await dbContext.BusinessMemberships
             .Where(membership => membership.BusinessId == businessId && membership.RevokedAt == null)
-            .Join(dbContext.Users, membership => membership.UserId, user => user.Id, (membership, user) => new { membership.Id, membership.UserId, user.Email, membership.CreatedAt })
+            .Join(dbContext.Users, membership => membership.UserId, user => user.Id, (membership, user) => new { membership.Id, membership.UserId, user.Email, membership.Role, membership.CreatedAt })
             .OrderBy(member => member.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return new BusinessTeamDto(
             pending.Select(ToDto).ToList(),
-            members.Select(member => new BusinessMemberDto(member.Id, member.UserId, member.Email ?? string.Empty, member.CreatedAt)).ToList());
+            members.Select(member => new BusinessMemberDto(member.Id, member.UserId, member.Email ?? string.Empty, member.Role, member.CreatedAt)).ToList());
+    }
+
+    public async Task ChangeMemberRoleAsync(Guid userId, Guid businessId, Guid membershipId, ChangeMemberRoleRequest request, CancellationToken cancellationToken)
+    {
+        await LoadOwnedBusinessAsync(userId, businessId, cancellationToken);
+        var membership = await dbContext.BusinessMemberships.FirstOrDefaultAsync(
+            m => m.Id == membershipId && m.BusinessId == businessId && m.RevokedAt == null, cancellationToken)
+            ?? throw new NotFoundException("Team member not found.");
+
+        if (membership.Role != request.Role)
+        {
+            membership.Role = request.Role;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     public async Task CancelInvitationAsync(Guid userId, Guid businessId, Guid invitationId, CancellationToken cancellationToken)
@@ -156,13 +171,16 @@ public sealed class BusinessInvitationService(ApplicationDbContext dbContext, IE
                     Id = Guid.NewGuid(),
                     BusinessId = business.Id,
                     UserId = userId,
+                    Role = invitation.Role,
                     CreatedAt = DateTimeOffset.UtcNow,
                 });
             }
             else
             {
-                // A member who was removed and is invited back gets their row reactivated, not duplicated.
+                // A member who was removed and is invited back gets their row reactivated, not duplicated,
+                // and takes the role of the new invitation.
                 membership.RevokedAt = null;
+                membership.Role = invitation.Role;
             }
 
             invitation.AcceptedAt = DateTimeOffset.UtcNow;
@@ -272,5 +290,5 @@ public sealed class BusinessInvitationService(ApplicationDbContext dbContext, IE
     }
 
     private static BusinessInvitationDto ToDto(BusinessInvitation invitation) =>
-        new(invitation.Id, invitation.Email, invitation.CreatedAt, invitation.ExpiresAt);
+        new(invitation.Id, invitation.Email, invitation.Role, invitation.CreatedAt, invitation.ExpiresAt);
 }

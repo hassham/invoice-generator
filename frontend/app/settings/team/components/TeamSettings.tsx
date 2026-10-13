@@ -2,18 +2,28 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { getActiveBusinessId } from "../../../lib/business";
-import { cancelInvitation, getTeam, inviteMember, removeMember, type TeamSnapshot } from "../../../lib/teamInvitations";
+import {
+  BUSINESS_ROLE_LABELS,
+  cancelInvitation,
+  changeMemberRole,
+  getTeam,
+  inviteMember,
+  removeMember,
+  type BusinessRole,
+  type TeamSnapshot,
+} from "../../../lib/teamInvitations";
 
 /**
- * IG-239 / IG-297 / IG-298: the owner invites people by email to the selected business, sees pending
- * invitations and current members, cancels a pending invite, and removes a member's access. A team
- * member who opens this page is told the team is owner-managed rather than shown an empty form.
+ * IG-239 / IG-297 / IG-298 / IG-240: the owner invites people by email to the selected business, picks
+ * their role (Restricted by default), changes a member's role, cancels a pending invite, and removes a
+ * member's access. A team member who opens this page is told the team is owner-managed.
  */
 export function TeamSettings() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [team, setTeam] = useState<TeamSnapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<BusinessRole>("Restricted");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -46,14 +56,29 @@ export function TeamSettings() {
     setFormError(null);
     setNotice(null);
     try {
-      await inviteMember(businessId, email.trim());
-      setNotice(`Invitation sent to ${email.trim()}.`);
+      await inviteMember(businessId, email.trim(), inviteRole);
+      setNotice(`Invitation sent to ${email.trim()} as ${inviteRole}.`);
       setEmail("");
       await reload(businessId);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Failed to send the invitation.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, role: BusinessRole) => {
+    if (!businessId) return;
+    setBusyId(memberId);
+    setNotice(null);
+    setFormError(null);
+    try {
+      await changeMemberRole(businessId, memberId, role);
+      await reload(businessId);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Failed to change this member's role.");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -116,6 +141,17 @@ export function TeamSettings() {
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
         </label>
+        <label className="text-sm font-medium text-slate-700">
+          Role
+          <select
+            value={inviteRole}
+            onChange={(event) => setInviteRole(event.target.value as BusinessRole)}
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
+            <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
+          </select>
+        </label>
         <button
           type="submit"
           disabled={submitting || email.trim().length === 0}
@@ -135,7 +171,9 @@ export function TeamSettings() {
               <li key={invitation.id} className="flex items-center justify-between gap-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-slate-900">{invitation.email}</p>
-                  <p className="text-xs text-slate-600">Expires {new Date(invitation.expiresAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-600">
+                    {BUSINESS_ROLE_LABELS[invitation.role]} · Expires {new Date(invitation.expiresAt).toLocaleDateString()}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -158,19 +196,33 @@ export function TeamSettings() {
         ) : (
           <ul className="mt-3 divide-y divide-slate-200">
             {team.members.map((member) => (
-              <li key={member.id} className="flex items-center justify-between gap-4 py-3">
+              <li key={member.id} className="flex flex-wrap items-center justify-between gap-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-slate-900">{member.email}</p>
                   <p className="text-xs text-slate-600">Joined {new Date(member.joinedAt).toLocaleDateString()}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void handleRemoveMember(member.id)}
-                  disabled={busyId === member.id}
-                  className="rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                >
-                  Remove access
-                </button>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-slate-700">
+                    <span className="sr-only">Role for {member.email}</span>
+                    <select
+                      value={member.role}
+                      disabled={busyId === member.id}
+                      onChange={(event) => void handleRoleChange(member.id, event.target.value as BusinessRole)}
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                    >
+                      <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
+                      <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void handleRemoveMember(member.id)}
+                    disabled={busyId === member.id}
+                    className="rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Remove access
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
