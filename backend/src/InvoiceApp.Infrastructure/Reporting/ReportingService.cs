@@ -154,6 +154,77 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         return new CombinedRevenueReportDto(periodType, attributed, totalsByCurrency);
     }
 
+    /// <summary>IG-242: outstanding invoices for every accessible business. Each invoice keeps its currency, and
+    /// the total is summed per invoice currency, so figures in different currencies are never added together.</summary>
+    public async Task<CombinedInvoiceListReportDto<OutstandingInvoiceDto>> GetCombinedOutstandingReportAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var sections = new List<CombinedBusinessInvoicesDto<OutstandingInvoiceDto>>();
+        foreach (var business in await AccessibleBusinessesAsync(userId, cancellationToken))
+        {
+            var invoices = await GetOutstandingReportAsync(userId, business.Id, cancellationToken);
+            sections.Add(new CombinedBusinessInvoicesDto<OutstandingInvoiceDto>(business.Id, business.Name, invoices));
+        }
+
+        var totals = sections
+            .SelectMany(section => section.Invoices)
+            .GroupBy(invoice => invoice.Currency)
+            .OrderBy(group => group.Key)
+            .Select(group => new CurrencyAmountDto(group.Key, group.Sum(invoice => invoice.AmountDue)))
+            .ToList();
+
+        return new CombinedInvoiceListReportDto<OutstandingInvoiceDto>(sections, totals);
+    }
+
+    /// <summary>IG-242: overdue invoices for every accessible business, totalled per invoice currency.</summary>
+    public async Task<CombinedInvoiceListReportDto<OverdueInvoiceDto>> GetCombinedOverdueReportAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var sections = new List<CombinedBusinessInvoicesDto<OverdueInvoiceDto>>();
+        foreach (var business in await AccessibleBusinessesAsync(userId, cancellationToken))
+        {
+            var invoices = await GetOverdueReportAsync(userId, business.Id, cancellationToken);
+            sections.Add(new CombinedBusinessInvoicesDto<OverdueInvoiceDto>(business.Id, business.Name, invoices));
+        }
+
+        var totals = sections
+            .SelectMany(section => section.Invoices)
+            .GroupBy(invoice => invoice.Currency)
+            .OrderBy(group => group.Key)
+            .Select(group => new CurrencyAmountDto(group.Key, group.Sum(invoice => invoice.AmountDue)))
+            .ToList();
+
+        return new CombinedInvoiceListReportDto<OverdueInvoiceDto>(sections, totals);
+    }
+
+    /// <summary>IG-242: tax summaries for every accessible business over the same range. Tax is totalled per the
+    /// business's currency only.</summary>
+    public async Task<CombinedTaxSummaryDto> GetCombinedTaxSummaryAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
+    {
+        var sections = new List<CombinedBusinessTaxDto>();
+        foreach (var business in await AccessibleBusinessesAsync(userId, cancellationToken))
+        {
+            var summary = await GetTaxSummaryAsync(userId, business.Id, startDate, endDate, cancellationToken);
+            sections.Add(new CombinedBusinessTaxDto(business.Id, business.Name, summary));
+        }
+
+        var totals = sections
+            .GroupBy(section => section.Summary.Currency)
+            .OrderBy(group => group.Key)
+            .Select(group => new CurrencyAmountDto(group.Key, group.Sum(section => section.Summary.TotalTaxCollected)))
+            .ToList();
+
+        return new CombinedTaxSummaryDto(sections, totals);
+    }
+
+    private async Task<List<(Guid Id, string Name)>> AccessibleBusinessesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var businesses = await dbContext.AccessibleBusinesses(userId)
+            .AsNoTracking()
+            .OrderBy(b => b.CreatedAt)
+            .Select(b => new { b.Id, b.BusinessName })
+            .ToListAsync(cancellationToken);
+        return businesses.Select(b => (b.Id, b.BusinessName)).ToList();
+    }
+
     public async Task<List<OutstandingInvoiceDto>> GetOutstandingReportAsync(
         Guid userId,
         Guid businessId,

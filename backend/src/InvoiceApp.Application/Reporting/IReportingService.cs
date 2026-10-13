@@ -70,4 +70,13 @@ public interface IReportingService
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken);
+
+    /// <summary>IG-242: outstanding invoices across every business the caller can access, attributed per business.</summary>
+    Task<CombinedInvoiceListReportDto<OutstandingInvoiceDto>> GetCombinedOutstandingReportAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>IG-242: overdue invoices across every business the caller can access, attributed per business.</summary>
+    Task<CombinedInvoiceListReportDto<OverdueInvoiceDto>> GetCombinedOverdueReportAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>IG-242: tax summaries across every business the caller can access, attributed per business and totalled per currency.</summary>
+    Task<CombinedTaxSummaryDto> GetCombinedTaxSummaryAsync(Guid userId, DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken);
 }

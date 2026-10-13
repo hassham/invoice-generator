@@ -46,6 +46,21 @@ export const en = {
   "invitation.joined.dashboard": "Go to dashboard",
   "invitation.error.load": "This invitation could not be loaded.",
   "invitation.error.accept": "This invitation could not be accepted.",
+
+  "combined.title": "All businesses",
+  "combined.intro": "Figures for every business you can access. Each business keeps its own currency, and totals are shown per currency, never added across currencies.",
+  "combined.loading": "Loading reports…",
+  "combined.error": "Failed to load the combined reports.",
+  "combined.period": "This month",
+  "combined.revenue.heading": "Revenue",
+  "combined.outstanding.heading": "Outstanding invoices",
+  "combined.overdue.heading": "Overdue invoices",
+  "combined.tax.heading": "Tax collected",
+  "combined.totals": "Totals by currency",
+  "combined.none": "None.",
+  "combined.noBusinesses": "You don't have any businesses yet.",
+  "combined.link": "View figures for all businesses",
+  "combined.backToRevenue": "Revenue reports",
 } as const;
 
 export type MessageKey = keyof typeof en;

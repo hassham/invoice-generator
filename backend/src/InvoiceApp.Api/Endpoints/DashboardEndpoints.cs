@@ -17,6 +17,9 @@ public static class DashboardEndpoints
         // IG-224: revenue report endpoint
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/revenue", GetRevenueReportAsync).RequireAuthorization();
         app.MapGet("/api/v1/reports/combined/revenue", GetCombinedRevenueReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/reports/combined/outstanding", GetCombinedOutstandingReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/reports/combined/overdue", GetCombinedOverdueReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/reports/combined/tax-summary", GetCombinedTaxSummaryAsync).RequireAuthorization();
         // IG-225: outstanding and overdue invoice reports
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/outstanding", GetOutstandingReportAsync).RequireAuthorization();
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/overdue", GetOverdueReportAsync).RequireAuthorization();
@@ -69,6 +72,32 @@ public static class DashboardEndpoints
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var report = await reportingService.GetRevenueReportAsync(userId, businessId, periodType, startDate, endDate, cancellationToken);
         return Results.Ok(report);
+    }
+
+    /// <summary>IG-242: the combined outstanding invoices across every business the caller can access.</summary>
+    private static async Task<IResult> GetCombinedOutstandingReportAsync(ClaimsPrincipal user, IReportingService reportingService, CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return Results.Ok(await reportingService.GetCombinedOutstandingReportAsync(userId, cancellationToken));
+    }
+
+    /// <summary>IG-242: the combined overdue invoices across every business the caller can access.</summary>
+    private static async Task<IResult> GetCombinedOverdueReportAsync(ClaimsPrincipal user, IReportingService reportingService, CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return Results.Ok(await reportingService.GetCombinedOverdueReportAsync(userId, cancellationToken));
+    }
+
+    /// <summary>IG-242: the combined tax summary across every business the caller can access.</summary>
+    private static async Task<IResult> GetCombinedTaxSummaryAsync(
+        ClaimsPrincipal user,
+        IReportingService reportingService,
+        CancellationToken cancellationToken,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return Results.Ok(await reportingService.GetCombinedTaxSummaryAsync(userId, startDate, endDate, cancellationToken));
     }
 
     /// <summary>IG-242: the combined revenue report across every business the caller can access.</summary>

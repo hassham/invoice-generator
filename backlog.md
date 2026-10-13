@@ -42,35 +42,33 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 
 ## Current Focus / Next Task
 
-**IG-242 (Story, under `IG-211`): combined cross-business reports. IN PROGRESS, partly done 2026-10-13, uncommitted. Jira In Progress (claimed with the user's approval). Subtasks IG-303 and IG-304 are not claimed yet.**
+**IG-242 (Story, under `IG-211`): combined cross-business reports. IN PROGRESS. Jira In Progress (claimed with the user's approval). Subtasks IG-303 and IG-304 are not claimed yet.**
 
-Decision (approved): combined totals are per currency. Amounts in different currencies are never added together.
+Decisions (approved): combined totals are per currency. Amounts in different currencies are never added together. Each figure is attributed to its business.
 
-Done:
+Done (backend and frontend):
 
-- `GET /api/v1/reports/combined/revenue?periodType&startDate&endDate` returns each accessible business's revenue, attributed to its business and currency, plus totals per currency.
-- Built from the same per-business report (`GetRevenueReportAsync`), so the combined figures cannot disagree with the single-business report.
-- Scope is `AccessibleBusinesses`: a team member sees only businesses they can access; another account sees none.
-- Tests: `CombinedRevenueReportTests` (6).
+- Combined endpoints, all covering only the businesses the caller can access: `/api/v1/reports/combined/revenue`, `/outstanding`, `/overdue`, `/tax-summary`.
+- Each combined figure is built from the same per-business calculation the single-business report uses, so they cannot disagree.
+- Frontend: `/reports/combined` ("All businesses") shows the four combined reports, attributed per business with totals per currency. Linked from `/reports`.
+- Tests: `CombinedRevenueReportTests` (6), `CombinedReportsTests` (5), `CombinedReportsView` (4).
 
 Not done:
 
-- The other reports (outstanding, overdue, revenue by customer, tax summary) have no combined form yet. IG-242's criterion covers "existing reports", so the story is not complete.
-- No frontend. The reports page needs an "All businesses" choice that calls the combined endpoint and labels each figure with its business.
-- IG-303 and IG-304 subtasks (claim needed).
+- Revenue by customer has no combined form. Customers belong to one business, so merging them by name across businesses needs a decision. The by-customer page is still single-business.
+- Subtasks IG-303 (implement) and IG-304 (test) are not claimed.
+- Browser check of `/reports/combined`.
 
-**IG-241 (Story, under `IG-211`): other languages. In Progress in Jira (claimed with the user's approval). First slice done 2026-10-13, uncommitted.**
+**IG-241 (Story, under `IG-211`): other languages. In Progress in Jira. First slice done 2026-10-13.** The team and invitation pages take all their text from a message catalogue (`app/lib/messages/en.ts`, lookup `t(key, params)`). Criterion 1 is met for those pages only. The combined reports page uses the catalogue too. Criterion 2 (language per account or business) is not started: it needs a second language and a stored setting. Other pages still have inline text.
 
-Done: the team and invitation pages take all their text from a message catalogue (`app/lib/messages/en.ts`, lookup `t(key, params)`). A type check reports any missing key once another language is added. Criterion 1 (text externalised) is met for these pages only. Criterion 3 is partly met: adding a language needs a catalogue, but the other pages are not yet converted. Criterion 2 (language per account or business) is not started: it needs a second language and a stored setting.
+Verification (2026-10-13):
 
-Not done: every other page still has inline text. Choosing the second language is still open.
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 465/465.
+- Frontend: eslint 0, tsc 0, vitest 816/816, `next build` 0.
 
-Verification (2026-10-13, combined revenue only):
+Uncommitted: all of the above since the last push (`e40debb`).
 
-- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 460/460.
-- Frontend: no changes in this slice.
-
-**Exact next task:** (1) Convert the remaining pages to the catalogue, one area at a time. (2) Choose the second language and add language selection (IG-241 criterion 2). (3) Finish IG-242: the frontend "All businesses" view and the combined outstanding/overdue/tax reports. (4) Commit and push after review.
+**Exact next task:** (1) Commit and push after review. (2) With approval, claim IG-303 and IG-304 and move them to Done with comments. (3) Decide the revenue-by-customer question, then close IG-242.
 
 **Blockers and decisions:**
 
