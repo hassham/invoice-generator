@@ -1230,9 +1230,22 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("error_message");
 
+                    b.Property<DateTimeOffset?>("FirstOpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_opened_at");
+
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid")
                         .HasColumnName("invoice_id");
+
+                    b.Property<int>("OpenCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("open_count");
+
+                    b.Property<string>("OpenToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("open_token");
 
                     b.Property<DateTimeOffset>("SentAt")
                         .HasColumnType("timestamp with time zone")
@@ -1260,6 +1273,10 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("InvoiceId")
                         .HasDatabaseName("ix_invoice_email_logs_invoice_id");
+
+                    b.HasIndex("OpenToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invoice_email_logs_open_token");
 
                     b.ToTable("invoice_email_logs", "invoice");
                 });

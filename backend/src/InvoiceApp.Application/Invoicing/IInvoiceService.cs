@@ -58,7 +58,10 @@ public interface IInvoiceService
     /// <summary>IG-213: records one send attempt, successful or not - called by
     /// InvoiceEndpoints.SendEmailAsync after it actually attempts delivery via IEmailSender, since
     /// only that layer knows whether the attempt succeeded.</summary>
-    Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken);
+    Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken, string? openToken = null);
+
+    /// <summary>IG-246: records that an email's tracking pixel loaded. Unknown tokens are ignored silently.</summary>
+    Task RecordEmailOpenAsync(string openToken, CancellationToken cancellationToken);
 
     /// <summary>IG-213: newest first, account-owned.</summary>
     Task<IReadOnlyList<InvoiceEmailLogDto>> GetEmailHistoryAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken);

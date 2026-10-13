@@ -23,6 +23,8 @@ public static class PublicInvoiceEndpoints
         // impractical (defense in depth, matching PublicInvoiceTokenGenerator's own reasoning).
         app.MapGet("/api/v1/public/invoices/{token}", GetAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
         app.MapGet("/api/v1/public/invoices/{token}/pdf", GetPdfAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
+        // IG-246: the tracking pixel in invoice emails. Anonymous by necessity - the mail client fetches it.
+        app.MapGet("/api/v1/public/email-opens/{token}", RecordEmailOpenAsync);
         // IG-216: same anonymous, rate-limited treatment - both call out to Stripe's own API, so
         // this also protects against a token being used to hammer the platform's Stripe account.
         app.MapPost("/api/v1/public/invoices/{token}/checkout-session", CreateCheckoutSessionAsync).RequireRateLimiting(RateLimitingOptions.AuthPolicyName);
@@ -34,6 +36,19 @@ public static class PublicInvoiceEndpoints
     {
         var invoice = await invoiceService.GetHostedInvoiceAsync(token, cancellationToken);
         return Results.Ok(invoice);
+    }
+
+    /// <summary>A 1x1 transparent GIF, the body of every email-open response.</summary>
+    private static readonly byte[] TransparentGif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+
+    /// <summary>IG-246: the tracking pixel's address. It always returns the same image, whether or not the token
+    /// is known, so it cannot be used to check which tokens exist. Caches are told not to keep it, so each load
+    /// reaches the server and counts.</summary>
+    private static async Task<IResult> RecordEmailOpenAsync(string token, HttpContext httpContext, IInvoiceService invoiceService, CancellationToken cancellationToken)
+    {
+        await invoiceService.RecordEmailOpenAsync(token, cancellationToken);
+        httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        return Results.Bytes(TransparentGif, "image/gif");
     }
 
     private static async Task<IResult> GetPdfAsync(string token, IInvoiceService invoiceService, CancellationToken cancellationToken)

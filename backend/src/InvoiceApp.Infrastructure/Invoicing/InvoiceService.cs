@@ -201,7 +201,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         return new InvoiceEmailContext(pdfRequest, invoice.PublicToken, business.Email);
     }
 
-    public async Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken)
+    public async Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken, string? openToken = null)
     {
         await EnsureOwnedBusinessAsync(userId, businessId, cancellationToken);
         // Loads only the scalar columns this write needs (no Items) - same "just enough of
@@ -224,6 +224,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
             Subject = request.Subject,
             Status = status,
             ErrorMessage = errorMessage,
+            OpenToken = openToken,
         });
 
         // IG-315: only a delivered email makes the invoice issued. A failed send leaves it unissued.
@@ -263,8 +264,25 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
                 JsonSerializer.Deserialize<List<string>>(log.To) ?? [],
                 JsonSerializer.Deserialize<List<string>>(log.Cc) ?? [],
                 log.Subject,
-                log.Status))
+                log.Status,
+                log.FirstOpenedAt,
+                log.OpenCount))
             .ToList();
+    }
+
+    /// <summary>IG-246: records that an email's tracking pixel loaded. An unknown token is a silent no-op, so the
+    /// endpoint answers the same way for every request and does not reveal which tokens exist.</summary>
+    public async Task RecordEmailOpenAsync(string openToken, CancellationToken cancellationToken)
+    {
+        var log = await dbContext.InvoiceEmailLogs.FirstOrDefaultAsync(l => l.OpenToken == openToken, cancellationToken);
+        if (log is null)
+        {
+            return;
+        }
+
+        log.FirstOpenedAt ??= DateTimeOffset.UtcNow;
+        log.OpenCount += 1;
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<InvoiceDto> CancelAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken)

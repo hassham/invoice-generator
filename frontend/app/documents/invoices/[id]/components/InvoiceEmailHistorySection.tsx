@@ -57,6 +57,7 @@ export function InvoiceEmailHistorySection({ invoiceId }: InvoiceEmailHistorySec
                 <th className="py-2 pr-4 font-medium">Recipient</th>
                 <th className="py-2 pr-4 font-medium">Subject</th>
                 <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Opened</th>
               </tr>
             </thead>
             <tbody>
@@ -76,10 +77,27 @@ export function InvoiceEmailHistorySection({ invoiceId }: InvoiceEmailHistorySec
                       {entry.status}
                     </span>
                   </td>
+                  <td className="py-2 pr-4">
+                    {entry.status === "Sent" ? (
+                      entry.openedAt ? (
+                        <span className="text-slate-700">
+                          {formatDateTime(entry.openedAt)}
+                          {entry.openCount && entry.openCount > 1 ? ` (${entry.openCount} times)` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">Not opened yet</span>
+                      )
+                    ) : (
+                      <span className="text-slate-500">Not sent</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="mt-3 text-xs text-slate-500">
+            Opened is best effort: many email apps block images, so &quot;Not opened yet&quot; does not mean the email was not read.
+          </p>
         </div>
       ) : loadError ? null : (
         <p className="mt-4 text-sm text-slate-600">This invoice hasn&apos;t been emailed yet.</p>

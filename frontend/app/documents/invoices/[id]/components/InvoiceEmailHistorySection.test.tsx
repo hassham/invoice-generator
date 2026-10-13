@@ -39,6 +39,45 @@ describe("InvoiceEmailHistorySection", () => {
     expect(await screen.findByText("Failed")).toBeInTheDocument();
   });
 
+  it("shows when a sent email was opened, and how many times", async () => {
+    mockedGetInvoiceEmailHistory.mockResolvedValue([
+      {
+        id: "1",
+        sentAt: "2026-09-01T10:00:00Z",
+        to: ["customer@example.com"],
+        cc: [],
+        subject: "Invoice INV-0001",
+        status: "Sent",
+        openedAt: "2026-09-02T09:00:00Z",
+        openCount: 3,
+      },
+    ]);
+    render(<InvoiceEmailHistorySection invoiceId="invoice-1" />);
+
+    expect(await screen.findByText(/\(3 times\)/)).toBeInTheDocument();
+    expect(screen.queryByText("Not opened yet")).not.toBeInTheDocument();
+  });
+
+  it("shows Not opened yet for a sent email with no recorded open, and Not sent for a failed one", async () => {
+    mockedGetInvoiceEmailHistory.mockResolvedValue([
+      { id: "1", sentAt: "2026-09-01T10:00:00Z", to: ["a@example.com"], cc: [], subject: "Invoice A", status: "Sent", openedAt: null, openCount: 0 },
+      { id: "2", sentAt: "2026-09-02T10:00:00Z", to: ["b@example.com"], cc: [], subject: "Invoice B", status: "Failed", openedAt: null, openCount: 0 },
+    ]);
+    render(<InvoiceEmailHistorySection invoiceId="invoice-1" />);
+
+    expect(await screen.findByText("Not opened yet")).toBeInTheDocument();
+    expect(screen.getByText("Not sent")).toBeInTheDocument();
+  });
+
+  it("explains that not opened does not mean unread", async () => {
+    mockedGetInvoiceEmailHistory.mockResolvedValue([
+      { id: "1", sentAt: "2026-09-01T10:00:00Z", to: ["a@example.com"], cc: [], subject: "Invoice A", status: "Sent", openedAt: null, openCount: 0 },
+    ]);
+    render(<InvoiceEmailHistorySection invoiceId="invoice-1" />);
+
+    expect(await screen.findByText(/best effort/)).toBeInTheDocument();
+  });
+
   it("shows a load error instead of the table when the fetch fails", async () => {
     mockedGetInvoiceEmailHistory.mockRejectedValue(new Error("Failed to load the email history for this invoice."));
     render(<InvoiceEmailHistorySection invoiceId="invoice-1" />);

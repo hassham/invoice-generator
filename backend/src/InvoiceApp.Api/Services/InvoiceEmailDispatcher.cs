@@ -35,18 +35,27 @@ public sealed class InvoiceEmailDispatcher(
         var hostedLink = $"{frontendBaseUrl}/i/{context.PublicToken}";
         var message = InvoiceEmailMessageBuilder.Build(request, hostedLink, pdfBytes, pdfFileName, context.BusinessEmail);
 
+        // IG-246: each email gets its own open token, embedded as a tracking pixel. The token is stored on the
+        // log row so a later pixel load can be attributed to this email.
+        var openToken = EmailOpenTracking.NewToken();
+        var apiBaseUrl = configuration["Api:PublicBaseUrl"] ?? "http://localhost:5094";
+        var trackedMessage = message with
+        {
+            HtmlBody = message.HtmlBody + EmailOpenTracking.PixelHtml(EmailOpenTracking.PixelUrl(apiBaseUrl, openToken)),
+        };
+
         try
         {
-            await emailSender.SendAsync(message, cancellationToken);
+            await emailSender.SendAsync(trackedMessage, cancellationToken);
         }
         catch (Exception ex)
         {
             // The failure is recorded before it is rethrown, so a send that blew up is still
             // visible in the invoice's email history rather than vanishing with the exception.
-            await invoiceService.RecordEmailSentAsync(userId, businessId, invoiceId, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken);
+            await invoiceService.RecordEmailSentAsync(userId, businessId, invoiceId, request, InvoiceEmailStatus.Failed, ex.Message, cancellationToken, openToken);
             throw;
         }
 
-        await invoiceService.RecordEmailSentAsync(userId, businessId, invoiceId, request, InvoiceEmailStatus.Sent, null, cancellationToken);
+        await invoiceService.RecordEmailSentAsync(userId, businessId, invoiceId, request, InvoiceEmailStatus.Sent, null, cancellationToken, openToken);
     }
 }

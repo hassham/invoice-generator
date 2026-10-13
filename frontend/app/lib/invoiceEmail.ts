@@ -17,6 +17,10 @@ export interface InvoiceEmailLog {
   cc: string[];
   subject: string;
   status: InvoiceEmailStatus;
+  /** IG-246: when the email's tracking pixel first loaded. Null until opened, and always null for a failed send. */
+  openedAt?: string | null;
+  /** IG-246: how many times the pixel loaded. */
+  openCount?: number;
 }
 
 /** Splits a comma/newline-separated block of addresses into a clean list - lets the compose form

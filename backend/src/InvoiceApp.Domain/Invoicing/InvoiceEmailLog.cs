@@ -27,4 +27,16 @@ public sealed class InvoiceEmailLog
     /// exception's raw message isn't guaranteed client-safe), but useful for the account owner to
     /// see roughly why, and for support/debugging.</summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>IG-246: random token embedded as the tracking pixel's address in this email. Only the
+    /// pixel knows it, and it reveals nothing but an open. Null for logs written before tracking existed.</summary>
+    public string? OpenToken { get; set; }
+
+    /// <summary>IG-246: when the email's pixel first loaded. Null means not opened yet, or never opened - a
+    /// mail client that blocks images never loads it, so null does not prove the email went unread.</summary>
+    public DateTimeOffset? FirstOpenedAt { get; set; }
+
+    /// <summary>IG-246: how many times the pixel loaded. Image caching and repeat views can make this higher
+    /// than the number of people who read the email.</summary>
+    public int OpenCount { get; set; }
 }

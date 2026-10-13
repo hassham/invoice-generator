@@ -17,6 +17,10 @@ public sealed class InvoiceEmailLogConfiguration : IEntityTypeConfiguration<Invo
         builder.Property(log => log.Cc).HasColumnType("jsonb").IsRequired();
         builder.Property(log => log.Subject).HasMaxLength(200).IsRequired();
         builder.Property(log => log.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(log => log.OpenToken).HasMaxLength(64);
+        // Unique so one pixel address maps to exactly one email. Several NULLs (logs from before tracking)
+        // are allowed, since Postgres treats NULLs as distinct.
+        builder.HasIndex(log => log.OpenToken).IsUnique();
         builder.Property(log => log.ErrorMessage).HasMaxLength(2000);
 
         builder.HasIndex(log => log.InvoiceId);

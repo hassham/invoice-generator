@@ -11,4 +11,6 @@ public sealed record InvoiceEmailLogDto(
     IReadOnlyList<string> To,
     IReadOnlyList<string> Cc,
     string Subject,
-    InvoiceEmailStatus Status);
+    InvoiceEmailStatus Status,
+    DateTimeOffset? OpenedAt = null,
+    int OpenCount = 0);

@@ -251,7 +251,9 @@ public sealed class EstimateConversionConcurrencyTests : IClassFixture<PostgresA
         public Task<HostedInvoiceDto> GetHostedInvoiceAsync(string token, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<InvoicePdfRequest> BuildHostedInvoicePdfRequestAsync(string token, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<InvoiceEmailContext> PrepareInvoiceEmailAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken, string? openToken = null) => throw new NotSupportedException();
+
+        public Task RecordEmailOpenAsync(string openToken, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<IReadOnlyList<InvoiceEmailLogDto>> GetEmailHistoryAsync(Guid userId, Guid businessId, Guid invoiceId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

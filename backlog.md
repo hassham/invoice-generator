@@ -42,32 +42,30 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 
 ## Current Focus / Next Task
 
-**IG-242 (Story, under `IG-211`): combined cross-business reports. DONE in Jira 2026-10-13, with IG-303 and IG-304 (both Done). Committed and pushed.**
+**IG-246 (Subtask under `IG-213`): test delivery and opened status tracking. IMPLEMENTED 2026-10-13, uncommitted. Jira To Do (not claimed yet, awaiting approval).**
 
-Decisions (approved): combined totals are per currency. Amounts in different currencies are never added together. Each figure is attributed to its business. Customers are not merged across businesses: a same-named customer in two businesses stays two entries, one under each business.
+Decision (approved): build opened tracking. Best effort, as the PRD says ("opened status where technically possible").
 
 Done:
 
-- Combined endpoints under `/api/v1/reports/combined/`, all covering only the businesses the caller can access: `revenue`, `outstanding`, `overdue`, `tax-summary`, `by-customer`.
-- Each combined figure is built from the same per-business calculation as that business's own report.
-- Frontend: `/reports/combined` ("All businesses") shows all five, attributed per business, totals per currency. Linked from `/reports`.
-- Tests: `CombinedRevenueReportTests` (6), `CombinedReportsTests` (5), `CombinedCustomerRevenueTests` (3), `CombinedReportsView` (5).
-
-Not done:
-
-- A browser check of `/reports/combined`.
-- The existing single-business report pages are unchanged.
-
-**IG-241 (Story, under `IG-211`): other languages. In Progress. First slice done 2026-10-13.** The team, invitation and combined-report pages take their text from the message catalogue (`app/lib/messages/en.ts`). Criterion 2 (language per account or business) is not started: it needs a second language and a stored setting. Other pages still have inline text.
+- Each invoice email carries a 1x1 tracking pixel with its own random token. The token is stored on the email's history row (`OpenToken`). The pixel URL is `{Api:PublicBaseUrl}/api/v1/public/email-opens/{token}`.
+- `GET /api/v1/public/email-opens/{token}` records the first open time and counts loads. It always returns the same GIF, so it cannot be used to check which tokens exist. Responses are `no-store`.
+- Email history shows Opened (time, and count if more than once) for sent emails, "Not opened yet" for sent emails with no open, and "Not sent" for failed ones. A note says that not opened does not mean unread.
+- Migration `AddInvoiceEmailOpenTracking`, applied to the dev DB.
+- Estimates have their own email log and are not tracked yet.
 
 Verification (2026-10-13):
 
-- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 468/468.
-- Frontend: eslint 0, tsc 0, vitest 817/817, `next build` 0.
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 472/472. New: `InvoiceEmailOpenTrackingTests` (4).
+- Frontend: eslint 0, tsc 0, vitest 820/820, `next build` 0. New: 3 history-table cases.
 
-Uncommitted: everything since the last push (`b6c9c51`).
+Operational note: `Api:PublicBaseUrl` must be set for each deployment to the public API URL. It defaults to localhost, so pixels in production emails point nowhere useful until it is set.
 
-**Exact next task:** (1) Browser check of `/reports/combined`. (2) IG-241 criterion 2: choose a second language and add per-account or per-business language selection. (3) Convert the remaining pages to the message catalogue.
+Privacy note: recipients are tracked by the pixel. The product should decide whether the email or the privacy policy must say so.
+
+**IG-241 (Story, under `IG-211`): other languages. In Progress.** The team, invitation and combined-report pages use the message catalogue (`app/lib/messages/en.ts`). Criterion 2 (language per account) is decided as per-account, but the second language is not named yet, so IG-302 cannot be built.
+
+**Exact next task:** (1) Name the second language for IG-241. (2) With approval, claim IG-246, then move it to Done after commit. (3) Commit and push everything since `b6c9c51`-era (uncommitted: IG-246 work).
 
 **Blockers and decisions:**
 
