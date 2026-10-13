@@ -1,4 +1,5 @@
 import { apiBaseUrl } from "./business";
+import { t, type MessageKey } from "./messages";
 
 /** IG-239 / IG-297 / IG-298 / IG-240: client for team invitations, membership and roles. Team
  * management is owner-only; the server returns 403 to a team member, which the page shows as a plain
@@ -8,8 +9,8 @@ import { apiBaseUrl } from "./business";
 export type BusinessRole = "Restricted" | "Admin";
 
 export const BUSINESS_ROLE_LABELS: Record<BusinessRole, string> = {
-  Restricted: "Restricted (no payment settings)",
-  Admin: "Admin (can change payment settings)",
+  Restricted: t("team.role.restricted"),
+  Admin: t("team.role.admin"),
 };
 
 export interface PendingInvitation {
@@ -52,7 +53,7 @@ export class TeamApiError extends Error {
   }
 }
 
-async function errorFrom(response: Response, fallback: string): Promise<TeamApiError> {
+async function errorFrom(response: Response, fallback: MessageKey): Promise<TeamApiError> {
   try {
     const body = await response.json();
     if (typeof body?.detail === "string" && body.detail.length > 0) {
@@ -61,13 +62,13 @@ async function errorFrom(response: Response, fallback: string): Promise<TeamApiE
   } catch {
     // Not JSON; use the fallback.
   }
-  return new TeamApiError(fallback, response.status);
+  return new TeamApiError(t(fallback), response.status);
 }
 
 export async function getTeam(businessId: string): Promise<TeamSnapshot> {
   const response = await fetch(`${apiBaseUrl()}/api/v1/businesses/${businessId}/team`, { credentials: "include" });
   if (!response.ok) {
-    throw await errorFrom(response, "Failed to load your team.");
+    throw await errorFrom(response, "team.error.load");
   }
   return response.json();
 }
@@ -80,7 +81,7 @@ export async function inviteMember(businessId: string, email: string, role: Busi
     body: JSON.stringify({ email, role }),
   });
   if (!response.ok) {
-    throw await errorFrom(response, "Failed to send the invitation.");
+    throw await errorFrom(response, "team.error.invite");
   }
   return response.json();
 }
@@ -93,7 +94,7 @@ export async function changeMemberRole(businessId: string, memberId: string, rol
     body: JSON.stringify({ role }),
   });
   if (!response.ok) {
-    throw await errorFrom(response, "Failed to change this member's role.");
+    throw await errorFrom(response, "team.error.roleChange");
   }
 }
 
@@ -103,7 +104,7 @@ export async function cancelInvitation(businessId: string, invitationId: string)
     credentials: "include",
   });
   if (!response.ok) {
-    throw await errorFrom(response, "Failed to cancel the invitation.");
+    throw await errorFrom(response, "team.error.cancel");
   }
 }
 
@@ -113,14 +114,14 @@ export async function removeMember(businessId: string, memberId: string): Promis
     credentials: "include",
   });
   if (!response.ok) {
-    throw await errorFrom(response, "Failed to remove this team member.");
+    throw await errorFrom(response, "team.error.remove");
   }
 }
 
 export async function getInvitation(token: string): Promise<InvitationPreview> {
   const response = await fetch(`${apiBaseUrl()}/api/v1/invitations/${encodeURIComponent(token)}`, { credentials: "include" });
   if (!response.ok) {
-    throw await errorFrom(response, "This invitation could not be loaded.");
+    throw await errorFrom(response, "invitation.error.load");
   }
   return response.json();
 }
@@ -131,7 +132,7 @@ export async function acceptInvitation(token: string): Promise<InvitationPreview
     credentials: "include",
   });
   if (!response.ok) {
-    throw await errorFrom(response, "This invitation could not be accepted.");
+    throw await errorFrom(response, "invitation.error.accept");
   }
   return response.json();
 }

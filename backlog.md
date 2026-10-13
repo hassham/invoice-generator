@@ -42,43 +42,42 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 
 ## Current Focus / Next Task
 
-**IG-240 (Story, under `IG-211`): control what a team member can do. DONE in Jira 2026-10-13, with IG-299 and IG-300 (both Done). Committed and pushed.**
+**IG-242 (Story, under `IG-211`): combined cross-business reports. IN PROGRESS, partly done 2026-10-13, uncommitted. Jira In Progress (claimed with the user's approval). Subtasks IG-303 and IG-304 are not claimed yet.**
 
-Decisions:
+Decision (approved): combined totals are per currency. Amounts in different currencies are never added together.
 
-- Two roles. `Restricted` (default for every invite): works in the business but cannot change payment settings or manage the team. `Admin`: as Restricted, plus payment settings. The owner is not a role; it stays `Business.UserId` and can do everything.
-- Payment settings = Stripe connect, callback and disconnect, and bank details in the business profile. Team management stays owner-only.
-- No business or account delete endpoint exists, so there is nothing to block yet. The `Restricted` doc comment says deletion must be owner-only when it is added.
+Done:
 
-Changes:
-
-- Domain: `BusinessRole` enum; `Role` on `BusinessMembership` and `BusinessInvitation`.
-- Migration `AddBusinessMemberRoles` (generated with `dotnet ef migrations add`). The default is edited to `Restricted`, so existing memberships become Restricted. Applied to the dev DB.
-- `ApplicationDbContext.AdministeredBusinesses(userId)`: owner or active Admin. `BusinessService.EnsurePaymentAdministratorAsync`: 404 when not accessible, 403 when accessible but not an administrator.
-- Enforced in `BusinessService`: `UpdateAsync` refuses a change to bank details (a re-save with the same values is allowed), `ConnectStripeAsync`, `DisconnectStripeAsync`. Enforced in endpoints before any side effect: connect (before the state cookie and redirect), disconnect (before Stripe deauthorisation).
-- Team: invite takes a role (default Restricted); accept copies it to the membership; `PUT /businesses/{id}/members/{membershipId}/role` is owner-only; team responses include roles.
-- Frontend: role select on the invite form; role select on each member, which calls the role change; roles shown on pending invites.
-
-Verification (2026-10-13):
-
-- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 454/454. New: `BusinessRolesTests` (11).
-- Frontend: eslint 0, tsc 0, vitest 807/807, `next build` 0.
+- `GET /api/v1/reports/combined/revenue?periodType&startDate&endDate` returns each accessible business's revenue, attributed to its business and currency, plus totals per currency.
+- Built from the same per-business report (`GetRevenueReportAsync`), so the combined figures cannot disagree with the single-business report.
+- Scope is `AccessibleBusinesses`: a team member sees only businesses they can access; another account sees none.
+- Tests: `CombinedRevenueReportTests` (6).
 
 Not done:
 
-- IG-299 and IG-300 subtasks (claim needed).
-- Stripe connect for an Admin is not tested end-to-end, because the test factory does not stub Stripe connect. The gate is tested through disconnect and the connect-refusal path.
-- Browser check of the team page.
-- Commit and push (IG-239, IG-240 and IG-297/298 team work are uncommitted apart from the earlier push).
+- The other reports (outstanding, overdue, revenue by customer, tax summary) have no combined form yet. IG-242's criterion covers "existing reports", so the story is not complete.
+- No frontend. The reports page needs an "All businesses" choice that calls the combined endpoint and labels each figure with its business.
+- IG-303 and IG-304 subtasks (claim needed).
 
-**Exact next task:** (1) Close IG-239 (team invitations): all its acceptance criteria are covered by IG-297, IG-298 and IG-240. Needs your approval for the Jira move. (2) Next open items: IG-241 (language, needs a decision on the first language and scope) and IG-242 (combined reports, needs a currency-reconciliation rule). (3) IG-246 (opened-status tracking) is still out of scope.
+**IG-241 (Story, under `IG-211`): other languages. In Progress in Jira (claimed with the user's approval). First slice done 2026-10-13, uncommitted.**
+
+Done: the team and invitation pages take all their text from a message catalogue (`app/lib/messages/en.ts`, lookup `t(key, params)`). A type check reports any missing key once another language is added. Criterion 1 (text externalised) is met for these pages only. Criterion 3 is partly met: adding a language needs a catalogue, but the other pages are not yet converted. Criterion 2 (language per account or business) is not started: it needs a second language and a stored setting.
+
+Not done: every other page still has inline text. Choosing the second language is still open.
+
+Verification (2026-10-13, combined revenue only):
+
+- Backend `dotnet test InvoiceApp.sln`: Architecture 14/14, Infrastructure 252/252, API 460/460.
+- Frontend: no changes in this slice.
+
+**Exact next task:** (1) Convert the remaining pages to the catalogue, one area at a time. (2) Choose the second language and add language selection (IG-241 criterion 2). (3) Finish IG-242: the frontend "All businesses" view and the combined outstanding/overdue/tax reports. (4) Commit and push after review.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-13):** IG-238, IG-240, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300 and IG-315 are Done. IG-211 and IG-239 are In Progress. IG-241, IG-242 and IG-246 are To Do.
+**Jira sync state (2026-10-13):** IG-238, IG-239, IG-240, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300 and IG-315 are Done. IG-211, IG-241 and IG-242 are In Progress. IG-246 is To Do.
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**

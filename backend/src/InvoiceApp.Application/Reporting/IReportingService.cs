@@ -21,6 +21,17 @@ public interface IReportingService
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// IG-242: the revenue report for every business the user can access, each attributed to its business,
+    /// with totals per currency. The per-business figures are the same ones GetRevenueReportAsync returns.
+    /// </summary>
+    Task<CombinedRevenueReportDto> GetCombinedRevenueReportAsync(
+        Guid userId,
+        string periodType,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// IG-225: Get invoices with outstanding balance (AmountDue > 0, not Cancelled).
     /// </summary>
     Task<List<OutstandingInvoiceDto>> GetOutstandingReportAsync(

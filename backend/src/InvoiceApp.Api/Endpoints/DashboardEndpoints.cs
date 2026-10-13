@@ -16,6 +16,7 @@ public static class DashboardEndpoints
         app.MapGet("/api/v1/businesses/{businessId:guid}/dashboard/summary", GetSummaryAsync).RequireAuthorization();
         // IG-224: revenue report endpoint
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/revenue", GetRevenueReportAsync).RequireAuthorization();
+        app.MapGet("/api/v1/reports/combined/revenue", GetCombinedRevenueReportAsync).RequireAuthorization();
         // IG-225: outstanding and overdue invoice reports
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/outstanding", GetOutstandingReportAsync).RequireAuthorization();
         app.MapGet("/api/v1/businesses/{businessId:guid}/reports/overdue", GetOverdueReportAsync).RequireAuthorization();
@@ -67,6 +68,25 @@ public static class DashboardEndpoints
 
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var report = await reportingService.GetRevenueReportAsync(userId, businessId, periodType, startDate, endDate, cancellationToken);
+        return Results.Ok(report);
+    }
+
+    /// <summary>IG-242: the combined revenue report across every business the caller can access.</summary>
+    private static async Task<IResult> GetCombinedRevenueReportAsync(
+        ClaimsPrincipal user,
+        IReportingService reportingService,
+        CancellationToken cancellationToken,
+        string periodType = "month",
+        DateOnly? startDate = null,
+        DateOnly? endDate = null)
+    {
+        if (!IsValidPeriodType(periodType))
+        {
+            return Results.BadRequest(new { detail = "periodType must be 'month', 'quarter', or 'year'." });
+        }
+
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var report = await reportingService.GetCombinedRevenueReportAsync(userId, periodType, startDate, endDate, cancellationToken);
         return Results.Ok(report);
     }
 

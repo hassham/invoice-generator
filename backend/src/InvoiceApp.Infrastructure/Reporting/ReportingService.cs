@@ -117,6 +117,43 @@ public sealed class ReportingService(ApplicationDbContext dbContext) : IReportin
         return periods;
     }
 
+    /// <summary>IG-242: builds the combined view from the same per-business report used on its own, so a
+    /// combined figure can never disagree with the business's own report. Totals are per currency; figures
+    /// in different currencies are never added together.</summary>
+    public async Task<CombinedRevenueReportDto> GetCombinedRevenueReportAsync(
+        Guid userId,
+        string periodType,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        CancellationToken cancellationToken)
+    {
+        var businesses = await dbContext.AccessibleBusinesses(userId)
+            .AsNoTracking()
+            .OrderBy(b => b.CreatedAt)
+            .Select(b => new { b.Id, b.BusinessName })
+            .ToListAsync(cancellationToken);
+
+        var attributed = new List<CombinedBusinessRevenueDto>();
+        foreach (var business in businesses)
+        {
+            var report = await GetRevenueReportAsync(userId, business.Id, periodType, startDate, endDate, cancellationToken);
+            attributed.Add(new CombinedBusinessRevenueDto(
+                business.Id,
+                business.BusinessName,
+                report.Currency,
+                report.Periods,
+                report.Periods.Sum(period => period.Revenue)));
+        }
+
+        var totalsByCurrency = attributed
+            .GroupBy(business => business.Currency)
+            .OrderBy(group => group.Key)
+            .Select(group => new CurrencyRevenueTotalDto(group.Key, group.Sum(business => business.Total)))
+            .ToList();
+
+        return new CombinedRevenueReportDto(periodType, attributed, totalsByCurrency);
+    }
+
     public async Task<List<OutstandingInvoiceDto>> GetOutstandingReportAsync(
         Guid userId,
         Guid businessId,
