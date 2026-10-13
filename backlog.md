@@ -36,13 +36,13 @@ Jira hierarchy: `IG-211` (Epic, In Progress) → stories below. Subtasks listed 
 | `IG-303` | Implement per-business and combined report scoping | To Do | Not started. |
 | `IG-304` | Test combined report accuracy across currencies | To Do | Not started. |
 | `IG-315` | An invoice has no stored signal that it was ever issued (under `IG-213`) | Done (2026-10-12). `Invoice.IssuedAt` set by a successful email send or Mark as Issued. Committed and pushed. |
-| `IG-246` | Test delivery/opened status tracking (under `IG-213`) | To Do | Delivery tests exist (`InvoiceEmailHistoryEndpointTests`). Opened tracking is explicitly out of scope in code. Blocked on `IG-315`, per the notes there. |
+| `IG-246` | Test delivery/opened status tracking (under `IG-213`) | Done (2026-10-13) | Best-effort opened tracking via a per-email tracking pixel (`InvoiceEmailLog.OpenToken`, `FirstOpenedAt`, `OpenCount`). Committed and pushed as `8349039`. |
 | `IG-266` | Test conversion data integrity and traceability (under `IG-223`) | Done (2026-10-12) | Estimate records its converted invoice; conversion is one transaction with a race-safe claim. Committed and pushed as `2651fee`. |
 | `IG-276` | Test export correctness across filters (under `IG-228`) | Done (2026-10-12) | Export content now checked across date ranges. Code uncommitted. |
 
 ## Current Focus / Next Task
 
-**IG-246 (Subtask under `IG-213`): test delivery and opened status tracking. IMPLEMENTED 2026-10-13, uncommitted. Jira To Do (not claimed yet, awaiting approval).**
+**IG-246 (Subtask under `IG-213`): test delivery and opened status tracking. DONE in Jira 2026-10-13. Committed and pushed as `8349039`.**
 
 Decision (approved): build opened tracking. Best effort, as the PRD says ("opened status where technically possible").
 
@@ -65,14 +65,14 @@ Privacy note: recipients are tracked by the pixel. The product should decide whe
 
 **IG-241 (Story, under `IG-211`): other languages. In Progress.** The team, invitation and combined-report pages use the message catalogue (`app/lib/messages/en.ts`). Criterion 2 (language per account) is decided as per-account, but the second language is not named yet, so IG-302 cannot be built.
 
-**Exact next task:** (1) Name the second language for IG-241. (2) With approval, claim IG-246, then move it to Done after commit. (3) Commit and push everything since `b6c9c51`-era (uncommitted: IG-246 work).
+**Exact next task:** (1) IG-241 is parked for a later release (second language not chosen; IG-302 blocked). (2) Estimate emails are not tracked for opens yet. (3) Set `Api:PublicBaseUrl` in each deployment before relying on open tracking. (4) Browser check of `/reports/combined` and the email history Opened column.
 
 **Blockers and decisions:**
 
 - `IG-315` needs a product decision on what counts as "issued" (email send, PDF download, or a manual action). It blocks `IG-246` and the tax-summary draft half.
 - `IG-239`-`IG-242` (team, roles, language, combined reports) are unstarted. Each is a new feature area. Start only after `IG-238` acceptance and with a fresh Jira claim.
 
-**Jira sync state (2026-10-13):** IG-238, IG-239, IG-240, IG-242, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300, IG-303, IG-304 and IG-315 are Done. IG-211 and IG-241 are In Progress. IG-246 is To Do.
+**Jira sync state (2026-10-13):** IG-238, IG-239, IG-240, IG-242, IG-246, IG-266, IG-276, IG-297, IG-298, IG-299, IG-300, IG-303, IG-304 and IG-315 are Done. IG-211 and IG-241 are In Progress (IG-241 parked for a later release).
 
 
 **IG-292: Purchase order list/detail distinguishability — COMPLETE 2026-10-07 (awaiting Jira transition)**
