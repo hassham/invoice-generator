@@ -26,17 +26,17 @@ Jira was read on 2026-10-14 (read-only; no Jira writes made).
 |---|---|---|---|
 | `IG-211` | Epic | In Progress | Closes after `IG-241` closes. |
 | `IG-241` | Story | In Progress | Parked for a later release. Criterion 2 (language per account) is decided as per-account. The second language is not chosen. Message catalogue `app/lib/messages/en.ts` (commit `e40debb`) covers the team, invitation and combined-report pages. |
-| `IG-301` | Subtask | To Do | Partly started. The catalogue exists, but the rest of the app has not been audited for hard-coded English. Remaining scope is unknown until audited. |
+| `IG-301` | Subtask | In Progress (claimed 2026-10-15) | Audit done: about 80 of 130 non-test frontend `.tsx` files have hard-coded English (heuristic). Reports area converted (Revenue, Outstanding/Overdue, Revenue by Customer, Tax Summary; `reports.*` keys in `en.ts`). Documents, forms, hosted pages and `lib/*.ts` error strings remain. |
 | `IG-302` | Subtask | To Do | Blocked. Cannot test language switching until a second language exists. |
 
 ## Current Focus / Next Task
 
-Focus: `IG-241` is parked. Nothing is claimed.
+Focus: `IG-301` is In Progress (claimed 2026-10-15). Reports area is converted to the catalogue; the rest of the app is not.
 
 Exact next steps, in order:
 
 1. **Product decision (blocks `IG-302` and closure of `IG-211`):** which second language to add.
-2. Once chosen: audit the app for hard-coded English, move it into the catalogue (`IG-301`), then build `IG-302`.
+2. `IG-301`, continue: convert the documents area (`app/documents/*`), then the forms (`invoice/create`, `recurring`, `credit-notes`, `receipts`, `reminders`, `settings`), then the hosted pages (`i/`, `e/`), then error strings in `app/lib/*.ts`. Keep English output identical so existing tests still match. Then build `IG-302` once a language is chosen.
 3. Operational: set `Api:PublicBaseUrl` in each deployment to the public API URL. `appsettings.json` and `InvoiceEmailDispatcher` both default to `http://localhost:5094`, so invoice email open-tracking pixels point nowhere useful in production until it is set.
 4. Browser check (not yet done): `/reports/combined`, and the Opened column in invoice email history.
 5. Not built: open tracking for estimate emails (`InvoiceEmailLog` covers invoices only).

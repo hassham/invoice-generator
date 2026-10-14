@@ -7,7 +7,14 @@ import {
   exportRevenueReportCsv,
   exportRevenueReportPdf,
 } from "../../lib/dashboard";
+import { t, type MessageKey } from "../../lib/messages";
 import { downloadExport } from "../lib/downloadExport";
+
+const periodLabelKeys: Record<"month" | "quarter" | "year", MessageKey> = {
+  month: "reports.revenue.byMonth",
+  quarter: "reports.revenue.byQuarter",
+  year: "reports.revenue.byYear",
+};
 
 export function RevenueReportView() {
   const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">("month");
@@ -54,7 +61,7 @@ export function RevenueReportView() {
         const data = await getRevenueReport(periodType, start, end);
         setReport(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load revenue report");
+        setError(err instanceof Error ? err.message : t("reports.revenue.loadError"));
       } finally {
         setLoading(false);
       }
@@ -69,7 +76,7 @@ export function RevenueReportView() {
       const blob = await exportRevenueReportCsv(periodType, startDate, endDate);
       downloadExport(blob, `revenue-report-${periodType}.csv`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to export revenue report");
+      setError(err instanceof Error ? err.message : t("reports.revenue.exportError"));
     } finally {
       setExporting(false);
     }
@@ -83,22 +90,22 @@ export function RevenueReportView() {
       const blob = await exportRevenueReportPdf(periodType, startDate, endDate);
       downloadExport(blob, `revenue-report-${periodType}.pdf`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to export revenue report");
+      setError(err instanceof Error ? err.message : t("reports.revenue.exportError"));
     } finally {
       setExportingPdf(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500">Loading revenue report...</div>;
+    return <div className="text-center text-gray-500">{t("reports.revenue.loading")}</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500">Error: {error}</div>;
+    return <div className="text-center text-red-500">{t("reports.error.display", { message: error })}</div>;
   }
 
   if (!report) {
-    return <div className="text-center text-gray-500">No data available</div>;
+    return <div className="text-center text-gray-500">{t("reports.revenue.noData")}</div>;
   }
 
   const formatCurrency = (amount: number) => {
@@ -111,8 +118,8 @@ export function RevenueReportView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Revenue Report</h1>
-        <p className="text-sm text-gray-600 mt-1">Revenue by {periodType}</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("reports.revenue.title")}</h1>
+        <p className="text-sm text-gray-600 mt-1">{t("reports.revenue.subtitle", { period: periodType })}</p>
       </div>
 
       <div className="flex gap-2 justify-between items-center">
@@ -127,7 +134,7 @@ export function RevenueReportView() {
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
               }`}
             >
-              By {period.charAt(0).toUpperCase() + period.slice(1)}
+              {t(periodLabelKeys[period])}
             </button>
           ))}
         </div>
@@ -137,14 +144,14 @@ export function RevenueReportView() {
             disabled={exporting}
             className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
           >
-            {exporting ? "Exporting..." : "Export to CSV"}
+            {exporting ? t("reports.export.busy") : t("reports.export.csv")}
           </button>
           <button
             onClick={handleExportPdf}
             disabled={exportingPdf}
             className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
           >
-            {exportingPdf ? "Exporting..." : "Export to PDF"}
+            {exportingPdf ? t("reports.export.busy") : t("reports.export.pdf")}
           </button>
         </div>
       </div>
@@ -153,8 +160,8 @@ export function RevenueReportView() {
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-300">
-              <th className="text-left py-3 px-4 font-semibold text-gray-900">Period</th>
-              <th className="text-right py-3 px-4 font-semibold text-gray-900">Revenue</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.period")}</th>
+              <th className="text-right py-3 px-4 font-semibold text-gray-900">{t("reports.column.revenue")}</th>
             </tr>
           </thead>
           <tbody>
@@ -172,7 +179,7 @@ export function RevenueReportView() {
 
       {report.periods.every((p) => p.revenue === 0) && (
         <div className="text-center py-8 text-gray-500">
-          No revenue recorded for this period
+          {t("reports.revenue.empty")}
         </div>
       )}
     </div>
