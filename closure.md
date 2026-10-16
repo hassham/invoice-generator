@@ -2,11 +2,11 @@
 
 Items still open before the project can be considered closed. Tick an item when it is done and verified, and add the commit hash or Jira key beside it. This file is the tracking list; `backlog.md` remains the handoff summary.
 
-Last reviewed: 2026-10-16.
+Last reviewed: 2026-10-16. Latest pushed commit on `origin/main`: `0a12584`.
 
 ## Delivery
 
-- [ ] Push local commit `422e0dc` (handoff update) to `origin/main`.
+- [x] Push local commit `422e0dc` (handoff update) to `origin/main`. Done in `0a12584`.
 - [ ] Set `Api:PublicBaseUrl` in every deployment to the public API URL. The default is `http://localhost:5094`, so open-tracking pixels do not work in production until this is set.
 - [ ] Browser-check `/reports/combined` and the Opened column in invoice email history.
 
@@ -31,7 +31,7 @@ Last reviewed: 2026-10-16.
 ## Engineering
 
 - [ ] Branch protection on `main`: the "Backend build" and "Frontend build" checks are required but bypassed on direct pushes. Revisit once the current Jira set closes, then move to a PR-based flow.
-- [ ] `frontend/next-env.d.ts` shows as modified because it is generated. Decide whether to stop tracking it.
+- [ ] `frontend/next-env.d.ts` is generated, and it is now tracked (committed in `0a12584` as a local change). Decide whether to stop tracking it.
 
 ## On hold (language, by product decision 2026-10-16)
 
