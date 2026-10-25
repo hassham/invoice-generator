@@ -164,6 +164,13 @@ export function SiteHeader() {
             {account ? (
               <>
                 <Link
+                  href="/invoice/create"
+                  className="rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  New invoice
+                </Link>
+                <Link
                   href="/dashboard"
                   className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
                   onClick={() => setIsMenuOpen(false)}

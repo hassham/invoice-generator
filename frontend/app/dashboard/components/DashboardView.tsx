@@ -65,7 +65,15 @@ export function DashboardView() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-950">Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-950">Dashboard</h1>
+          <Link
+            href="/invoice/create"
+            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+          >
+            New invoice
+          </Link>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="dashboard-period" className="text-sm font-medium text-slate-700">
             Period
