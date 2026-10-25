@@ -8,11 +8,17 @@ vi.mock("./lib/auth", () => ({
   getCurrentSession: vi.fn(() => Promise.resolve(null)),
 }));
 
+// GuestOnlyContent reads the router, which only exists inside the Next.js app router.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
+
 describe("Landing page", () => {
-  it("routes every primary Create Invoice CTA to the invoice generator", () => {
+  it("routes every primary Create Invoice CTA to the invoice generator", async () => {
     render(<Home />);
 
-    const ctas = screen.getAllByRole("link", { name: "Create Free Invoice" });
+    // The content waits for the session check to settle, so wait for it to appear.
+    const ctas = await screen.findAllByRole("link", { name: "Create Free Invoice" });
 
     // docs/FSD.md section 6.1: the hero and the Free pricing plan both carry the primary CTA.
     expect(ctas).toHaveLength(2);

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageViewTracker } from "./components/analytics/PageViewTracker";
+import { GuestOnlyContent } from "./components/auth/GuestOnlyContent";
 import { BenefitsSection } from "./components/landing/BenefitsSection";
 import { FaqSection } from "./components/landing/FaqSection";
 import { FeatureOverviewSection } from "./components/landing/FeatureOverviewSection";
@@ -29,8 +30,9 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
+  // Signed-in accounts are sent to the dashboard instead of seeing this page.
   return (
-    <>
+    <GuestOnlyContent>
       <PageViewTracker />
       <SiteHeader />
       <main>
@@ -43,6 +45,6 @@ export default function Home() {
         <FaqSection />
       </main>
       <SiteFooter />
-    </>
+    </GuestOnlyContent>
   );
 }
