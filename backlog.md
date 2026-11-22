@@ -31,15 +31,50 @@ Jira was read on 2026-10-14 (read-only; no Jira writes made).
 
 ## Current Focus / Next Task
 
-Focus: nothing claimed. All language work (`IG-241`, `IG-301`, `IG-302`) is on hold by product decision (2026-10-16), marked with the `on-hold` label in Jira. Statuses were not changed. Reports area is converted to the catalogue; the rest of the app is not.
+**Focus (2026-11-12): go-live with the current feature set.** Second-language work is parked by product decision (see Open Jira Work). The go-live plan is in the next section. Its Jira issues are not created yet: no Jira tool was available in the session that wrote this, so the tickets below are proposals with no keys.
 
 Exact next steps, in order:
 
-1. **Product decision (blocks `IG-302` and closure of `IG-211`):** which second language to add. Language work resumes only after this and after the `on-hold` label is removed.
+1. **Create the go-live Jira issues** listed under "Go-Live Plan", set the high-priority ones, and set `IG-211`, `IG-241`, `IG-301` and `IG-302` to Low. Each change needs the user's authorization. Record the new keys here once they exist.
+2. **Start with the non-visual blockers** (high-priority items 1–10), then the design foundation and branding decision, then the screens.
+
+Language work, parked (resume only after a decision and the `on-hold` label is removed):
+
+1. **Product decision (blocks `IG-302` and closure of `IG-211`):** which second language to add.
 2. Language work, when resumed. `IG-301`: convert the documents area (`app/documents/*`), then the forms (`invoice/create`, `recurring`, `credit-notes`, `receipts`, `reminders`, `settings`), then the hosted pages (`i/`, `e/`), then error strings in `app/lib/*.ts`. Keep English output identical so existing tests still match. Then build `IG-302` once a language is chosen.
 3. Operational: set `Api:PublicBaseUrl` in each deployment to the public API URL. `appsettings.json` and `InvoiceEmailDispatcher` both default to `http://localhost:5094`, so invoice email open-tracking pixels point nowhere useful in production until it is set.
 4. Browser check (not yet done): `/reports/combined`, and the Opened column in invoice email history.
 5. Not built: open tracking for estimate emails (`InvoiceEmailLog` covers invoices only).
+
+## Go-Live Plan (proposed 2026-11-12, no Jira keys yet)
+
+Scope is the current feature set only. Target: go live. Items marked **High** block launch. Items marked **Low** are the existing board items moved down. The Jira priority scheme (Highest/High/Medium/Low) is assumed and needs checking when the issues are created.
+
+| # | Proposed Jira summary | Priority | Source |
+|---|---|---|---|
+| 1 | Password reset: add UI entry point (or hide until ready) | High | IG-195 |
+| 2 | Google sign-in: add UI entry point and callback redirect (or hide) | High | IG-196 |
+| 3 | Invoice detail page: add Download PDF action | High | IG-197 |
+| 4 | Invoice editor: fix Issue/Due date cleared by a header-field edit | High | IG-194 |
+| 5 | Privacy policy and terms pages; disclose the open-tracking pixel | High | Decision in Blockers |
+| 6 | Production config: `Api:PublicBaseUrl`, production SMTP, HTTPS/HSTS | High | Known Gaps / closure.md |
+| 7 | Containerise API and web app (Dockerfiles) and choose a hosting target | High | `infrastructure/docker` has Postgres only |
+| 8 | Choose analytics provider and wire it (replaces console sink) | High | IG-21 |
+| 9 | Decide the default tax rate for new accounts (0% vs FSD 10%) | High | Known Gaps |
+| 10 | Recurring "Custom" frequency: hide the option or implement an interval | High | Known Gaps |
+| 11 | Brand identity: name, logo, colours, typography (not yet defined) | High | User request 2026-11-12 |
+| 12 | Design system foundation: font, tokens, shared primitives | High | UI review 2026-11-12 |
+| 13 | Landing page redesign with real product visual | High | UI review |
+| 14 | App screens redesign: auth, dashboard, invoice list, editor, settings; loading/empty/error states | High | UI review |
+| 15 | Invoice PDF template redesign, checked against the on-screen preview | High | UI review |
+| 16 | 404 page, favicon, social-share image | Medium | UI review |
+| 17 | Real-device pass on at least one iOS and one Android device | High | Launch readiness 2026-09-09 |
+| 18 | Screen-reader pass on core flows | High | Launch readiness 2026-09-09 |
+| 19 | Basic load test under concurrent traffic | High | Launch readiness 2026-09-09 |
+| 20 | Backups for Postgres and uploaded logos; error tracking | High | Not yet tracked |
+| 21 | Soft launch with a small group of real users | High | Launch plan |
+
+Existing board items to move to **Low**: `IG-211` (Epic), `IG-241` (Story), `IG-301` and `IG-302` (Subtasks). They stay `on-hold` for the second language.
 
 ## Blockers and Decisions
 
