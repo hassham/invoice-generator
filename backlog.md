@@ -8,19 +8,21 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
-## Current Status (as of 2026-10-15)
+## Current Status (as of 2026-11-22)
 
-Jira was read on 2026-10-14 (read-only; no Jira writes made).
+Jira was read on 2026-11-22. Writes made that day: 21 go-live Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low.
 
-- Jira project `IG` has **4 non-Done issues**: `IG-211` (Epic, In Progress), `IG-241` (Story, In Progress), `IG-301` (Subtask, To Do), `IG-302` (Subtask, To Do). Everything else is Done in Jira.
-- All Done work is committed locally. Latest commit: `d185391` (IG-246 handoff). Commits `e40debb`, `b6c9c51`, `3cc1394` (IG-242, IG-303, IG-304), `a98541b` (IG-240, IG-299, IG-300), `c2dffc6` (IG-297, IG-298) and `f5c19e3` (IG-315) are in `main`.
+- Jira project `IG` has **25 non-Done issues**: the 4 pre-existing items (`IG-211` Epic, `IG-241` Story, `IG-301` and `IG-302` Subtasks, all Low priority and `on-hold`) plus the 21 go-live Stories `IG-316` to `IG-336` (To Do). Everything else is Done in Jira.
+- All Done work is committed. Latest commit on `main` is `ed75abc` (go-live plan), pushed to `origin/main` on 2026-11-22. Earlier Done commits, including `d185391` (IG-246 handoff) and `f5c19e3` (IG-315), are in `main`.
 - Verification run 2026-10-14 (this file's author, on the current tree):
   - Frontend: `tsc --noEmit` clean; `vitest run` 820/820 across 106 files.
   - Backend: `dotnet test InvoiceApp.sln`: Architecture 14/14; Infrastructure 242 passed, 10 skipped; API 468 passed, 4 skipped; no failures.
   - Not run in this pass: `npx eslint .` and `npm run build`.
-- Working tree: only `frontend/next-env.d.ts` is modified (a generated Next.js file).
+- Working tree clean after `ed75abc`. `frontend/next-env.d.ts` is a generated Next.js file and is tracked (see `closure.md`).
 
 ## Open Jira Work
+
+Priority was set to Low on 2026-11-22 for `IG-211`, `IG-241`, `IG-301` and `IG-302`. The status and code-state columns below are from the 2026-10-14 read.
 
 | Jira | Type | Jira status | Code state (verified 2026-10-14) |
 |---|---|---|---|
@@ -31,12 +33,11 @@ Jira was read on 2026-10-14 (read-only; no Jira writes made).
 
 ## Current Focus / Next Task
 
-**Focus (2026-11-12): go-live with the current feature set.** Second-language work is parked by product decision (see Open Jira Work). The go-live plan is in the next section. Its Jira issues are not created yet: no Jira tool was available in the session that wrote this, so the tickets below are proposals with no keys.
+**Focus (2026-11-12): go-live with the current feature set.** Second-language work is parked by product decision (see Open Jira Work). The go-live plan is in the next section. Its 21 Jira Stories were created on 2026-11-22 as `IG-316` to `IG-336`.
 
 Exact next steps, in order:
 
-1. **Create the go-live Jira issues** listed under "Go-Live Plan", set the high-priority ones, and set `IG-211`, `IG-241`, `IG-301` and `IG-302` to Low. Each change needs the user's authorization. Record the new keys here once they exist.
-2. **Start with the non-visual blockers** (high-priority items 1–10), then the design foundation and branding decision, then the screens.
+1. **Start with the non-visual blockers** (go-live items 1–10, `IG-316` to `IG-325`), then the design foundation and branding decision (`IG-326`, `IG-327`), then the screens (`IG-328` to `IG-330`).
 
 Language work, parked (resume only after a decision and the `on-hold` label is removed):
 
@@ -46,39 +47,39 @@ Language work, parked (resume only after a decision and the `on-hold` label is r
 4. Browser check (not yet done): `/reports/combined`, and the Opened column in invoice email history.
 5. Not built: open tracking for estimate emails (`InvoiceEmailLog` covers invoices only).
 
-## Go-Live Plan (proposed 2026-11-12, no Jira keys yet)
+## Go-Live Plan (proposed 2026-11-12, Jira keys assigned 2026-11-22)
 
-Scope is the current feature set only. Target: go live. Items marked **High** block launch. Items marked **Low** are the existing board items moved down. The Jira priority scheme (Highest/High/Medium/Low) is assumed and needs checking when the issues are created.
+Scope is the current feature set only. Target: go live. Items marked **High** block launch. The Jira scheme has High, Medium and Low priorities; the 21 Stories were created with the priorities below. Stories are unassigned and have no parent epic.
 
-| # | Proposed Jira summary | Priority | Source |
-|---|---|---|---|
-| 1 | Password reset: add UI entry point (or hide until ready) | High | IG-195 |
-| 2 | Google sign-in: add UI entry point and callback redirect (or hide) | High | IG-196 |
-| 3 | Invoice detail page: add Download PDF action | High | IG-197 |
-| 4 | Invoice editor: fix Issue/Due date cleared by a header-field edit | High | IG-194 |
-| 5 | Privacy policy and terms pages; disclose the open-tracking pixel | High | Decision in Blockers |
-| 6 | Production config: `Api:PublicBaseUrl`, production SMTP, HTTPS/HSTS | High | Known Gaps / closure.md |
-| 7 | Containerise API and web app (Dockerfiles) and choose a hosting target | High | `infrastructure/docker` has Postgres only |
-| 8 | Choose analytics provider and wire it (replaces console sink) | High | IG-21 |
-| 9 | Decide the default tax rate for new accounts (0% vs FSD 10%) | High | Known Gaps |
-| 10 | Recurring "Custom" frequency: hide the option or implement an interval | High | Known Gaps |
-| 11 | Brand identity: name, logo, colours, typography (not yet defined) | High | User request 2026-11-12 |
-| 12 | Design system foundation: font, tokens, shared primitives | High | UI review 2026-11-12 |
-| 13 | Landing page redesign with real product visual | High | UI review |
-| 14 | App screens redesign: auth, dashboard, invoice list, editor, settings; loading/empty/error states | High | UI review |
-| 15 | Invoice PDF template redesign, checked against the on-screen preview | High | UI review |
-| 16 | 404 page, favicon, social-share image | Medium | UI review |
-| 17 | Real-device pass on at least one iOS and one Android device | High | Launch readiness 2026-09-09 |
-| 18 | Screen-reader pass on core flows | High | Launch readiness 2026-09-09 |
-| 19 | Basic load test under concurrent traffic | High | Launch readiness 2026-09-09 |
-| 20 | Backups for Postgres and uploaded logos; error tracking | High | Not yet tracked |
-| 21 | Soft launch with a small group of real users | High | Launch plan |
+| # | Jira | Summary | Priority | Source |
+|---|---|---|---|---|
+| 1 | `IG-316` | Password reset: add UI entry point (or hide until ready) | High | IG-195 |
+| 2 | `IG-317` | Google sign-in: add UI entry point and callback redirect (or hide) | High | IG-196 |
+| 3 | `IG-318` | Invoice detail page: add Download PDF action | High | IG-197 |
+| 4 | `IG-319` | Invoice editor: fix Issue/Due date cleared by a header-field edit | High | IG-194 |
+| 5 | `IG-320` | Privacy policy and terms pages; disclose the open-tracking pixel | High | Decision in Blockers |
+| 6 | `IG-321` | Production config: `Api:PublicBaseUrl`, production SMTP, HTTPS/HSTS | High | Known Gaps / closure.md |
+| 7 | `IG-322` | Containerise API and web app (Dockerfiles) and choose a hosting target | High | `infrastructure/docker` has Postgres only |
+| 8 | `IG-323` | Choose analytics provider and wire it (replaces console sink) | High | IG-21 |
+| 9 | `IG-324` | Decide the default tax rate for new accounts (0% vs FSD 10%) | High | Known Gaps |
+| 10 | `IG-325` | Recurring "Custom" frequency: hide the option or implement an interval | High | Known Gaps |
+| 11 | `IG-326` | Brand identity: name, logo, colours, typography | High | User request 2026-11-12 |
+| 12 | `IG-327` | Design system foundation: font, tokens, shared primitives | High | UI review 2026-11-12 |
+| 13 | `IG-328` | Landing page redesign with real product visual | High | UI review |
+| 14 | `IG-329` | App screens redesign: auth, dashboard, invoice list, editor, settings; loading/empty/error states | High | UI review |
+| 15 | `IG-330` | Invoice PDF template redesign, checked against the on-screen preview | High | UI review |
+| 16 | `IG-331` | 404 page, favicon, social-share image | Medium | UI review |
+| 17 | `IG-332` | Real-device pass on at least one iOS and one Android device | High | Launch readiness 2026-09-09 |
+| 18 | `IG-333` | Screen-reader pass on core flows | High | Launch readiness 2026-09-09 |
+| 19 | `IG-334` | Basic load test under concurrent traffic | High | Launch readiness 2026-09-09 |
+| 20 | `IG-335` | Backups for Postgres and uploaded logos; error tracking | High | Not yet tracked |
+| 21 | `IG-336` | Soft launch with a small group of real users | High | Launch plan |
 
-Existing board items to move to **Low**: `IG-211` (Epic), `IG-241` (Story), `IG-301` and `IG-302` (Subtasks). They stay `on-hold` for the second language.
+Moved to **Low** on 2026-11-22: `IG-211` (Epic), `IG-241` (Story), `IG-301` and `IG-302` (Subtasks). They stay `on-hold` for the second language.
 
 ## Blockers and Decisions
 
-- **Second language** (see step 1 above). Blocks `IG-302`, `IG-211` and therefore the Epic.
+- **Second language** (see "Language work, parked", step 1). Blocks `IG-302`, `IG-211` and therefore the Epic.
 - **Privacy disclosure for open tracking.** Recipients are tracked by a 1x1 pixel (`InvoiceEmailLog.OpenToken`, `FirstOpenedAt`, `OpenCount`). Decide whether the emails or the privacy policy must say so.
 
 ## Known Gaps (carried forward, not Jira-tracked here)
@@ -93,7 +94,7 @@ Existing board items to move to **Low**: `IG-211` (Epic), `IG-241` (Story), `IG-
 
 ## Jira Sync State
 
-Read 2026-10-14 (read-only, `project = IG AND statusCategory != Done`). No Jira writes made. Re-read Jira before claiming any issue.
+Read 2026-11-22 (`project = IG AND statusCategory != Done`). Writes that day: 21 Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low (`IG-211`, `IG-241`, `IG-301`, `IG-302`). Re-read Jira before claiming any issue.
 
 ## Handoff Rules
 
