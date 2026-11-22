@@ -13,12 +13,12 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 Jira was read on 2026-11-22. Writes made that day: 21 go-live Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low.
 
 - Jira project `IG` has **25 non-Done issues**: the 4 pre-existing items (`IG-211` Epic, `IG-241` Story, `IG-301` and `IG-302` Subtasks, all Low priority and `on-hold`) plus the 21 go-live Stories `IG-316` to `IG-336` (To Do). Everything else is Done in Jira.
-- All Done work is committed. Latest commit on `main` is `ed75abc` (go-live plan), pushed to `origin/main` on 2026-11-22. Earlier Done commits, including `d185391` (IG-246 handoff) and `f5c19e3` (IG-315), are in `main`.
+- All Done work is committed. Latest commit on `origin/main` is `e9cc553` (Jira keys for the go-live plan), pushed on 2026-11-22. Local `main` also has `0d2ae22` (closure checklist update), committed but not yet pushed. Earlier Done commits, including `d185391` (IG-246 handoff) and `f5c19e3` (IG-315), are in `main`.
 - Verification run 2026-10-14 (this file's author, on the current tree):
   - Frontend: `tsc --noEmit` clean; `vitest run` 820/820 across 106 files.
   - Backend: `dotnet test InvoiceApp.sln`: Architecture 14/14; Infrastructure 242 passed, 10 skipped; API 468 passed, 4 skipped; no failures.
   - Not run in this pass: `npx eslint .` and `npm run build`.
-- Working tree clean after `ed75abc`. `frontend/next-env.d.ts` is a generated Next.js file and is tracked (see `closure.md`).
+- Working tree clean after `0d2ae22`. `frontend/next-env.d.ts` is a generated Next.js file and is tracked (see `closure.md`).
 
 ## Open Jira Work
 
