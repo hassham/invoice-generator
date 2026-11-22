@@ -12,8 +12,8 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 Jira was read on 2026-11-22. Writes made that day: 21 go-live Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low.
 
-- Jira project `IG` has **25 non-Done issues**: the 4 pre-existing items (`IG-211` Epic, `IG-241` Story, `IG-301` and `IG-302` Subtasks, all Low priority and `on-hold`) plus the 21 go-live Stories `IG-316` to `IG-336` (To Do). Everything else is Done in Jira.
-- All Done work is committed. Latest commit on `origin/main` is `e9cc553` (Jira keys for the go-live plan), pushed on 2026-11-22. Local `main` also has `0d2ae22` (closure checklist update), committed but not yet pushed. Earlier Done commits, including `d185391` (IG-246 handoff) and `f5c19e3` (IG-315), are in `main`.
+- Jira project `IG` has **24 non-Done issues**: the 4 pre-existing items (`IG-211` Epic, `IG-241` Story, `IG-301` and `IG-302` Subtasks, all Low priority and `on-hold`) plus 20 go-live Stories (`IG-316` to `IG-336`, except `IG-319`, which is Done). `IG-319` was closed on 2026-11-22 as cannot reproduce. Everything else is Done in Jira.
+- All Done work is committed and pushed. `origin/main` matches local `main` after the 2026-11-22 push. Recent commits this session: Jira keys for the go-live plan, the closure checklist update, the IG-319 regression test, and this handoff update. Earlier Done commits, including `d185391` (IG-246 handoff) and `f5c19e3` (IG-315), are in `main`.
 - Verification run 2026-10-14 (this file's author, on the current tree):
   - Frontend: `tsc --noEmit` clean; `vitest run` 820/820 across 106 files.
   - Backend: `dotnet test InvoiceApp.sln`: Architecture 14/14; Infrastructure 242 passed, 10 skipped; API 468 passed, 4 skipped; no failures.
@@ -94,7 +94,7 @@ Moved to **Low** on 2026-11-22: `IG-211` (Epic), `IG-241` (Story), `IG-301` and 
 
 ## Jira Sync State
 
-Read 2026-11-22 (`project = IG AND statusCategory != Done`). Writes that day: 21 Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low (`IG-211`, `IG-241`, `IG-301`, `IG-302`). Re-read Jira before claiming any issue.
+Read 2026-11-22 (`project = IG AND statusCategory != Done`). Writes that day: 21 Stories created (`IG-316` to `IG-336`), 4 priority changes to Low (`IG-211`, `IG-241`, `IG-301`, `IG-302`), and `IG-319` moved To Do to In Progress, then closed as Done (cannot reproduce; see its comments). Re-read Jira before claiming any issue.
 
 ## Handoff Rules
 
@@ -172,6 +172,9 @@ Standing lessons and conventions, most still directly actionable, none requiring
 45. **A freshly registered account's `defaultTaxRate` is `0`, not the FSD's "Australian default: 10% GST"** — that 10% is `DEFAULT_TAX_RATE_PRESET`, which applies to *anonymous* invoice drafts only. Any authenticated create flow resolves the rate from the business profile (`resolveTaxRateDefault`, IG-203), so a brand-new account's first line starts at 0%. A verification script that assumes 10% for a just-registered user reports false failures (four of them in `IG-307`, all of which were the script being wrong, not the form). Either set the profile's rate first or choose the rate explicitly in the form.
 46. **EF Core cannot union projections, and cannot filter over one** — two separate limits that both bite any "one list across several tables" query. `a.Select(...).Concat(b.Select(...))` fails with *"Unable to translate set operation after client projection has been applied"*, and there is no shared entity type to `Concat` before projecting when the tables are unrelated. Applying `.Where(row => row.SomeProjectedProperty == x)` to a projected queryable fails too (*"The LINQ expression could not be translated"*). So: push every filter into each source query against **real columns**, then merge the materialised results in memory. Hit twice in `IG-237`; `DocumentListService`'s own doc comment carries the detail.
 47. **An enum persisted with `HasConversion<string>()` must never be cast to `int` in a projection** — the column holds `'Draft'`, so Postgres raises `22P02: invalid input syntax for type integer: "Draft"` at read time. Project the enum property itself (EF converts it back), or give each enum its own field when several must share a row shape. The InMemory provider has no column type and passes happily, so `dotnet test` stays green and only a real database shows it — the same trap as Note 23. Both `Invoice.Status` and `Estimate.Status` are string-converted.
+
+**Test environment**
+48. **Frontend Vitest setup hooks fail on Node 24.18.0** (the default `node` on this machine). `vitest.setup.ts`'s top-level `afterEach` throws "Vitest failed to find the current suite", so every frontend test file fails, including pure-logic files. Node 24.7.0 at `C:\nvm4w\nodejs\node.exe` passed the editor tests once, then began failing too, even after a clean `npm ci`. Unresolved. Do not treat frontend test results from this machine as verification until this is fixed. Check the Node version first (`node -v`), and if the failure persists, capture a full stack trace before changing config. Note: `npm ci` deletes `node_modules` before it finishes. If it is interrupted by a file lock, rerun it.
 
 ## Handoff Update Template
 
