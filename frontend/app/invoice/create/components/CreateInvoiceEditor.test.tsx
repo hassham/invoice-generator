@@ -246,6 +246,27 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.getByText("Due date cannot be earlier than the issue date.")).toBeInTheDocument();
   });
 
+  it("keeps Issue Date and Due Date when other header fields are edited (IG-319)", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+
+    const issueDateInput = screen.getByLabelText(/^Issue Date/);
+    const dueDateInput = screen.getByLabelText(/Due Date/);
+    const issueDateBefore = (issueDateInput as HTMLInputElement).value;
+    const dueDateBefore = (dueDateInput as HTMLInputElement).value;
+    expect(issueDateBefore).not.toBe("");
+    expect(dueDateBefore).not.toBe("");
+
+    await user.type(screen.getByLabelText(/^Invoice Number/), "INV-000042");
+    await user.tab();
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.type(screen.getByLabelText("Reference / Purchase Order"), "PO-7");
+    await user.tab();
+
+    expect(screen.getByLabelText(/^Issue Date/)).toHaveValue(issueDateBefore);
+    expect(screen.getByLabelText(/Due Date/)).toHaveValue(dueDateBefore);
+  });
+
   it("defaults currency to AUD", () => {
     render(<CreateInvoiceEditor />);
 
