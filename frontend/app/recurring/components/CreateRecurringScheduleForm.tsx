@@ -20,7 +20,10 @@ interface CreateRecurringScheduleFormProps {
   onSuccess?: () => void;
 }
 
-const FREQUENCIES = ["Weekly", "Fortnightly", "Monthly", "Quarterly", "Annually", "Custom"];
+// IG-325: "Custom" is not offered. The backend has no interval field and calculates Custom
+// schedules as monthly (CalculateNextRunDate), so offering it would mislead users. The backend
+// still accepts it for existing API clients and existing schedules.
+const FREQUENCIES = ["Weekly", "Fortnightly", "Monthly", "Quarterly", "Annually"];
 
 export function CreateRecurringScheduleForm({
   businessId,
