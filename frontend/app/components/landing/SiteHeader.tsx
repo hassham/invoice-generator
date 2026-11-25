@@ -1,15 +1,25 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentSession, logout, type LoggedInAccount } from "../../lib/auth";
 import { BusinessSwitcher } from "../business/BusinessSwitcher";
 
+// IG-327 / IG-329: Bevorly styling (docs/BRANDINGGUIDELINES.md sections 5, 10 and 11). Behaviour,
+// links and accessible names are unchanged from the earlier header.
 const navLinks = [
   { href: "/invoice/create", label: "Invoice Generator" },
   { href: "#templates", label: "Templates" },
   { href: "#pricing", label: "Pricing" },
 ];
+
+const navLink = "text-sm font-medium text-muted transition-colors hover:text-ink";
+const mobileNavLink = "rounded-md px-2 py-2 text-sm font-medium text-muted transition-colors hover:bg-canvas hover:text-ink";
+const primaryCta =
+  "rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-center text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a]";
+const secondaryCta =
+  "whitespace-nowrap rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas";
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,10 +62,11 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-40 border-b border-border bg-paper">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-bold tracking-tight text-slate-950">
-          Invoice App
+        <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-ink">
+          <Image src="/brand/bevorly-mark.svg" alt="" width={28} height={28} unoptimized />
+          bevorly.
         </Link>
 
         {/* IG-68: the desktop nav + account block need ~1104px of content width when
@@ -70,33 +81,29 @@ export function SiteHeader() {
               to anything outside the landing page. */}
           {!account
             ? navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
-                >
+                <Link key={link.href} href={link.href} className={navLink}>
                   {link.label}
                 </Link>
               ))
             : null}
           {account ? (
             <>
-              <Link href="/dashboard" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              <Link href="/dashboard" className={navLink}>
                 Dashboard
               </Link>
-              <Link href="/documents/invoices" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              <Link href="/documents/invoices" className={navLink}>
                 Invoices
               </Link>
-              <Link href="/customers" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              <Link href="/customers" className={navLink}>
                 Customers
               </Link>
-              <Link href="/items" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              <Link href="/items" className={navLink}>
                 Items
               </Link>
-              <Link href="/templates" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              <Link href="/templates" className={navLink}>
                 Templates
               </Link>
-              <Link href="/settings/business" className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950">
+              <Link href="/settings/business" className={navLink}>
                 Settings
               </Link>
             </>
@@ -107,27 +114,17 @@ export function SiteHeader() {
           {account ? (
             <>
               <BusinessSwitcher />
-              <span className="text-sm font-medium text-slate-600">{account.name ?? account.email}</span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="whitespace-nowrap rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-              >
+              <span className="text-sm font-medium text-muted">{account.name ?? account.email}</span>
+              <button type="button" onClick={handleLogout} className={secondaryCta}>
                 Log out
               </button>
             </>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
-              >
+              <Link href="/login" className={navLink}>
                 Login
               </Link>
-              <Link
-                href="/signup"
-                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-              >
+              <Link href="/signup" className={primaryCta}>
                 Sign Up
               </Link>
             </>
@@ -137,7 +134,7 @@ export function SiteHeader() {
         <button
           ref={toggleRef}
           type="button"
-          className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950 xl:hidden"
+          className={`${navLink} xl:hidden`}
           aria-expanded={isMenuOpen}
           aria-controls="mobile-nav"
           onClick={() => setIsMenuOpen((open) => !open)}
@@ -147,99 +144,54 @@ export function SiteHeader() {
       </div>
 
       {isMenuOpen ? (
-        <div id="mobile-nav" className="border-t border-slate-200 xl:hidden">
+        <div id="mobile-nav" className="border-t border-border bg-paper xl:hidden">
           <nav aria-label="Mobile primary" className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-4">
             {!account
               ? navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  <Link key={link.href} href={link.href} className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                     {link.label}
                   </Link>
                 ))
               : null}
             {account ? (
               <>
-                <Link
-                  href="/invoice/create"
-                  className="rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/invoice/create" className={`${primaryCta} mb-2`} onClick={() => setIsMenuOpen(false)}>
                   New invoice
                 </Link>
-                <Link
-                  href="/dashboard"
-                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/dashboard" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Dashboard
                 </Link>
-                <Link
-                  href="/documents/invoices"
-                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/documents/invoices" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Invoices
                 </Link>
-                <Link
-                  href="/customers"
-                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/customers" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Customers
                 </Link>
-                <Link
-                  href="/items"
-                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/items" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Items
                 </Link>
-                <Link
-                  href="/templates"
-                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/templates" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Templates
                 </Link>
-                <Link
-                  href="/settings/business"
-                  className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link href="/settings/business" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Settings
                 </Link>
               </>
             ) : null}
-            <div className="mt-2 flex flex-col gap-2 border-t border-slate-200 pt-4">
+            <div className="mt-2 flex flex-col gap-2 border-t border-border pt-4">
               {account ? (
                 <>
-                  <span className="px-2 py-2 text-sm font-medium text-slate-600">{account.name ?? account.email}</span>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="rounded-full border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700"
-                  >
+                  <span className="px-2 py-2 text-sm font-medium text-muted">{account.name ?? account.email}</span>
+                  <button type="button" onClick={handleLogout} className={secondaryCta}>
                     Log out
                   </button>
                 </>
               ) : (
                 <>
-                  <Link
-                    href="/login"
-                    className="rounded-md px-2 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  <Link href="/login" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                     Login
                   </Link>
-                  <Link
-                    href="/signup"
-                    className="rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  <Link href="/signup" className={primaryCta} onClick={() => setIsMenuOpen(false)}>
                     Sign Up
                   </Link>
                 </>
