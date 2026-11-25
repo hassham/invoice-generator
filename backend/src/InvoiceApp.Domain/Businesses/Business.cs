@@ -67,6 +67,10 @@ public sealed class Business
 
     public string? DefaultInvoiceNotes { get; set; }
 
+    /// <summary>IG-320: when true, invoice emails carry a 1x1 open-tracking image and a disclosure
+    /// line. Defaults on; existing businesses keep tracking unless they switch it off.</summary>
+    public bool OpenTrackingEnabled { get; set; } = true;
+
     public string? DefaultTermsAndConditions { get; set; }
 
     public Guid? DefaultTemplateId { get; set; }

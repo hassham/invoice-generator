@@ -214,6 +214,12 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("next_invoice_number");
 
+                    b.Property<bool>("OpenTrackingEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("open_tracking_enabled");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")

@@ -148,6 +148,11 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         business.InvoicePrefix = trimmedPrefix;
         business.NextInvoiceNumber = request.NextInvoiceNumber;
         business.InvoiceNumberPadding = request.InvoiceNumberPadding;
+        // IG-320: null means "leave as it is" (see BusinessProfileRequest.OpenTrackingEnabled).
+        if (request.OpenTrackingEnabled is { } openTrackingEnabled)
+        {
+            business.OpenTrackingEnabled = openTrackingEnabled;
+        }
         business.UpdatedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -324,5 +329,6 @@ public sealed class BusinessService(ApplicationDbContext dbContext, IBusinessLog
         business.LogoUrl,
         business.StripeAccountId,
         business.CreatedAt,
-        business.UpdatedAt);
+        business.UpdatedAt,
+        business.OpenTrackingEnabled);
 }

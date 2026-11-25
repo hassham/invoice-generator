@@ -49,6 +49,7 @@ function toFormValues(profile: BusinessProfile): BusinessProfileFormValues {
     invoicePrefix: profile.invoicePrefix,
     nextInvoiceNumber: String(profile.nextInvoiceNumber),
     invoiceNumberPadding: String(profile.invoiceNumberPadding),
+    openTrackingEnabled: profile.openTrackingEnabled ?? true,
   };
 }
 

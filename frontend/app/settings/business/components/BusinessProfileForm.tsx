@@ -42,6 +42,8 @@ export interface BusinessProfileFormValues {
   invoicePrefix: string;
   nextInvoiceNumber: string;
   invoiceNumberPadding: string;
+  /** IG-320: defaults to on when absent (see toRequest). */
+  openTrackingEnabled?: boolean;
 }
 
 function trimmedOrNull(value: string): string | null {
@@ -83,6 +85,7 @@ function toRequest(values: BusinessProfileFormValues): BusinessProfileRequest {
     invoicePrefix: values.invoicePrefix.trim(),
     nextInvoiceNumber: Number.isFinite(parsedNextInvoiceNumber) ? parsedNextInvoiceNumber : 1,
     invoiceNumberPadding: Number.isFinite(parsedInvoiceNumberPadding) ? parsedInvoiceNumberPadding : 4,
+    openTrackingEnabled: values.openTrackingEnabled ?? true,
   };
 }
 
@@ -278,6 +281,23 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             rows={3}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
           />
+        </div>
+
+        {/* IG-320: per-business switch for the open-tracking image in invoice emails. On by default. */}
+        <div className="mt-4 flex items-start gap-2">
+          <input
+            id="business-open-tracking"
+            type="checkbox"
+            checked={values.openTrackingEnabled ?? true}
+            onChange={(event) => setValues((current) => ({ ...current, openTrackingEnabled: event.target.checked }))}
+            className="mt-1 h-4 w-4 rounded border-slate-300"
+          />
+          <label htmlFor="business-open-tracking" className="flex flex-col gap-1 text-sm text-slate-700">
+            <span className="font-medium">Track when invoice emails are opened</span>
+            <span className="text-xs text-slate-500">
+              Adds a tracking image to each invoice email so you can see when it was opened. Recipients are told about it in the email.
+            </span>
+          </label>
         </div>
 
         <div className="mt-4 flex flex-col gap-1">

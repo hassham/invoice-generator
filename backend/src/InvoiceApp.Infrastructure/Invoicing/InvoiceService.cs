@@ -198,7 +198,7 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         var business = await dbContext.Businesses.SingleAsync(b => b.Id == businessId, cancellationToken);
         var pdfRequest = await BuildPdfRequestAsync(invoice, cancellationToken);
 
-        return new InvoiceEmailContext(pdfRequest, invoice.PublicToken, business.Email);
+        return new InvoiceEmailContext(pdfRequest, invoice.PublicToken, business.Email, business.OpenTrackingEnabled);
     }
 
     public async Task RecordEmailSentAsync(Guid userId, Guid businessId, Guid invoiceId, InvoiceEmailRequest request, InvoiceEmailStatus status, string? errorMessage, CancellationToken cancellationToken, string? openToken = null)

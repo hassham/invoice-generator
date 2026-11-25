@@ -45,4 +45,6 @@ public sealed record BusinessProfileDto(
     // whether the hosted invoice page's Pay Now button is shown at all.
     string? StripeAccountId,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    // IG-320: whether invoice emails from this business carry the open-tracking image.
+    bool OpenTrackingEnabled = true);

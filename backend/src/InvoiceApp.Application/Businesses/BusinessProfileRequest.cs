@@ -33,4 +33,6 @@ public sealed record BusinessProfileRequest(
     string? BankName = null,
     string? BankAccountName = null,
     string? BankAccountNumber = null,
-    string? BankRoutingCode = null);
+    string? BankRoutingCode = null,
+    // IG-320: null leaves the current setting unchanged, so older callers that omit it are safe.
+    bool? OpenTrackingEnabled = null);

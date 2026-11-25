@@ -63,6 +63,8 @@ export interface BusinessProfile {
   bankAccountName?: string | null;
   bankAccountNumber?: string | null;
   bankRoutingCode?: string | null;
+  /** IG-320: whether invoice emails from this business carry the open-tracking image. */
+  openTrackingEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -92,6 +94,8 @@ export interface BusinessProfileRequest {
   invoicePrefix: string;
   nextInvoiceNumber: number;
   invoiceNumberPadding: number;
+  /** IG-320: omit or null to leave the current setting unchanged. */
+  openTrackingEnabled?: boolean | null;
   bankName?: string | null;
   bankAccountName?: string | null;
   bankAccountNumber?: string | null;

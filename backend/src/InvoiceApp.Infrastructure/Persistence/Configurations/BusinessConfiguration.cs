@@ -39,6 +39,8 @@ public sealed class BusinessConfiguration : IEntityTypeConfiguration<Business>
         builder.Property(business => business.DefaultPaymentTerms).HasConversion<string>().HasMaxLength(20);
         builder.Property(business => business.LogoUrl).HasMaxLength(500);
         builder.Property(business => business.StripeAccountId).HasMaxLength(50);
+        // IG-320: existing rows get true, so businesses that predate this setting keep tracking.
+        builder.Property(business => business.OpenTrackingEnabled).HasDefaultValue(true);
         builder.Property(business => business.CreatedAt).IsRequired();
         builder.Property(business => business.UpdatedAt).IsRequired();
 

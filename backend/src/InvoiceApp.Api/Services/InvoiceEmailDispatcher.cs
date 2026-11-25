@@ -37,12 +37,21 @@ public sealed class InvoiceEmailDispatcher(
 
         // IG-246: each email gets its own open token, embedded as a tracking pixel. The token is stored on the
         // log row so a later pixel load can be attributed to this email.
-        var openToken = EmailOpenTracking.NewToken();
-        var apiBaseUrl = configuration["Api:PublicBaseUrl"] ?? "http://localhost:5094";
-        var trackedMessage = message with
+        // IG-320: tracking is a per-business setting. When it is off there is no token, no pixel and no
+        // disclosure line, so the log row records no open token and can never show an open.
+        string? openToken = context.OpenTrackingEnabled ? EmailOpenTracking.NewToken() : null;
+        var trackedMessage = message;
+        if (openToken is not null)
         {
-            HtmlBody = message.HtmlBody + EmailOpenTracking.PixelHtml(EmailOpenTracking.PixelUrl(apiBaseUrl, openToken)),
-        };
+            var apiBaseUrl = configuration["Api:PublicBaseUrl"] ?? "http://localhost:5094";
+            var disclosureHtml =
+                $"<p style=\"font-size:12px;color:#64748b\">This email includes a tracking image so the sender can see when it was opened. " +
+                $"<a href=\"{frontendBaseUrl}/privacy\">Privacy policy</a></p>";
+            trackedMessage = message with
+            {
+                HtmlBody = message.HtmlBody + disclosureHtml + EmailOpenTracking.PixelHtml(EmailOpenTracking.PixelUrl(apiBaseUrl, openToken)),
+            };
+        }
 
         try
         {
