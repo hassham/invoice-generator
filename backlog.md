@@ -12,7 +12,7 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 Jira was read on 2026-11-22. Writes made that day: 21 go-live Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low.
 
-- Jira project `IG` has **20 non-Done issues** (as of 2026-11-24): the 4 pre-existing items (`IG-211` Epic, `IG-241` Story, `IG-301` and `IG-302` Subtasks, all Low priority and `on-hold`) plus 16 go-live Stories (`IG-320` to `IG-336`, except `IG-331`). `IG-316`, `IG-317`, `IG-318`, `IG-319` and `IG-331` are Done. `IG-325` is still In Progress in Jira, with its code change committed locally. Everything else is Done in Jira.
+- Jira project `IG` has **19 non-Done issues** (as of 2026-11-25): the 4 pre-existing items (`IG-211` Epic, `IG-241` Story, `IG-301` and `IG-302` Subtasks, all Low priority and `on-hold`) plus 15 go-live Stories (`IG-320` to `IG-336`, except `IG-324` and `IG-331`). `IG-316`, `IG-317`, `IG-318`, `IG-319`, `IG-324` and `IG-331` are Done. `IG-325` is still In Progress in Jira, with its code change committed locally. Everything else is Done in Jira.
 - All Done work is committed and pushed. `origin/main` matches local `main` after the 2026-11-22 push. Recent commits this session: Jira keys for the go-live plan, the closure checklist update, the IG-319 regression test, and this handoff update. Earlier Done commits, including `d185391` (IG-246 handoff) and `f5c19e3` (IG-315), are in `main`.
 - Verification run 2026-10-14 (this file's author, on the current tree):
   - Frontend: `tsc --noEmit` clean; `vitest run` 820/820 across 106 files.
@@ -37,7 +37,7 @@ Priority was set to Low on 2026-11-22 for `IG-211`, `IG-241`, `IG-301` and `IG-3
 
 Exact next steps, in order:
 
-1. **Remaining go-live items, in order.** Closed as Done: `IG-316` (password reset entry point), `IG-317` (Google sign-in entry point and callback), `IG-318` (detail-page Download PDF, already implemented), `IG-319` (date clearing, cannot reproduce). In progress: `IG-325` (Custom frequency removed from the form, local commit `40c8d97`; the move to Done was denied and still needs approval). Still open, and each needs a decision first: `IG-320` (privacy disclosure), `IG-321` (production URL, SMTP provider, HTTPS), `IG-322` (hosting target), `IG-323` (analytics provider), `IG-324` (default tax rate). Then the design work: `IG-326` (brand identity), `IG-327` (design system), `IG-328` to `IG-330` (landing page, screens, PDF template).
+1. **Remaining go-live items, in order.** Closed as Done: `IG-316` (password reset entry point), `IG-317` (Google sign-in entry point and callback), `IG-318` (detail-page Download PDF, already implemented), `IG-319` (date clearing, cannot reproduce). In progress: `IG-325` (Custom frequency removed from the form, local commit `40c8d97`; the move to Done was denied and still needs approval). Still open, and each needs a decision first: `IG-320` (privacy disclosure), `IG-321` (production URL, SMTP provider, HTTPS), `IG-322` (hosting target), `IG-323` (analytics provider), Closed 2026-11-25: `IG-324` (default tax rate kept at 0%). Then the design work: `IG-326` (brand identity), `IG-327` (design system), `IG-328` to `IG-330` (landing page, screens, PDF template).
 
 Language work, parked (resume only after a decision and the `on-hold` label is removed):
 
