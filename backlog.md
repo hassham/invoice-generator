@@ -90,7 +90,7 @@ Moved to **Low** on 2026-11-22: `IG-211` (Epic), `IG-241` (Story), `IG-301` and 
 - `GET /api/v1/documents` merges per-type results in memory (Engineering Note 46). Needs a DB view or raw `UNION ALL` at tens of thousands of documents per account.
 - Purchase order PDF does not show delivery instructions (only the `CustomInstructions` slot, which renders under "Payment Instructions").
 - Credit note numbers from before `IG-310` (`CN-{guid}{date}{seq}`) coexist with the new `CN-{yyyyMMdd}-{seq:D3}` format. Old numbers are not migrated, by design.
-- A new account's default tax rate is 0%, not the FSD's 10% (Engineering Note 45).
+- A new account's default tax rate is 0%, not the FSD's 10% (Engineering Note 45). Decided 2026-11-25: keep 0%. `docs/FSD.md` (around line 684) still says 10%, so the FSD needs updating (`IG-324`).
 
 ## Jira Sync State
 

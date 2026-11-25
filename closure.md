@@ -28,7 +28,7 @@ Go-live work is tracked in Jira as `IG-316` to `IG-336` (see `backlog.md`, Go-Li
 - [ ] `GET /api/v1/documents` merges per-type results in memory. Needs a database view or a raw `UNION ALL` for accounts with tens of thousands of documents.
 - [ ] Purchase order PDF does not show delivery instructions. The only free-text slot renders under "Payment Instructions".
 - [ ] Credit note numbers issued before `IG-310` keep the old format alongside the new one. Old numbers are not migrated, by design. Decide whether to document this for accountants.
-- [ ] A new account's default tax rate is 0%, not the 10% in the FSD. Decide whether onboarding should set it. `IG-324`.
+- [x] A new account's default tax rate is 0%, not the 10% in the FSD. Decided 2026-11-25: keep 0%, and onboarding does not set a rate. `docs/FSD.md` (around line 684) still says 10% GST, so the FSD needs updating or a note added. `IG-324`.
 
 ## Engineering
 
