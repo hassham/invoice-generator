@@ -345,6 +345,12 @@ public sealed class InvoiceService(ApplicationDbContext dbContext, IAuditLogServ
         invoice.IsDeleted = true;
         invoice.DeletedAt = DateTimeOffset.UtcNow;
 
+        // IG-320: the email open records (who opened which email, and when) are personal data tied to
+        // the invoice. They go with it, so a deleted invoice keeps no tracking history. The audit entry
+        // below records that the invoice was deleted, without the open data.
+        var openRecords = await dbContext.InvoiceEmailLogs.Where(log => log.InvoiceId == invoice.Id).ToListAsync(cancellationToken);
+        dbContext.InvoiceEmailLogs.RemoveRange(openRecords);
+
         await auditLogService.RecordAsync(userId, businessId, "Invoice", invoice.Id, "Invoice deleted", new { invoice.InvoiceNumber, invoice.Status }, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
