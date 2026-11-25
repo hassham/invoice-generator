@@ -1,8 +1,48 @@
 @import "tailwindcss";
 
+/*
+ * IG-326: Bevorly brand tokens, from docs/BRANDINGGUIDELINES.md (section 5 and section 6).
+ * Tailwind 4 reads these from @theme, so they become utilities such as bg-canvas, text-ink and
+ * border-border. Change values here only, never in components.
+ */
+@theme {
+  --color-canvas: #f8f2ea;
+  --color-ink: #171717;
+  --color-accent: #d2fc2b;
+  --color-lavender: #dcc6f5;
+  --color-yellow: #fce69c;
+  --color-mint: #cdeedc;
+  --color-pink: #fbd2d4;
+  --color-peach: #ffd9bf;
+  --color-paper: #fdfdfb;
+  --color-border: #ded6cc;
+  --color-muted: #666666;
+
+  /* Semantic status pairs (section 5). Always show a label or icon alongside the colour. */
+  --color-status-paid-bg: #cdeedc;
+  --color-status-paid-fg: #166534;
+  --color-status-pending-bg: #fce69c;
+  --color-status-pending-fg: #854d0e;
+  --color-status-overdue-bg: #fbd2d4;
+  --color-status-overdue-fg: #991b1b;
+  --color-status-draft-bg: #e9e5e0;
+  --color-status-draft-fg: #525252;
+  --color-status-sent-bg: #dcc6f5;
+  --color-status-sent-fg: #563389;
+  --color-status-partial-bg: #e1ebff;
+  --color-status-partial-fg: #1e40af;
+
+  /* Typefaces (section 6). Loaded in app/layout.tsx through next/font. */
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+}
+
 :root {
   color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
 
 body {

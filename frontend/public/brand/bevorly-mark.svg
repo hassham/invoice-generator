@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bevorly">
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="#D2FC2B" stroke="#171717" stroke-width="3"/>
+  <path d="M21 16H33A8 8 0 0 1 33 32H21Z M21 32H35A8 8 0 0 1 35 48H21Z" fill="#FDFDFB" stroke="#171717" stroke-width="3.5" stroke-linejoin="round"/>
+</svg>
