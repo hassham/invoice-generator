@@ -87,8 +87,8 @@ export function InvoiceEditorLayout({
               onKeyDown={(event) => handleTabKeyDown(event, tab)}
               className={
                 selected
-                  ? "rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-                  : "rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                  ? "rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink"
+                  : "rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
               }
             >
               {labels[tab]}

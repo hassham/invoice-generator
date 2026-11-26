@@ -30,7 +30,7 @@ export function FormField({ field, value, error, onChange, onBlur }: FormFieldPr
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="text-sm font-semibold text-ink">
         {field.label}
         {field.required ? <span aria-hidden="true"> *</span> : null}
       </label>
@@ -47,12 +47,12 @@ export function FormField({ field, value, error, onChange, onBlur }: FormFieldPr
         aria-describedby={error ? errorId : undefined}
         className={
           error
-            ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-            : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
         }
       />
       {error ? (
-        <p id={errorId} role="alert" className="text-sm text-red-600">
+        <p id={errorId} role="alert" className="text-sm font-semibold text-[#991b1b]">
           {error}
         </p>
       ) : null}

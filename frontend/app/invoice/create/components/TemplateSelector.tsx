@@ -54,8 +54,8 @@ export function TemplateSelector({ templates, selectedTemplateId, loading, error
               onClick={() => handleCardClick(template)}
               className={
                 selected
-                  ? "rounded-lg border-2 border-blue-600 p-2 text-left"
-                  : "rounded-lg border border-slate-200 p-2 text-left hover:border-slate-300"
+                  ? "rounded-xl border-2 border-ink bg-paper p-2 text-left"
+                  : "rounded-xl border border-border bg-paper p-2 text-left hover:border-ink"
               }
             >
               <TemplateMockup templateCode={template.templateCode} />
@@ -81,10 +81,10 @@ export function TemplateSelector({ templates, selectedTemplateId, loading, error
 function TemplateMockup({ templateCode }: { templateCode: string }) {
   const headerClass =
     templateCode === "modern"
-      ? "bg-blue-600"
+      ? "bg-accent"
       : templateCode === "minimal"
-        ? "bg-white border-b border-slate-200"
-        : "bg-slate-900";
+        ? "bg-paper border-b border-border"
+        : "bg-ink";
 
   return (
     <div aria-hidden="true" className="overflow-hidden rounded-md border border-slate-200 bg-white">

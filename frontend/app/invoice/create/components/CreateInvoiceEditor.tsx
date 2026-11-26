@@ -990,21 +990,21 @@ export function CreateInvoiceEditor() {
       backHref={isAuthenticated ? "/dashboard" : "/"}
       backLabel={isAuthenticated ? "Back to Dashboard" : "Back to Home"}
       editor={
-        <div className="rounded-lg border border-slate-200 p-6">
-          <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-t-lg border-b border-slate-200 bg-white px-6 py-4">
+        <div className="rounded-2xl border border-border bg-paper p-6 text-ink">
+          <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-border bg-paper px-6 py-4">
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handleReviewInvoice}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
               >
                 Review invoice
               </button>
               <button
                 type="button"
                 onClick={handlePrint}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
               >
                 Print
               </button>
@@ -1012,7 +1012,7 @@ export function CreateInvoiceEditor() {
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={pdfDownloading}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas disabled:opacity-50"
               >
                 {pdfDownloading ? "Generating…" : "Download PDF"}
               </button>
@@ -1021,7 +1021,7 @@ export function CreateInvoiceEditor() {
                   type="button"
                   onClick={handleSave}
                   disabled={saveStatus === "saving"}
-                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a] disabled:opacity-50"
                 >
                   {saveStatus === "saving" ? "Saving…" : "Save"}
                 </button>
@@ -1030,14 +1030,14 @@ export function CreateInvoiceEditor() {
           </div>
           {isAuthenticated && saveStatus !== "idle" ? (
             saveStatus === "error" ? (
-              <p role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
                 <span>{saveError}</span>
                 <button type="button" onClick={handleSave} className="font-semibold underline">
                   Retry
                 </button>
               </p>
             ) : (
-              <p className="mb-6 flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <p className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-mint px-4 py-3 text-sm font-semibold text-[#166534]">
                 <span role="status">{saveStatus === "saving" ? "Saving…" : "Saved."}</span>
                 {/* IG-47: the only way to reach the detail/edit page today - no invoice list
                     exists yet (Epic IG-10), so this is the sole reachability path once saved. */}
@@ -1051,7 +1051,7 @@ export function CreateInvoiceEditor() {
           ) : null}
           {pendingGateAction ? <AccountGateModal action={pendingGateAction} onClose={handleCloseAccountGate} /> : null}
           {draftRestored ? (
-            <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink bg-lavender px-4 py-3 text-sm font-semibold text-ink">
               <span>We restored your unsaved invoice draft from this browser.</span>
               <button type="button" onClick={handleDiscardDraft} className="font-semibold underline">
                 Discard draft and start over
@@ -1083,7 +1083,7 @@ export function CreateInvoiceEditor() {
           />
           <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
           <LogoUpload logo={draft.logo} onLogoChange={handleLogoChange} />
-          <div className="mt-6 border-t border-slate-200 pt-6">
+          <div className="mt-6 border-t border-border pt-6">
             <InvoiceHeaderSection
               values={draft.header}
               currency={draft.currency}
@@ -1094,7 +1094,7 @@ export function CreateInvoiceEditor() {
               onCurrencyChange={handleCurrencyChange}
             />
           </div>
-          <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-6">
+          <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6">
             <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={4} onChange={handleSellerChange} onBlur={handleSellerBlur} />
             {isAuthenticated ? <CustomerPicker customers={customers} onSelect={handleSelectCustomer} /> : null}
             <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={4} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
@@ -1126,8 +1126,8 @@ export function CreateInvoiceEditor() {
             onDiscountBlur={handleInvoiceDiscountBlur}
             totals={totals}
           />
-          <fieldset className="mt-6 border-t border-slate-200 pt-6">
-            <legend className="text-base font-semibold text-slate-950">Terms and Conditions</legend>
+          <fieldset className="mt-6 border-t border-border pt-6">
+            <legend className="font-display text-lg font-bold text-ink">Terms and Conditions</legend>
             <div className="mt-4">
               <TextAreaField
                 field={TERMS_FIELD}
