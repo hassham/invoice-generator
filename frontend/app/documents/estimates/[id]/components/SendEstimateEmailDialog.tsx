@@ -101,12 +101,12 @@ export function SendEstimateEmailDialog({ estimateId, estimateNumber, customerId
         aria-modal="true"
         aria-labelledby="send-estimate-email-heading"
         tabIndex={-1}
-        className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-lg bg-white p-6 shadow-xl outline-none"
+        className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-lg bg-paper p-6 shadow-xl outline-none"
       >
-        <h2 id="send-estimate-email-heading" className="text-lg font-bold text-slate-950">
+        <h2 id="send-estimate-email-heading" className="text-lg font-bold text-ink">
           Send estimate by email
         </h2>
-        <p className="mt-1 text-sm text-slate-600">The PDF and a link to view this estimate online are attached automatically.</p>
+        <p className="mt-1 text-sm text-muted">The PDF and a link to view this estimate online are attached automatically.</p>
 
         <div className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
@@ -119,7 +119,7 @@ export function SendEstimateEmailDialog({ estimateId, estimateNumber, customerId
               value={to}
               onChange={(event) => setTo(event.target.value)}
               placeholder="customer@example.com"
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
 
@@ -133,7 +133,7 @@ export function SendEstimateEmailDialog({ estimateId, estimateNumber, customerId
               value={cc}
               onChange={(event) => setCc(event.target.value)}
               placeholder="accounts@example.com"
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
 
@@ -146,7 +146,7 @@ export function SendEstimateEmailDialog({ estimateId, estimateNumber, customerId
               type="text"
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
 
@@ -159,7 +159,7 @@ export function SendEstimateEmailDialog({ estimateId, estimateNumber, customerId
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               rows={5}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
         </div>
@@ -175,7 +175,7 @@ export function SendEstimateEmailDialog({ estimateId, estimateNumber, customerId
             type="button"
             onClick={onClose}
             disabled={sending}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
           >
             Cancel
           </button>

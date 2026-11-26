@@ -35,8 +35,8 @@ export function EstimateEmailHistorySection({ estimateId }: EstimateEmailHistory
   }, [estimateId]);
 
   return (
-    <fieldset className="mt-6 border-t border-slate-200 pt-6">
-      <legend className="text-base font-semibold text-slate-950">Email History</legend>
+    <fieldset className="mt-6 border-t border-border pt-6">
+      <legend className="text-base font-semibold text-ink">Email History</legend>
 
       {loadError ? (
         <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -48,7 +48,7 @@ export function EstimateEmailHistorySection({ estimateId }: EstimateEmailHistory
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-600">
+              <tr className="border-b border-border text-muted">
                 <th className="py-2 pr-4 font-medium">Sent</th>
                 <th className="py-2 pr-4 font-medium">Recipient</th>
                 <th className="py-2 pr-4 font-medium">Subject</th>
@@ -58,7 +58,7 @@ export function EstimateEmailHistorySection({ estimateId }: EstimateEmailHistory
             <tbody>
               {history.map((entry) => (
                 <tr key={entry.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4 text-slate-950">{formatDateTime(entry.sentAt)}</td>
+                  <td className="py-2 pr-4 text-ink">{formatDateTime(entry.sentAt)}</td>
                   <td className="py-2 pr-4 text-slate-700">{[...entry.to, ...entry.cc].join(", ")}</td>
                   <td className="py-2 pr-4 text-slate-700">{entry.subject}</td>
                   <td className="py-2 pr-4">
@@ -78,7 +78,7 @@ export function EstimateEmailHistorySection({ estimateId }: EstimateEmailHistory
           </table>
         </div>
       ) : loadError ? null : (
-        <p className="mt-4 text-sm text-slate-600">This estimate hasn&apos;t been emailed yet.</p>
+        <p className="mt-4 text-sm text-muted">This estimate hasn&apos;t been emailed yet.</p>
       )}
     </fieldset>
   );

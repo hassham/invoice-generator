@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-const title = "Privacy Policy | Invoice App";
+const title = "Privacy Policy";
 
 export const metadata: Metadata = {
   title,

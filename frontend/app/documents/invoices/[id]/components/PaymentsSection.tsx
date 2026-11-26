@@ -113,8 +113,8 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
   };
 
   return (
-    <fieldset className="mt-6 border-t border-slate-200 pt-6">
-      <legend className="text-base font-semibold text-slate-950">Payments</legend>
+    <fieldset className="mt-6 border-t border-border pt-6">
+      <legend className="text-base font-semibold text-ink">Payments</legend>
 
       {loadError ? (
         <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -126,7 +126,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-600">
+              <tr className="border-b border-border text-muted">
                 <th className="py-2 pr-4 font-medium">Date</th>
                 <th className="py-2 pr-4 font-medium">Amount</th>
                 <th className="py-2 pr-4 font-medium">Method</th>
@@ -137,7 +137,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
             <tbody>
               {payments.map((payment) => (
                 <tr key={payment.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4 text-slate-950">{payment.paymentDate}</td>
+                  <td className="py-2 pr-4 text-ink">{payment.paymentDate}</td>
                   <td className="py-2 pr-4 text-slate-700">{formatCurrency(payment.amount, currency)}</td>
                   <td className="py-2 pr-4 text-slate-700">{payment.paymentMethod}</td>
                   <td className="py-2 pr-4 text-slate-700">{payment.reference ?? "—"}</td>
@@ -157,7 +157,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
           </table>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-slate-600">No payments recorded yet.</p>
+        <p className="mt-4 text-sm text-muted">No payments recorded yet.</p>
       )}
 
       {removeError ? (
@@ -167,7 +167,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
       ) : null}
 
       {canRecordPayment ? (
-        <div className="mt-6 grid grid-cols-1 gap-4 rounded-md border border-slate-200 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 rounded-md border border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="flex flex-col gap-1">
             <label htmlFor="payment-date" className="text-sm font-medium text-slate-700">
               Date
@@ -177,7 +177,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               type="date"
               value={paymentDate}
               onChange={(event) => setPaymentDate(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -191,7 +191,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               min="0"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -202,7 +202,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               id="payment-method"
               value={paymentMethod}
               onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             >
               {PAYMENT_METHODS.map((method) => (
                 <option key={method} value={method}>
@@ -220,7 +220,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               type="text"
               value={reference}
               onChange={(event) => setReference(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
           <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3">
@@ -232,7 +232,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               rows={2}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             />
           </div>
 
@@ -254,7 +254,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-muted">
           {status === "Cancelled" ? "Payments cannot be added to a cancelled invoice." : "This invoice is fully paid."}
         </p>
       )}

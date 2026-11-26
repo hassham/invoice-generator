@@ -180,7 +180,7 @@ export function InvoiceListView() {
         ) : null}
       </div>
 
-      <form onSubmit={handleSearchSubmit} className="mt-4 flex flex-wrap items-end gap-3">
+      <form onSubmit={handleSearchSubmit} className="mt-5 flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-paper p-4 sm:p-5">
         <div className="flex flex-col gap-1">
           <label htmlFor="invoice-search" className="text-sm font-semibold text-ink">
             Search
@@ -337,7 +337,7 @@ export function InvoiceListView() {
             className="mt-6"
             caption="Invoices"
             columns={[
-              { key: "number", header: "Invoice Number", render: (invoice) => <span className="font-semibold">{invoice.invoiceNumber}</span> },
+              { key: "number", header: "Invoice Number", render: (invoice) => <span className="font-mono font-semibold">{invoice.invoiceNumber}</span> },
               { key: "customer", header: "Customer", render: (invoice) => invoice.customerName || "—" },
               { key: "issue", header: "Date", render: (invoice) => invoice.issueDate },
               { key: "due", header: "Due Date", render: (invoice) => invoice.dueDate },

@@ -37,12 +37,12 @@ function formatMoney(amount: number, currency: string): string {
 
 function TotalsByCurrency({ totals }: { totals: CurrencyAmount[] }) {
   if (totals.length === 0) {
-    return <p className="text-sm text-slate-600">{t("combined.none")}</p>;
+    return <p className="text-sm text-muted">{t("combined.none")}</p>;
   }
   return (
     <ul className="flex flex-wrap gap-4 text-sm">
       {totals.map((total) => (
-        <li key={total.currency} className="font-semibold text-slate-900">
+        <li key={total.currency} className="font-semibold text-ink">
           {formatMoney(total.amount, total.currency)}
         </li>
       ))}
@@ -89,25 +89,25 @@ export function CombinedReportsView() {
   }
 
   if (!data) {
-    return <p className="text-sm text-slate-600">{t("combined.loading")}</p>;
+    return <p className="text-sm text-muted">{t("combined.loading")}</p>;
   }
 
   if (data.revenue.businesses.length === 0) {
-    return <p className="text-sm text-slate-600">{t("combined.noBusinesses")}</p>;
+    return <p className="text-sm text-muted">{t("combined.noBusinesses")}</p>;
   }
 
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-bold text-slate-950">{t("combined.title")}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t("combined.intro")}</p>
+        <h1 className="text-2xl font-bold text-ink">{t("combined.title")}</h1>
+        <p className="mt-2 text-sm text-muted">{t("combined.intro")}</p>
         <Link href="/reports" className="mt-2 inline-block text-sm font-semibold text-slate-700 underline">
           {t("combined.backToRevenue")}
         </Link>
       </header>
 
       <section aria-labelledby="combined-revenue">
-        <h2 id="combined-revenue" className="text-lg font-semibold text-slate-950">
+        <h2 id="combined-revenue" className="text-lg font-semibold text-ink">
           {t("combined.revenue.heading")} · {t("combined.period")}
         </h2>
         <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
@@ -115,7 +115,7 @@ export function CombinedReportsView() {
         <ul className="mt-4 divide-y divide-slate-200">
           {data.revenue.businesses.map((business) => (
             <li key={business.businessId} className="flex items-center justify-between py-2 text-sm">
-              <span className="text-slate-900">{business.businessName}</span>
+              <span className="text-ink">{business.businessName}</span>
               <span>{formatMoney(business.total, business.currency)}</span>
             </li>
           ))}
@@ -127,15 +127,15 @@ export function CombinedReportsView() {
         { id: "combined-overdue", heading: t("combined.overdue.heading"), list: data.overdue },
       ].map(({ id, heading, list }) => (
         <section key={id} aria-labelledby={id}>
-          <h2 id={id} className="text-lg font-semibold text-slate-950">{heading}</h2>
+          <h2 id={id} className="text-lg font-semibold text-ink">{heading}</h2>
           <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
           <TotalsByCurrency totals={list.amountDueByCurrency} />
           <div className="mt-4 space-y-4">
             {list.businesses.map((business) => (
               <div key={business.businessId}>
-                <h3 className="text-sm font-semibold text-slate-900">{business.businessName}</h3>
+                <h3 className="text-sm font-semibold text-ink">{business.businessName}</h3>
                 {business.invoices.length === 0 ? (
-                  <p className="text-sm text-slate-600">{t("combined.none")}</p>
+                  <p className="text-sm text-muted">{t("combined.none")}</p>
                 ) : (
                   <ul className="divide-y divide-slate-200">
                     {business.invoices.map((invoice) => (
@@ -153,7 +153,7 @@ export function CombinedReportsView() {
       ))}
 
       <section aria-labelledby="combined-customers">
-        <h2 id="combined-customers" className="text-lg font-semibold text-slate-950">
+        <h2 id="combined-customers" className="text-lg font-semibold text-ink">
           {t("combined.customers.heading")} · {t("combined.period")}
         </h2>
         <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
@@ -161,9 +161,9 @@ export function CombinedReportsView() {
         <div className="mt-4 space-y-4">
           {data.customers.businesses.map((business) => (
             <div key={business.businessId}>
-              <h3 className="text-sm font-semibold text-slate-900">{business.businessName}</h3>
+              <h3 className="text-sm font-semibold text-ink">{business.businessName}</h3>
               {business.customers.length === 0 ? (
-                <p className="text-sm text-slate-600">{t("combined.none")}</p>
+                <p className="text-sm text-muted">{t("combined.none")}</p>
               ) : (
                 <ul className="divide-y divide-slate-200">
                   {business.customers.map((customer) => (
@@ -180,7 +180,7 @@ export function CombinedReportsView() {
       </section>
 
       <section aria-labelledby="combined-tax">
-        <h2 id="combined-tax" className="text-lg font-semibold text-slate-950">
+        <h2 id="combined-tax" className="text-lg font-semibold text-ink">
           {t("combined.tax.heading")} · {t("combined.period")}
         </h2>
         <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
@@ -188,7 +188,7 @@ export function CombinedReportsView() {
         <ul className="mt-4 divide-y divide-slate-200">
           {data.tax.businesses.map((business) => (
             <li key={business.businessId} className="flex items-center justify-between py-2 text-sm">
-              <span className="text-slate-900">{business.businessName}</span>
+              <span className="text-ink">{business.businessName}</span>
               <span>{formatMoney(business.summary.totalTaxCollected, business.summary.currency)}</span>
             </li>
           ))}

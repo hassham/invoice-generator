@@ -5,7 +5,7 @@ import Link from "next/link";
 import { t } from "../lib/messages";
 import { RevenueReportView } from "./components/RevenueReportView";
 
-const title = "Revenue Reports | Invoice App";
+const title = "Revenue Reports";
 const description = "View your revenue aggregated by month, quarter, or year.";
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default function ReportsPage() {
         </Link>
         <RevenueReportView />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

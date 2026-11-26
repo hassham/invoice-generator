@@ -221,7 +221,7 @@ export function CreateCreditNoteForm({
               type="button"
               onClick={resetConfirmation}
               disabled={loading}
-              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50"
+              className="px-3 py-2 bg-paper border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50"
             >
               Cancel
             </button>

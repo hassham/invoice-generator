@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { HostedInvoiceView } from "./components/HostedInvoiceView";
 
 export const metadata: Metadata = {
-  title: "Invoice | Invoice App",
+  title: "Invoice",
   description: "View your invoice and download a PDF copy.",
   // IG-215: a hosted invoice URL is a bearer capability - a search engine indexing it would make
   // an "unguessable" token discoverable via search results instead.

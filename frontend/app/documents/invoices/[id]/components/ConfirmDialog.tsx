@@ -67,12 +67,12 @@ export function ConfirmDialog({ title, body, confirmLabel, dismissLabel = "Cance
         aria-modal="true"
         aria-labelledby="confirm-dialog-heading"
         tabIndex={-1}
-        className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl outline-none"
+        className="relative w-full max-w-sm rounded-lg bg-paper p-6 shadow-xl outline-none"
       >
-        <h2 id="confirm-dialog-heading" className="text-lg font-bold text-slate-950">
+        <h2 id="confirm-dialog-heading" className="text-lg font-bold text-ink">
           {title}
         </h2>
-        <p className="mt-2 text-sm text-slate-600">{body}</p>
+        <p className="mt-2 text-sm text-muted">{body}</p>
 
         {error ? (
           <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -85,7 +85,7 @@ export function ConfirmDialog({ title, body, confirmLabel, dismissLabel = "Cance
             type="button"
             onClick={onDismiss}
             disabled={pending}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
           >
             {dismissLabel}
           </button>

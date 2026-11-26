@@ -43,7 +43,7 @@ export function EstimateListView() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-950">Estimates</h1>
+        <h1 className="text-2xl font-bold text-ink">Estimates</h1>
         <Link
           href="/estimate/create"
           className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
@@ -52,7 +52,7 @@ export function EstimateListView() {
         </Link>
       </div>
 
-      {state === "loading" ? <p className="mt-6 text-sm text-slate-600">Loading estimates…</p> : null}
+      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading estimates…</p> : null}
 
       {state === "error" ? (
         <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -60,12 +60,12 @@ export function EstimateListView() {
         </p>
       ) : null}
 
-      {state === "loaded" && items.length === 0 ? <p className="mt-6 text-sm text-slate-600">No estimates yet.</p> : null}
+      {state === "loaded" && items.length === 0 ? <p className="mt-6 text-sm text-muted">No estimates yet.</p> : null}
 
       {state === "loaded" && items.length > 0 ? (
         <table className="mt-6 w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
+            <tr className="border-b border-border text-slate-500">
               <th className="py-2 pr-4 font-medium">Estimate</th>
               <th className="py-2 pr-4 font-medium">Customer</th>
               <th className="py-2 pr-4 font-medium">Status</th>
@@ -77,7 +77,7 @@ export function EstimateListView() {
             {items.map((item) => (
               <tr key={item.id} className="border-b border-slate-100">
                 <td className="py-2 pr-4">
-                  <Link href={`/documents/estimates/${item.id}`} className="font-medium text-slate-950 hover:underline">
+                  <Link href={`/documents/estimates/${item.id}`} className="font-medium text-ink hover:underline">
                     {item.estimateNumber}
                   </Link>
                 </td>

@@ -108,7 +108,7 @@ export function OnboardingWizard() {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-slate-600">Loading…</p>;
+    return <p className="text-sm text-muted">Loading…</p>;
   }
 
   if (state === "error" || !profile || !values) {
@@ -128,12 +128,12 @@ export function OnboardingWizard() {
   return (
     <div className="mx-auto max-w-md px-6 py-16">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-950">Set up your business</h1>
-        <button type="button" onClick={finish} className="text-sm font-medium text-slate-600 hover:underline">
+        <h1 className="text-2xl font-bold text-ink">Set up your business</h1>
+        <button type="button" onClick={finish} className="text-sm font-medium text-muted hover:underline">
           Skip onboarding
         </button>
       </div>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-muted">
         Step {stepIndex + 1} of {ONBOARDING_STEPS.length}: {STEP_LABELS[step]}
       </p>
 
@@ -166,7 +166,7 @@ export function OnboardingWizard() {
               id="onboarding-currency"
               value={values.defaultCurrency}
               onChange={(event) => setField("defaultCurrency")(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             >
               {CURRENCY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -206,7 +206,7 @@ export function OnboardingWizard() {
             type="button"
             onClick={() => advance({ skip: true })}
             disabled={saving}
-            className="text-sm font-medium text-slate-600 hover:underline disabled:opacity-50"
+            className="text-sm font-medium text-muted hover:underline disabled:opacity-50"
           >
             Skip this step
           </button>
@@ -236,7 +236,7 @@ function TextField({ id, label, value, maxLength, onChange }: TextFieldProps) {
         value={value}
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
       />
     </div>
   );

@@ -96,7 +96,7 @@ export function ItemForm({ initialValues = emptyItemFormValues, submitting, subm
           value={values.description}
           onChange={setField("description")}
           rows={4}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
         />
       </div>
 
@@ -130,7 +130,7 @@ function TextField({ id, label, value, type = "text", onChange }: TextFieldProps
         type={type}
         value={value}
         onChange={onChange}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
       />
     </div>
   );

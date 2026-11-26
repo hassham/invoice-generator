@@ -3,7 +3,7 @@ import { SiteFooter } from "../../components/landing/SiteFooter";
 import { SiteHeader } from "../../components/landing/SiteHeader";
 import { CombinedReportsView } from "../components/CombinedReportsView";
 
-const title = "All businesses | Invoice App";
+const title = "All businesses";
 const description = "Revenue, outstanding, overdue and tax figures across all your businesses.";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function CombinedReportsPage() {
       <main className="mx-auto max-w-5xl px-6 py-16">
         <CombinedReportsView />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

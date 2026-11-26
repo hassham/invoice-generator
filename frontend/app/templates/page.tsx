@@ -3,7 +3,7 @@ import { SiteFooter } from "../components/landing/SiteFooter";
 import { SiteHeader } from "../components/landing/SiteHeader";
 import { TemplatesGallery } from "./components/TemplatesGallery";
 
-const title = "Templates | Invoice App";
+const title = "Templates";
 const description = "Browse invoice templates, preview them, and start a new invoice from one.";
 
 export const metadata: Metadata = {
@@ -19,11 +19,11 @@ export default function TemplatesPage() {
     <>
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-6 py-16">
-        <h1 className="text-2xl font-bold text-slate-950">Templates</h1>
-        <p className="mt-2 text-sm text-slate-600">Preview a template, then use it to start a new invoice.</p>
+        <h1 className="text-2xl font-bold text-ink">Templates</h1>
+        <p className="mt-2 text-sm text-muted">Preview a template, then use it to start a new invoice.</p>
         <TemplatesGallery />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

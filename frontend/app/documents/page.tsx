@@ -4,7 +4,7 @@ import { SiteFooter } from "../components/landing/SiteFooter";
 import { SiteHeader } from "../components/landing/SiteHeader";
 import { DocumentListView } from "./components/DocumentListView";
 
-const title = "Documents | Invoice App";
+const title = "Documents";
 const description = "Browse every document you have issued or received, filtered by type.";
 
 export const metadata: Metadata = {
@@ -23,11 +23,11 @@ export default function DocumentsPage() {
         {/* DocumentListView reads/writes the URL query string via useSearchParams, which the App
             Router requires a Suspense boundary around on a statically-rendered route - same
             reasoning as the invoice list page. */}
-        <Suspense fallback={<p className="text-sm text-slate-600">Loading documents…</p>}>
+        <Suspense fallback={<p className="text-sm text-muted">Loading documents…</p>}>
           <DocumentListView />
         </Suspense>
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

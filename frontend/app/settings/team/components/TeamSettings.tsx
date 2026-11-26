@@ -117,14 +117,14 @@ export function TeamSettings() {
   }
 
   if (!team) {
-    return <p className="text-sm text-slate-600">{t("team.loading")}</p>;
+    return <p className="text-sm text-muted">{t("team.loading")}</p>;
   }
 
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-bold text-slate-950">{t("team.title")}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t("team.intro")}</p>
+        <h1 className="text-2xl font-bold text-ink">{t("team.title")}</h1>
+        <p className="mt-2 text-sm text-muted">{t("team.intro")}</p>
       </header>
 
       {notice ? <p role="status" className="text-sm text-emerald-700">{notice}</p> : null}
@@ -162,16 +162,16 @@ export function TeamSettings() {
       </form>
 
       <section aria-labelledby="pending-invitations">
-        <h2 id="pending-invitations" className="text-lg font-semibold text-slate-950">{t("team.pending.heading")}</h2>
+        <h2 id="pending-invitations" className="text-lg font-semibold text-ink">{t("team.pending.heading")}</h2>
         {team.pendingInvitations.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">{t("team.pending.empty")}</p>
+          <p className="mt-2 text-sm text-muted">{t("team.pending.empty")}</p>
         ) : (
           <ul className="mt-3 divide-y divide-slate-200">
             {team.pendingInvitations.map((invitation) => (
               <li key={invitation.id} className="flex items-center justify-between gap-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">{invitation.email}</p>
-                  <p className="text-xs text-slate-600">
+                  <p className="text-sm font-medium text-ink">{invitation.email}</p>
+                  <p className="text-xs text-muted">
                     {t("team.pending.detail", {
                       role: BUSINESS_ROLE_LABELS[invitation.role],
                       date: new Date(invitation.expiresAt).toLocaleDateString(),
@@ -182,7 +182,7 @@ export function TeamSettings() {
                   type="button"
                   onClick={() => void handleCancelInvitation(invitation.id)}
                   disabled={busyId === invitation.id}
-                  className="rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
                 >
                   {t("team.pending.cancel")}
                 </button>
@@ -193,16 +193,16 @@ export function TeamSettings() {
       </section>
 
       <section aria-labelledby="team-members">
-        <h2 id="team-members" className="text-lg font-semibold text-slate-950">{t("team.members.heading")}</h2>
+        <h2 id="team-members" className="text-lg font-semibold text-ink">{t("team.members.heading")}</h2>
         {team.members.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">{t("team.members.empty")}</p>
+          <p className="mt-2 text-sm text-muted">{t("team.members.empty")}</p>
         ) : (
           <ul className="mt-3 divide-y divide-slate-200">
             {team.members.map((member) => (
               <li key={member.id} className="flex flex-wrap items-center justify-between gap-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">{member.email}</p>
-                  <p className="text-xs text-slate-600">{t("team.members.joined", { date: new Date(member.joinedAt).toLocaleDateString() })}</p>
+                  <p className="text-sm font-medium text-ink">{member.email}</p>
+                  <p className="text-xs text-muted">{t("team.members.joined", { date: new Date(member.joinedAt).toLocaleDateString() })}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-slate-700">

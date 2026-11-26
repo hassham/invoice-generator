@@ -4,7 +4,7 @@ import { SiteFooter } from "../components/landing/SiteFooter";
 import { SiteHeader } from "../components/landing/SiteHeader";
 import { ResetPasswordForm } from "./components/ResetPasswordForm";
 
-const title = "Reset Password | Invoice App";
+const title = "Reset Password";
 const description = "Choose a new password for your Invoice App account.";
 
 export const metadata: Metadata = {

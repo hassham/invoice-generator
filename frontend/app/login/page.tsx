@@ -3,7 +3,7 @@ import { SiteFooter } from "../components/landing/SiteFooter";
 import { SiteHeader } from "../components/landing/SiteHeader";
 import { LoginForm } from "./components/LoginForm";
 
-const title = "Log In | Invoice App";
+const title = "Log In";
 const description = "Log in to your Invoice App account.";
 
 export const metadata: Metadata = {

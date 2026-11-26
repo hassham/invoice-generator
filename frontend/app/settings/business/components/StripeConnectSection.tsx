@@ -32,9 +32,9 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
   };
 
   return (
-    <fieldset className="rounded-lg border border-slate-200 p-6">
-      <legend className="px-1 text-base font-semibold text-slate-950">Payments</legend>
-      <p className="mt-1 text-sm text-slate-600">
+    <fieldset className="rounded-lg border border-border p-6">
+      <legend className="px-1 text-base font-semibold text-ink">Payments</legend>
+      <p className="mt-1 text-sm text-muted">
         Connect your own Stripe account so customers can pay a hosted invoice online, straight into your own bank
         account - this app never handles or stores card details directly.
       </p>
@@ -49,12 +49,12 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
         {stripeAccountId ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Connected</span>
-            <span className="text-sm text-slate-600">{stripeAccountId}</span>
+            <span className="text-sm text-muted">{stripeAccountId}</span>
             <button
               type="button"
               onClick={() => void handleDisconnect()}
               disabled={disconnecting}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
             >
               {disconnecting ? "Disconnecting…" : "Disconnect"}
             </button>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-const title = "Terms of Service | Invoice App";
+const title = "Terms of Service";
 
 export const metadata: Metadata = {
   title,

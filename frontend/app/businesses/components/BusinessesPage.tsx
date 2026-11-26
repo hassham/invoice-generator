@@ -62,7 +62,7 @@ export function BusinessesPage() {
   };
 
   if (loadState === "loading") {
-    return <p className="text-sm text-slate-600">Loading your businesses…</p>;
+    return <p className="text-sm text-muted">Loading your businesses…</p>;
   }
 
   if (loadState === "error") {
@@ -77,7 +77,7 @@ export function BusinessesPage() {
     <div className="space-y-8">
       <section aria-labelledby="business-list-heading" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 id="business-list-heading" className="text-2xl font-semibold text-slate-900">
+          <h1 id="business-list-heading" className="text-2xl font-semibold text-ink">
             Your businesses
           </h1>
           {/* IG-239: team invitations are managed per selected business. */}
@@ -86,13 +86,13 @@ export function BusinessesPage() {
           </Link>
         </div>
 
-        <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <ul className="divide-y divide-slate-200 rounded-lg border border-border bg-paper">
           {businesses.map((business) => {
             const isSelected = business.id === selectedBusinessId;
             return (
               <li key={business.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div>
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium text-ink">
                     {business.businessName}
                     {isSelected ? (
                       <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
@@ -100,7 +100,7 @@ export function BusinessesPage() {
                       </span>
                     ) : null}
                   </p>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-muted">
                     {business.country} · {business.defaultCurrency} · Next invoice {business.invoicePrefix}
                     {String(business.nextInvoiceNumber).padStart(business.invoiceNumberPadding, "0")}
                   </p>
@@ -110,7 +110,7 @@ export function BusinessesPage() {
                     <button
                       type="button"
                       onClick={() => selectBusiness(business.id)}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-canvas"
                     >
                       Use {business.businessName}
                     </button>
@@ -130,8 +130,8 @@ export function BusinessesPage() {
       </section>
 
       {showCreate ? (
-        <form onSubmit={handleCreate} aria-labelledby="create-business-heading" className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-          <h2 id="create-business-heading" className="text-lg font-semibold text-slate-900">
+        <form onSubmit={handleCreate} aria-labelledby="create-business-heading" className="space-y-4 rounded-lg border border-border bg-paper p-6">
+          <h2 id="create-business-heading" className="text-lg font-semibold text-ink">
             New business
           </h2>
 

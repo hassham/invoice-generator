@@ -32,12 +32,12 @@ function formatCurrency(amount: number, currency: string): string {
   return `${currency} ${amount.toFixed(2)}`;
 }
 
-const textAreaClass = "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950";
+const textAreaClass = "rounded-md border border-slate-300 px-3 py-2 text-sm text-ink";
 
 function fieldClass(hasError: boolean): string {
   return hasError
-    ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-    : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950";
+    ? "rounded-md border border-red-500 px-3 py-2 text-sm text-ink"
+    : "rounded-md border border-slate-300 px-3 py-2 text-sm text-ink";
 }
 
 /**
@@ -110,7 +110,7 @@ export function CreatePurchaseOrderForm() {
   }
 
   if (!draft || !totals) {
-    return <p className="text-sm text-slate-600">Loading…</p>;
+    return <p className="text-sm text-muted">Loading…</p>;
   }
 
   const update = (changes: Partial<PurchaseOrderDraft>) => {
@@ -214,9 +214,9 @@ export function CreatePurchaseOrderForm() {
         <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
           Purchase Order
         </span>
-        <h1 className="text-2xl font-bold text-slate-950">New Purchase Order</h1>
+        <h1 className="text-2xl font-bold text-ink">New Purchase Order</h1>
       </div>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-muted">
         An order you are placing with a supplier. It gets its own numbering sequence, separate from
         the invoices you send to customers, and the number is assigned when you create it.
       </p>
@@ -247,10 +247,10 @@ export function CreatePurchaseOrderForm() {
           event.preventDefault();
           void handleSubmit();
         }}
-        className="mt-6 rounded-lg border border-slate-200 p-6"
+        className="mt-6 rounded-lg border border-border p-6"
       >
         <fieldset>
-          <legend className="text-base font-semibold text-slate-950">Order details</legend>
+          <legend className="text-base font-semibold text-ink">Order details</legend>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
@@ -373,19 +373,19 @@ export function CreatePurchaseOrderForm() {
           onRemove={handleRemoveLineItem}
         />
 
-        <div className="mt-6 border-t border-slate-200 pt-6">
+        <div className="mt-6 border-t border-border pt-6">
           <dl className="ml-auto max-w-xs space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-slate-600">Subtotal</dt>
-              <dd className="text-slate-900">{formatCurrency(totals.subtotal, draft.currency)}</dd>
+              <dt className="text-muted">Subtotal</dt>
+              <dd className="text-ink">{formatCurrency(totals.subtotal, draft.currency)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-slate-600">Tax</dt>
-              <dd className="text-slate-900">{formatCurrency(totals.taxAmount, draft.currency)}</dd>
+              <dt className="text-muted">Tax</dt>
+              <dd className="text-ink">{formatCurrency(totals.taxAmount, draft.currency)}</dd>
             </div>
-            <div className="flex justify-between border-t border-slate-200 pt-2 font-semibold">
-              <dt className="text-slate-900">Total</dt>
-              <dd className="text-slate-900">{formatCurrency(totals.total, draft.currency)}</dd>
+            <div className="flex justify-between border-t border-border pt-2 font-semibold">
+              <dt className="text-ink">Total</dt>
+              <dd className="text-ink">{formatCurrency(totals.total, draft.currency)}</dd>
             </div>
           </dl>
           <p className="mt-2 text-right text-xs text-slate-500">
@@ -393,8 +393,8 @@ export function CreatePurchaseOrderForm() {
           </p>
         </div>
 
-        <fieldset className="mt-6 border-t border-slate-200 pt-6">
-          <legend className="text-base font-semibold text-slate-950">Delivery and terms</legend>
+        <fieldset className="mt-6 border-t border-border pt-6">
+          <legend className="text-base font-semibold text-ink">Delivery and terms</legend>
 
           <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-1">
@@ -441,10 +441,10 @@ export function CreatePurchaseOrderForm() {
           </div>
         </fieldset>
 
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-6">
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-border pt-6">
           <Link
             href="/documents/purchase-orders"
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas"
           >
             Cancel
           </Link>

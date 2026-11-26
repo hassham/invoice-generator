@@ -134,7 +134,7 @@ export function BusinessProfileSettings() {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-slate-600">Loading your business profile…</p>;
+    return <p className="text-sm text-muted">Loading your business profile…</p>;
   }
 
   if (state === "error" || !profile) {
@@ -147,8 +147,9 @@ export function BusinessProfileSettings() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-950">Business Profile</h1>
-      <p className="mt-1 text-sm text-slate-600">Configure once and reuse on all your invoices.</p>
+      <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-muted">Workspace / Settings</p>
+      <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Business Profile</h1>
+      <p className="mt-1 text-sm text-muted">Configure once and reuse on all your invoices.</p>
 
       {stripeConnectResult === "connected" ? (
         <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">

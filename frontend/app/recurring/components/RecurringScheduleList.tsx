@@ -148,7 +148,7 @@ export function RecurringScheduleList({
                 </button>
 
                 {confirmDelete === schedule.id && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-48">
+                  <div className="absolute right-0 top-full mt-1 bg-paper border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-48">
                     <p className="text-sm text-gray-900 font-medium mb-2">
                       Cancel this schedule permanently?
                     </p>

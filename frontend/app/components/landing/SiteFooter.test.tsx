@@ -17,6 +17,14 @@ describe("SiteFooter", () => {
     expect(within(nav).getByRole("link", { name: "Sign Up" })).toHaveAttribute("href", "/signup");
   });
 
+  it("uses workspace links without marketing actions on signed-in pages", () => {
+    render(<SiteFooter workspace />);
+    const nav = screen.getByRole("navigation", { name: "Footer" });
+    expect(within(nav).getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+    expect(within(nav).queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Sign Up" })).not.toBeInTheDocument();
+  });
+
   it("is operable by keyboard: every footer link is a native, individually focusable anchor", () => {
     render(<SiteFooter />);
 

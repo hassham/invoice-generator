@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default: "Invoice App — Free Invoice Generator",
-    template: "%s | Invoice App",
+    template: "%s | BEVORLY",
   },
   description: "Fast, professional invoicing for small businesses.",
   robots: {

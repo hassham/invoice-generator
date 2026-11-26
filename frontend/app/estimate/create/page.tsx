@@ -4,7 +4,7 @@ import { SiteHeader } from "../../components/landing/SiteHeader";
 import { CreateEstimateEditor } from "./components/CreateEstimateEditor";
 
 export const metadata: Metadata = {
-  title: "Create Estimate | Invoice App",
+  title: "Create Estimate",
   description: "Create an estimate to send a quote before committing to an invoice.",
 };
 
@@ -21,7 +21,7 @@ export default function CreateEstimatePage() {
         <h1 className="sr-only">Create an estimate</h1>
         <CreateEstimateEditor />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

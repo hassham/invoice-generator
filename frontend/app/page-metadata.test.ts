@@ -12,7 +12,7 @@ describe("Landing page metadata", () => {
   });
 
   it("exposes Open Graph metadata matching the page title and description", () => {
-    expect(metadata.openGraph?.title).toBe(metadata.title);
+    expect(metadata.title).toEqual({ absolute: metadata.openGraph?.title });
     expect(metadata.openGraph?.description).toBe(metadata.description);
     expect(metadata.openGraph?.url).toBe("/");
   });

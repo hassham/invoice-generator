@@ -3,7 +3,7 @@ import Link from "next/link";
 import { HostedEstimateView } from "./components/HostedEstimateView";
 
 export const metadata: Metadata = {
-  title: "Estimate | Invoice App",
+  title: "Estimate",
   description: "View your estimate and download a PDF copy.",
   // IG-221: same reasoning as the hosted invoice page (IG-215) - a bearer-capability URL should
   // never be indexed.

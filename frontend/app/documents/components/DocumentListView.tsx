@@ -144,14 +144,14 @@ export function DocumentListView() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-950">Documents</h1>
+        <h1 className="text-2xl font-bold text-ink">Documents</h1>
         {hasActiveFilters ? (
-          <button type="button" onClick={handleClearFilters} className="text-sm font-medium text-slate-600 hover:underline">
+          <button type="button" onClick={handleClearFilters} className="text-sm font-medium text-muted hover:underline">
             Clear filters
           </button>
         ) : null}
       </div>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-muted">
         Everything you have issued or received — invoices, estimates, credit notes, receipts and
         purchase orders — in one place.
       </p>
@@ -167,7 +167,7 @@ export function DocumentListView() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Document number or name…"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
           />
         </div>
         <button type="submit" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
@@ -237,12 +237,12 @@ export function DocumentListView() {
         </p>
       ) : null}
 
-      {state === "loading" ? <p className="mt-6 text-sm text-slate-600">Loading documents…</p> : null}
+      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading documents…</p> : null}
 
       {state === "loaded" && result && result.items.length === 0 && !hasActiveFilters ? (
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-muted">
           No documents yet.{" "}
-          <Link href="/invoice/create" className="font-medium text-slate-950 hover:underline">
+          <Link href="/invoice/create" className="font-medium text-ink hover:underline">
             Create your first invoice
           </Link>
           .
@@ -250,9 +250,9 @@ export function DocumentListView() {
       ) : null}
 
       {state === "loaded" && result && result.items.length === 0 && hasActiveFilters ? (
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-muted">
           No documents match these criteria.{" "}
-          <button type="button" onClick={handleClearFilters} className="font-medium text-slate-950 hover:underline">
+          <button type="button" onClick={handleClearFilters} className="font-medium text-ink hover:underline">
             Clear filters
           </button>
           .
@@ -265,7 +265,7 @@ export function DocumentListView() {
             <table className="w-full text-left text-sm">
               <caption className="sr-only">All documents</caption>
               <thead>
-                <tr className="border-b border-slate-200 text-slate-600">
+                <tr className="border-b border-border text-muted">
                   <th className="py-2 pr-4 font-medium">Type</th>
                   <th className="py-2 pr-4 font-medium">Number</th>
                   {/* Neutral on purpose: a purchase order's counterparty is a supplier, every
@@ -285,7 +285,7 @@ export function DocumentListView() {
                       </span>
                     </td>
                     <td className="py-2 pr-4">
-                      <Link href={documentHref(item)} className="font-medium text-slate-950 hover:underline">
+                      <Link href={documentHref(item)} className="font-medium text-ink hover:underline">
                         {item.documentNumber}
                       </Link>
                     </td>
@@ -305,7 +305,7 @@ export function DocumentListView() {
             </table>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
             <div className="flex items-center gap-2">
               <label htmlFor="document-page-size" className="font-medium">
                 Per page

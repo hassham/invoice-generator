@@ -75,6 +75,13 @@ describe("DashboardView", () => {
     expect(screen.getByRole("link", { name: "View all invoices" })).toHaveAttribute("href", "/documents/invoices");
   });
 
+  it("offers a review action only when the period has an overdue balance", async () => {
+    mockedGetDashboardSummary.mockResolvedValue({ ...sampleSummary, overdue: 120 });
+    render(<DashboardView />);
+    expect(await screen.findByRole("heading", { name: "Needs attention" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Review overdue invoices" })).toHaveAttribute("href", "/reports/overdue");
+  });
+
   it("defaults to This Month, requesting the computed current-month range", async () => {
     mockedGetDashboardSummary.mockResolvedValue(sampleSummary);
 

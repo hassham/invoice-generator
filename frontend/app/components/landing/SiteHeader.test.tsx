@@ -231,6 +231,24 @@ describe("SiteHeader", () => {
     expect(within(mobileNav).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings/business");
   });
 
+  it("makes billing workflows discoverable in desktop and mobile navigation", async () => {
+    stubSession({ userId: "u1", email: "jane@example.com", name: "Jane" });
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await screen.findByRole("button", { name: "Log out" });
+
+    const desktop = screen.getByRole("navigation", { name: "Primary" });
+    await user.click(within(desktop).getByText("More"));
+    expect(within(desktop).getByRole("link", { name: "Estimates" })).toHaveAttribute("href", "/documents/estimates");
+    await user.keyboard("{Escape}");
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const mobile = screen.getByRole("navigation", { name: "Mobile primary" });
+    await user.click(within(mobile).getByText("More workflows"));
+    expect(within(mobile).getByRole("link", { name: "Recurring invoices" })).toHaveAttribute("href", "/recurring");
+    expect(within(mobile).getByRole("link", { name: "Reports" })).toHaveAttribute("href", "/reports");
+  });
+
   it("falls back to the email when the account has no name", async () => {
     stubSession({ userId: "u1", email: "jane@example.com", name: null });
     render(<SiteHeader />);

@@ -52,7 +52,7 @@ export function RecurringScheduleContent() {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-paper rounded-lg shadow p-6">
             <p className="text-red-600">Business context required. Please access through the main app.</p>
           </div>
         </div>
@@ -63,7 +63,7 @@ export function RecurringScheduleContent() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-paper rounded-lg shadow">
           <div className="px-6 py-8">
             <h1 className="text-3xl font-bold text-gray-900">Recurring Schedules</h1>
             <p className="mt-2 text-gray-600">

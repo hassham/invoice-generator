@@ -92,6 +92,29 @@ public class InvoicePdfEndpointTests
         Assert.NotEqual(invoiceBytes, estimateBytes);
     }
 
+    [Theory]
+    [InlineData("Banner")]
+    [InlineData("Bordered")]
+    [InlineData("Plain")]
+    public async Task Renders_long_invoices_with_each_header_style(string headerStyle)
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+        var request = ValidRequest() with
+        {
+            Items = Enumerable.Range(1, 65)
+                .Select(i => new InvoicePdfLineItem($"Design and production work, batch {i}", 2, null, 50, 10, 0))
+                .ToList(),
+            TemplateCustomization = new InvoiceTemplateCustomization("#171717", "#563389", "Arial, Helvetica, sans-serif", headerStyle),
+        };
+
+        var response = await client.PostAsJsonAsync(PdfEndpoint, request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
+    }
+
     [Fact]
     public async Task Rejects_a_request_with_no_line_items_with_a_client_safe_message()
     {

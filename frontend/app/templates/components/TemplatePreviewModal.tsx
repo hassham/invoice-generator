@@ -62,13 +62,13 @@ export function TemplatePreviewModal({ template, onClose }: TemplatePreviewModal
         aria-modal="true"
         aria-labelledby="template-preview-heading"
         tabIndex={-1}
-        className="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-xl outline-none"
+        className="relative w-full max-w-xl rounded-lg bg-paper p-6 shadow-xl outline-none"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="template-preview-heading" className="text-lg font-bold text-slate-950">
+          <h2 id="template-preview-heading" className="text-lg font-bold text-ink">
             {template.name}
           </h2>
-          <button type="button" onClick={onClose} className="text-sm font-medium text-slate-600 hover:text-slate-950">
+          <button type="button" onClick={onClose} className="text-sm font-medium text-muted hover:text-ink">
             Close
           </button>
         </div>

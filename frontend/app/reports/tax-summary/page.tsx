@@ -3,7 +3,7 @@ import { SiteFooter } from "../../components/landing/SiteFooter";
 import { SiteHeader } from "../../components/landing/SiteHeader";
 import { TaxSummaryView } from "../components/TaxSummaryView";
 
-const title = "Tax Summary | Invoice App";
+const title = "Tax Summary";
 const description = "View tax collected across your invoices for tax reporting purposes.";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function TaxSummaryPage() {
       <main className="mx-auto max-w-5xl px-6 py-16">
         <TaxSummaryView />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

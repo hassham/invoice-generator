@@ -4,7 +4,7 @@ import { SiteHeader } from "../../../components/landing/SiteHeader";
 import { EstimateDetail } from "./components/EstimateDetail";
 
 export const metadata: Metadata = {
-  title: "Estimate | Invoice App",
+  title: "Estimate",
   description: "View and edit a saved estimate.",
 };
 
@@ -17,7 +17,7 @@ export default async function EstimateDetailPage({ params }: { params: Promise<{
       <main className="mx-auto max-w-4xl px-6 py-16">
         <EstimateDetail estimateId={id} />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

@@ -55,7 +55,7 @@ export function CustomerListView() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-950">Customers</h1>
+        <h1 className="text-2xl font-bold text-ink">Customers</h1>
         <Link
           href="/customers/new"
           className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
@@ -70,11 +70,11 @@ export function CustomerListView() {
         </p>
       ) : null}
 
-      {state === "loading" ? <p className="mt-6 text-sm text-slate-600">Loading customers…</p> : null}
+      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading customers…</p> : null}
 
       {state === "loaded" && customers.length === 0 ? (
-        <p className="mt-6 text-sm text-slate-600">
-          No customers yet. <Link href="/customers/new" className="font-medium text-slate-950 hover:underline">Add your first customer</Link>.
+        <p className="mt-6 text-sm text-muted">
+          No customers yet. <Link href="/customers/new" className="font-medium text-ink hover:underline">Add your first customer</Link>.
         </p>
       ) : null}
 
@@ -82,7 +82,7 @@ export function CustomerListView() {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-600">
+              <tr className="border-b border-border text-muted">
                 <th className="py-2 pr-4 font-medium">Customer Name</th>
                 <th className="py-2 pr-4 font-medium">Contact</th>
                 <th className="py-2 pr-4 font-medium">Email</th>
@@ -93,13 +93,13 @@ export function CustomerListView() {
             <tbody>
               {customers.map((customer) => (
                 <tr key={customer.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4 text-slate-950">{displayName(customer)}</td>
+                  <td className="py-2 pr-4 text-ink">{displayName(customer)}</td>
                   <td className="py-2 pr-4 text-slate-700">{displayContact(customer)}</td>
                   <td className="py-2 pr-4 text-slate-700">{customer.email ?? "—"}</td>
                   <td className="py-2 pr-4 text-slate-700">{customer.phone ?? "—"}</td>
                   <td className="py-2 pr-4">
                     <div className="flex items-center gap-3">
-                      <Link href={`/customers/${customer.id}`} className="font-medium text-slate-950 hover:underline">
+                      <Link href={`/customers/${customer.id}`} className="font-medium text-ink hover:underline">
                         View
                       </Link>
                       <button

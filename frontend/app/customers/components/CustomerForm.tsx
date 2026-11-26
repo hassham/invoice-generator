@@ -123,7 +123,7 @@ export function CustomerForm({ initialValues = emptyCustomerFormValues, submitti
           value={values.notes}
           onChange={setField("notes")}
           rows={4}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
         />
       </div>
 
@@ -159,7 +159,7 @@ function TextField({ id, label, value, type = "text", maxLength, onChange }: Tex
         value={value}
         maxLength={maxLength}
         onChange={onChange}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
       />
     </div>
   );

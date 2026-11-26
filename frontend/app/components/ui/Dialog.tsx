@@ -27,7 +27,9 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
   const openerRef = useRef<HTMLElement | null>(null);
   // Kept in a ref so an inline onClose from the parent doesn't re-run the focus setup on each render.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;

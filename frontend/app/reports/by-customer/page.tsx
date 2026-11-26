@@ -3,7 +3,7 @@ import { SiteFooter } from "../../components/landing/SiteFooter";
 import { SiteHeader } from "../../components/landing/SiteHeader";
 import { RevenueByCustomerView } from "../components/RevenueByCustomerView";
 
-const title = "Revenue by Customer | Invoice App";
+const title = "Revenue by Customer";
 const description = "View revenue aggregated by customer to understand which customers matter most.";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function RevenueByCustomerPage() {
       <main className="mx-auto max-w-5xl px-6 py-16">
         <RevenueByCustomerView />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

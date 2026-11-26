@@ -62,7 +62,7 @@ export function InvoicePreview({
   return (
     <div className="overflow-hidden rounded-lg border border-border" style={{ fontFamily: font }}>
       {headerStyle === "Banner" ? <div className="h-3" style={{ backgroundColor: primaryColor }} /> : null}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
       <div
         className={headerStyle === "Bordered" ? "flex items-start justify-between border-b-4 pb-4" : "flex items-start justify-between"}
         style={headerStyle === "Bordered" ? { borderColor: accentColor } : undefined}
@@ -80,10 +80,11 @@ export function InvoicePreview({
           </div>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold" style={{ color: accentColor }}>
+          <p className="font-mono text-lg font-bold text-ink" style={{ color: accentColor }}>
             {header.invoiceNumber.trim() || "Invoice"}
           </p>
           <p className="text-sm text-muted">{currency}</p>
+          {headerStyle === "Plain" ? <span aria-hidden="true" className="ml-auto mt-1 block h-0.5 w-7" style={{ backgroundColor: accentColor }} /> : null}
         </div>
       </div>
 
@@ -116,28 +117,28 @@ export function InvoicePreview({
         {itemsWithContent.length === 0 ? (
           <p className="text-sm text-muted">Items will appear here.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
-              <tr className="text-left text-muted">
-                <th className="pb-2 font-medium">Description</th>
-                <th className="pb-2 text-right font-medium">Qty</th>
-                <th className="pb-2 text-right font-medium">Unit Price</th>
-                <th className="pb-2 text-right font-medium">Line Total</th>
+              <tr className="bg-canvas text-left text-ink">
+                <th className="px-1 py-2 font-semibold sm:px-2">Description</th>
+                <th className="px-1 py-2 text-right font-semibold sm:px-2">Qty</th>
+                <th className="px-1 py-2 text-right font-semibold sm:px-2">Unit Price</th>
+                <th className="px-1 py-2 text-right font-semibold sm:px-2">Line Total</th>
               </tr>
             </thead>
             <tbody>
               {itemsWithContent.map((item) => (
                 <tr key={item.id} className="border-t border-border">
-                  <td className="py-2 text-ink">{item.description.trim() || "—"}</td>
-                  <td className="py-2 text-right text-ink">{item.quantity || "—"}</td>
-                  <td className="py-2 text-right text-ink">{formatCurrency(Number.parseFloat(item.unitPrice) || 0)}</td>
-                  <td className="py-2 text-right text-ink">{formatCurrency(computeLineTotals(item).lineTotal)}</td>
+                  <td className="break-words px-1 py-2 text-ink sm:px-2">{item.description.trim() || "—"}</td>
+                  <td className="px-1 py-2 text-right tabular-nums text-ink sm:px-2">{item.quantity || "—"}</td>
+                  <td className="px-1 py-2 text-right tabular-nums text-ink sm:px-2">{formatCurrency(Number.parseFloat(item.unitPrice) || 0)}</td>
+                  <td className="px-1 py-2 text-right tabular-nums text-ink sm:px-2">{formatCurrency(computeLineTotals(item).lineTotal)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <dl className="ml-auto mt-4 grid max-w-xs grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-md bg-canvas p-2 text-sm sm:p-3">
           <dt className="text-muted">Subtotal</dt>
           <dd className="text-right text-ink">
             {currency} {formatCurrency(totals.subtotal)}
@@ -154,8 +155,8 @@ export function InvoicePreview({
           <dd className="text-right text-ink">
             {currency} {formatCurrency(totals.taxAmount)}
           </dd>
-          <dt className="font-semibold text-ink">Total</dt>
-          <dd className="text-right font-semibold text-ink">
+          <dt className="border-t border-border pt-2 font-semibold text-ink">Total</dt>
+          <dd className="border-t border-border pt-2 text-right font-semibold tabular-nums text-ink">
             {currency} {formatCurrency(totals.totalAmount)}
           </dd>
         </dl>

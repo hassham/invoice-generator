@@ -89,7 +89,7 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-slate-600">Loading item…</p>;
+    return <p className="text-sm text-muted">Loading item…</p>;
   }
 
   if (state === "error" || !item) {
@@ -104,12 +104,12 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/items" className="text-sm font-medium text-slate-600 hover:underline">
+          <Link href="/items" className="text-sm font-medium text-muted hover:underline">
             ← Back to items
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-slate-950">{item.name}</h1>
+          <h1 className="mt-2 text-2xl font-bold text-ink">{item.name}</h1>
           {item.isArchived ? (
-            <span className="mt-1 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Archived</span>
+            <span className="mt-1 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-muted">Archived</span>
           ) : null}
         </div>
         {!item.isArchived ? (

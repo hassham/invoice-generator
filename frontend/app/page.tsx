@@ -3,30 +3,21 @@ import { PageViewTracker } from "./components/analytics/PageViewTracker";
 import { GuestOnlyContent } from "./components/auth/GuestOnlyContent";
 import { BenefitsSection } from "./components/landing/BenefitsSection";
 import { FaqSection } from "./components/landing/FaqSection";
-import { FeatureOverviewSection } from "./components/landing/FeatureOverviewSection";
 import { Hero } from "./components/landing/Hero";
-import { HowItWorksSection } from "./components/landing/HowItWorksSection";
 import { PricingTeaserSection } from "./components/landing/PricingTeaserSection";
 import { SiteFooter } from "./components/landing/SiteFooter";
 import { SiteHeader } from "./components/landing/SiteHeader";
 import { TemplatePreviewSection } from "./components/landing/TemplatePreviewSection";
 
-const title = "Free Invoice Generator — Create, Send, Get Paid";
+const title = "BEVORLY | Invoices, Clients & Payments";
 const description =
-  "Build a professional invoice in under two minutes. No sign-up required to get started, no accounting knowledge needed.";
+  "Less paperwork. More business. Create and preview professional invoices for free, and manage clients and payments with BEVORLY.";
 
 export const metadata: Metadata = {
-  title,
+  title: { absolute: title },
   description,
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title,
-    description,
-    url: "/",
-    type: "website",
-  },
+  alternates: { canonical: "/" },
+  openGraph: { title, description, url: "/", type: "website" },
 };
 
 export default function Home() {
@@ -39,8 +30,6 @@ export default function Home() {
         <Hero />
         <BenefitsSection />
         <TemplatePreviewSection />
-        <HowItWorksSection />
-        <FeatureOverviewSection />
         <PricingTeaserSection />
         <FaqSection />
       </main>

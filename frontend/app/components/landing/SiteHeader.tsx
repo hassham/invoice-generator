@@ -14,6 +14,17 @@ const navLinks = [
   { href: "#pricing", label: "Pricing" },
 ];
 
+const workflowLinks = [
+  { href: "/documents", label: "All documents" },
+  { href: "/documents/estimates", label: "Estimates" },
+  { href: "/receipts", label: "Receipts" },
+  { href: "/credit-notes", label: "Credit notes" },
+  { href: "/documents/purchase-orders", label: "Purchase orders" },
+  { href: "/recurring", label: "Recurring invoices" },
+  { href: "/reminders", label: "Reminders" },
+  { href: "/reports", label: "Reports" },
+] as const;
+
 const navLink = "text-sm font-medium text-muted transition-colors hover:text-ink";
 const mobileNavLink = "rounded-md px-2 py-2 text-sm font-medium text-muted transition-colors hover:bg-canvas hover:text-ink";
 const primaryCta =
@@ -24,6 +35,7 @@ const secondaryCta =
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const workflowRef = useRef<HTMLDetailsElement>(null);
   // IG-26: defaults to "logged out" and swaps in once /api/v1/auth/me resolves - there's no
   // synchronous way to know the session state before that first round trip completes.
   const [account, setAccount] = useState<LoggedInAccount | null>(null);
@@ -74,7 +86,7 @@ export function SiteHeader() {
             breakpoints aren't wide enough and caused real page-level horizontal overflow on
             every authenticated page at tablet width. xl (1280px) is the first breakpoint with
             enough room; the hamburger/mobile-nav pattern below now covers tablet too. */}
-        <nav aria-label="Primary" className="hidden items-center gap-8 xl:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-5 xl:flex">
           {/* IG-202: public/marketing links (landing-page anchors + the anonymous Invoice
               Generator entry point) only make sense when signed out - once authenticated, the
               app-specific links below cover the same ground and these anchors don't even resolve
@@ -106,6 +118,19 @@ export function SiteHeader() {
               <Link href="/settings/business" className={navLink}>
                 Settings
               </Link>
+              <details ref={workflowRef} className="group relative" onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+              }} onKeyDown={(event) => {
+                if (event.key === "Escape" && event.currentTarget.open) {
+                  event.currentTarget.open = false;
+                  event.currentTarget.querySelector("summary")?.focus();
+                }
+              }}>
+                <summary className={`${navLink} cursor-pointer list-none whitespace-nowrap rounded-md marker:content-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink`}>More <span aria-hidden="true">&#9662;</span></summary>
+                <ul className="absolute right-0 top-full mt-3 w-52 rounded-2xl border border-border bg-paper p-2 shadow-lg">
+                  {workflowLinks.map((link) => <li key={link.href}><Link className={`${mobileNavLink} block`} href={link.href} onClick={() => { if (workflowRef.current) workflowRef.current.open = false; }}>{link.label}</Link></li>)}
+                </ul>
+              </details>
             </>
           ) : null}
         </nav>
@@ -144,7 +169,7 @@ export function SiteHeader() {
       </div>
 
       {isMenuOpen ? (
-        <div id="mobile-nav" className="border-t border-border bg-paper xl:hidden">
+        <div id="mobile-nav" className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-paper xl:hidden">
           <nav aria-label="Mobile primary" className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-4">
             {!account
               ? navLinks.map((link) => (
@@ -176,6 +201,12 @@ export function SiteHeader() {
                 <Link href="/settings/business" className={mobileNavLink} onClick={() => setIsMenuOpen(false)}>
                   Settings
                 </Link>
+                <details className="px-2">
+                  <summary className="cursor-pointer py-2 text-sm font-semibold text-ink">More workflows</summary>
+                  <div className="grid gap-1 border-l border-border pl-2">
+                    {workflowLinks.map((link) => <Link key={link.href} className={mobileNavLink} href={link.href} onClick={() => setIsMenuOpen(false)}>{link.label}</Link>)}
+                  </div>
+                </details>
               </>
             ) : null}
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-4">

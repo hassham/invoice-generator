@@ -4,7 +4,7 @@ import { SiteHeader } from "../../../components/landing/SiteHeader";
 import { InvoiceDetail } from "./components/InvoiceDetail";
 
 export const metadata: Metadata = {
-  title: "Invoice | Invoice App",
+  title: "Invoice",
   description: "View and edit a saved invoice.",
 };
 
@@ -17,7 +17,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
       <main className="mx-auto max-w-4xl px-6 py-16">
         <InvoiceDetail invoiceId={id} />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

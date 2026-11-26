@@ -4,7 +4,7 @@ import { SiteHeader } from "../../components/landing/SiteHeader";
 import { TeamSettings } from "./components/TeamSettings";
 
 export const metadata: Metadata = {
-  title: "Team | Invoice App",
+  title: "Team",
   description: "Invite people to help manage your business.",
 };
 
@@ -15,7 +15,7 @@ export default function TeamSettingsPage() {
       <main className="mx-auto max-w-2xl px-6 py-16">
         <TeamSettings />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

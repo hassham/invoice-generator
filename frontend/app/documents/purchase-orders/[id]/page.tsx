@@ -4,7 +4,7 @@ import { SiteHeader } from "../../../components/landing/SiteHeader";
 import { PurchaseOrderDetail } from "./components/PurchaseOrderDetail";
 
 export const metadata: Metadata = {
-  title: "Purchase Order | Invoice App",
+  title: "Purchase Order",
   description: "View a purchase order placed with a supplier.",
 };
 
@@ -17,7 +17,7 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
       <main className="mx-auto max-w-4xl px-6 py-16">
         <PurchaseOrderDetail purchaseOrderId={id} />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

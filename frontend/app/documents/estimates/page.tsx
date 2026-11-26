@@ -4,7 +4,7 @@ import { SiteHeader } from "../../components/landing/SiteHeader";
 import { EstimateListView } from "./components/EstimateListView";
 
 export const metadata: Metadata = {
-  title: "Estimates | Invoice App",
+  title: "Estimates",
   description: "Browse your saved estimates.",
   alternates: {
     canonical: "/documents/estimates",
@@ -18,7 +18,7 @@ export default function EstimatesPage() {
       <main className="mx-auto max-w-5xl px-6 py-16">
         <EstimateListView />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

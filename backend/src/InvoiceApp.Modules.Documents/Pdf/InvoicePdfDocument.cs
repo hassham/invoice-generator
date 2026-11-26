@@ -29,6 +29,10 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
             request.InvoiceDiscountValue,
             request.TaxCalculationMethod));
 
+        // Neutral document surfaces keep the sender's custom branding in the foreground.
+        const string ink = "#171717";
+        const string rule = "#DED6CC";
+        const string totalsSurface = "#F8F2EA";
         var customization = request.TemplateCustomization;
         var primaryColor = customization?.PrimaryColor ?? "#0f172a";
         var accentColor = customization?.AccentColor ?? "#0f172a";
@@ -39,7 +43,7 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
         {
             page.Size(PageSizes.A4);
             page.Margin(36);
-            page.DefaultTextStyle(style => style.FontFamily(fontFamily).FontSize(10));
+            page.DefaultTextStyle(style => style.FontFamily(fontFamily).FontSize(10).FontColor(ink));
 
             if (headerStyle == "Banner")
             {
@@ -67,16 +71,20 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
                         // always shown, not just as a fallback for a blank number, so an Estimate
                         // and an Invoice are never confusable at a glance.
                         invoiceColumn.Item().AlignRight().Text(request.DocumentTypeLabel.ToUpperInvariant())
-                            .FontColor(accentColor).SemiBold().FontSize(10);
+                            .SemiBold().FontSize(10);
                         invoiceColumn.Item().AlignRight().Text(string.IsNullOrWhiteSpace(request.InvoiceNumber) ? request.DocumentTypeLabel : request.InvoiceNumber)
-                            .FontColor(accentColor).SemiBold().FontSize(16);
+                            .FontColor(accentColor).SemiBold().FontSize(22);
                         invoiceColumn.Item().AlignRight().Text(request.Currency);
+                        if (headerStyle == "Plain")
+                        {
+                            invoiceColumn.Item().AlignRight().PaddingTop(4).Width(28).Height(2).Background(accentColor);
+                        }
                     });
                 });
 
                 if (headerStyle == "Bordered")
                 {
-                    column.Item().PaddingBottom(4).BorderBottom(2).BorderColor(accentColor);
+                    column.Item().PaddingBottom(4).BorderBottom(3).BorderColor(accentColor);
                 }
 
                 column.Item().PaddingTop(8).Row(row =>
@@ -116,32 +124,39 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
 
                     table.Header(header =>
                     {
-                        header.Cell().Text("Description").SemiBold();
-                        header.Cell().AlignRight().Text("Qty").SemiBold();
-                        header.Cell().AlignRight().Text("Unit Price").SemiBold();
-                        header.Cell().AlignRight().Text("Line Total").SemiBold();
+                        header.Cell().Element(TableHeaderCell).Text("Description").SemiBold();
+                        header.Cell().Element(TableHeaderCell).AlignRight().Text("Qty").SemiBold();
+                        header.Cell().Element(TableHeaderCell).AlignRight().Text("Unit Price").SemiBold();
+                        header.Cell().Element(TableHeaderCell).AlignRight().Text("Line Total").SemiBold();
                     });
 
                     for (var i = 0; i < request.Items.Count; i++)
                     {
                         var item = request.Items[i];
                         var lineResult = totals.Items[i];
-                        table.Cell().Text(item.Description);
-                        table.Cell().AlignRight().Text(item.Quantity.ToString("0.####"));
-                        table.Cell().AlignRight().Text(item.UnitPrice.ToString("0.00"));
-                        table.Cell().AlignRight().Text(lineResult.LineTotal.ToString("0.00"));
+                        table.Cell().Element(TableBodyCell).Text(item.Description);
+                        table.Cell().Element(TableBodyCell).AlignRight().Text(item.Quantity.ToString("0.####"));
+                        table.Cell().Element(TableBodyCell).AlignRight().Text(item.UnitPrice.ToString("0.00"));
+                        table.Cell().Element(TableBodyCell).AlignRight().Text(lineResult.LineTotal.ToString("0.00"));
                     }
                 });
 
-                column.Item().PaddingTop(12).AlignRight().Column(totalsColumn =>
+                IContainer TableHeaderCell(IContainer cell) =>
+                    cell.Background(totalsSurface).PaddingHorizontal(6).PaddingVertical(7);
+                IContainer TableBodyCell(IContainer cell) =>
+                    cell.BorderBottom(1).BorderColor(rule).PaddingHorizontal(6).PaddingVertical(5);
+
+                column.Item().PaddingTop(12).AlignRight().MaxWidth(230).Background(totalsSurface).Padding(10).Column(totalsColumn =>
                 {
+                    totalsColumn.Spacing(3);
                     totalsColumn.Item().Text($"Subtotal: {request.Currency} {totals.Subtotal:0.00}");
                     if (totals.DiscountAmount > 0)
                     {
                         totalsColumn.Item().Text($"Discount: -{request.Currency} {totals.DiscountAmount:0.00}");
                     }
                     totalsColumn.Item().Text($"Tax: {request.Currency} {totals.TaxAmount:0.00}");
-                    totalsColumn.Item().Text($"Total: {request.Currency} {totals.TotalAmount:0.00}").SemiBold();
+                    totalsColumn.Item().BorderTop(1).BorderColor(rule).PaddingTop(5)
+                        .Text($"Total: {request.Currency} {totals.TotalAmount:0.00}").SemiBold().FontSize(13);
                 });
 
                 // FSD/IG-122: optional sections only render when they have content.

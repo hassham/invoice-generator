@@ -168,7 +168,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
       ) : null}
 
       <fieldset>
-        <legend className="text-base font-semibold text-slate-950">Business Identity</legend>
+        <legend className="text-base font-semibold text-ink">Business Identity</legend>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <TextField id="business-name" label="Business Name" value={values.businessName} onChange={setField("businessName")} />
           <TextField id="business-legal-name" label="Legal Name" value={values.legalName} onChange={setField("legalName")} />
@@ -181,8 +181,8 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
       </fieldset>
 
       <fieldset>
-        <legend className="text-base font-semibold text-slate-950">Bank Details</legend>
-        <p className="mt-1 text-sm text-slate-600">Shown on this business&apos;s invoices so customers know where to pay.</p>
+        <legend className="text-base font-semibold text-ink">Bank Details</legend>
+        <p className="mt-1 text-sm text-muted">Shown on this business&apos;s invoices so customers know where to pay.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <TextField id="business-bank-name" label="Bank Name" value={values.bankName} onChange={setField("bankName")} />
           <TextField id="business-bank-account-name" label="Account Name" value={values.bankAccountName} onChange={setField("bankAccountName")} />
@@ -192,7 +192,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
       </fieldset>
 
       <fieldset>
-        <legend className="text-base font-semibold text-slate-950">Address</legend>
+        <legend className="text-base font-semibold text-ink">Address</legend>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <TextField id="business-address-1" label="Address Line 1" value={values.addressLine1} onChange={setField("addressLine1")} />
           <TextField id="business-address-2" label="Address Line 2" value={values.addressLine2} onChange={setField("addressLine2")} />
@@ -204,7 +204,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
       </fieldset>
 
       <fieldset>
-        <legend className="text-base font-semibold text-slate-950">Invoice Defaults</legend>
+        <legend className="text-base font-semibold text-ink">Invoice Defaults</legend>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
             <label htmlFor="business-default-currency" className="text-sm font-medium text-slate-700">
@@ -214,7 +214,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
               id="business-default-currency"
               value={values.defaultCurrency}
               onChange={setField("defaultCurrency")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             >
               {CURRENCY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -234,7 +234,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
               id="business-tax-calculation-method"
               value={values.taxCalculationMethod}
               onChange={setField("taxCalculationMethod")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             >
               <option value="Exclusive">Tax Exclusive</option>
               <option value="Inclusive">Tax Inclusive</option>
@@ -249,7 +249,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
               id="business-default-payment-terms"
               value={values.defaultPaymentTerms}
               onChange={setField("defaultPaymentTerms")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
             >
               {PAYMENT_TERMS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -279,7 +279,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             value={values.defaultInvoiceNotes}
             onChange={setField("defaultInvoiceNotes")}
             rows={3}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
           />
         </div>
 
@@ -309,7 +309,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             value={values.defaultTermsAndConditions}
             onChange={setField("defaultTermsAndConditions")}
             rows={3}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
           />
         </div>
 
@@ -325,15 +325,15 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
       </fieldset>
 
       <fieldset>
-        <legend className="text-base font-semibold text-slate-950">Invoice Numbering</legend>
+        <legend className="text-base font-semibold text-ink">Invoice Numbering</legend>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <TextField id="business-invoice-prefix" label="Prefix" value={values.invoicePrefix} onChange={setField("invoicePrefix")} maxLength={20} />
           <TextField id="business-next-invoice-number" label="Next Number" type="number" value={values.nextInvoiceNumber} onChange={setField("nextInvoiceNumber")} />
           <TextField id="business-invoice-number-padding" label="Number Padding" type="number" value={values.invoiceNumberPadding} onChange={setField("invoiceNumberPadding")} />
         </div>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-muted">
           Preview:{" "}
-          <span className="font-mono font-semibold text-slate-950">
+          <span className="font-mono font-semibold text-ink">
             {formatInvoiceNumberPreview(values.invoicePrefix, Number.parseInt(values.nextInvoiceNumber, 10), Number.parseInt(values.invoiceNumberPadding, 10))}
           </span>
         </p>
@@ -371,7 +371,7 @@ function TextField({ id, label, value, type = "text", maxLength, onChange }: Tex
         value={value}
         maxLength={maxLength}
         onChange={onChange}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
       />
     </div>
   );

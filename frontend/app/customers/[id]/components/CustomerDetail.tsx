@@ -99,7 +99,7 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-slate-600">Loading customer…</p>;
+    return <p className="text-sm text-muted">Loading customer…</p>;
   }
 
   if (state === "error" || !customer) {
@@ -114,12 +114,12 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/customers" className="text-sm font-medium text-slate-600 hover:underline">
+          <Link href="/customers" className="text-sm font-medium text-muted hover:underline">
             ← Back to customers
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-slate-950">{customer.businessName ?? customer.contactName ?? "(unnamed)"}</h1>
+          <h1 className="mt-2 text-2xl font-bold text-ink">{customer.businessName ?? customer.contactName ?? "(unnamed)"}</h1>
           {customer.isArchived ? (
-            <span className="mt-1 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Archived</span>
+            <span className="mt-1 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-muted">Archived</span>
           ) : null}
         </div>
         {!customer.isArchived ? (

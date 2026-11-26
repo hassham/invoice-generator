@@ -4,7 +4,7 @@ import { SiteHeader } from "../../components/landing/SiteHeader";
 import { InvitationAccept } from "./components/InvitationAccept";
 
 export const metadata: Metadata = {
-  title: "Team invitation | Invoice App",
+  title: "Team invitation",
   description: "Accept an invitation to help manage a business.",
 };
 

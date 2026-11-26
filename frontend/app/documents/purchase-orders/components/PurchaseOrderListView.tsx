@@ -45,7 +45,7 @@ export function PurchaseOrderListView() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-950">Purchase Orders</h1>
+        <h1 className="text-2xl font-bold text-ink">Purchase Orders</h1>
         <Link
           href="/documents/purchase-orders/new"
           className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
@@ -53,13 +53,13 @@ export function PurchaseOrderListView() {
           New purchase order
         </Link>
       </div>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-muted">
         Orders you have placed with your suppliers. These are separate from the invoices you send to
         your customers, and use their own numbering sequence.
       </p>
 
       {state === "loading" ? (
-        <p className="mt-6 text-sm text-slate-600">Loading purchase orders…</p>
+        <p className="mt-6 text-sm text-muted">Loading purchase orders…</p>
       ) : null}
 
       {state === "error" ? (
@@ -69,9 +69,9 @@ export function PurchaseOrderListView() {
       ) : null}
 
       {state === "loaded" && items.length === 0 ? (
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-muted">
           No purchase orders yet.{" "}
-          <Link href="/documents/purchase-orders/new" className="font-medium text-slate-950 hover:underline">
+          <Link href="/documents/purchase-orders/new" className="font-medium text-ink hover:underline">
             Raise your first purchase order
           </Link>
           .
@@ -82,7 +82,7 @@ export function PurchaseOrderListView() {
         <table className="mt-6 w-full text-left text-sm">
           <caption className="sr-only">Purchase orders</caption>
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
+            <tr className="border-b border-border text-slate-500">
               <th className="py-2 pr-4 font-medium">Purchase order</th>
               <th className="py-2 pr-4 font-medium">Type</th>
               <th className="py-2 pr-4 font-medium">Supplier</th>
@@ -96,7 +96,7 @@ export function PurchaseOrderListView() {
                 <td className="py-2 pr-4">
                   <Link
                     href={`/documents/purchase-orders/${item.id}`}
-                    className="font-medium text-slate-950 hover:underline"
+                    className="font-medium text-ink hover:underline"
                   >
                     {item.poNumber}
                   </Link>

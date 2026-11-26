@@ -8,6 +8,21 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## BEVORLY redesign ownership (2026-11-26)
+
+- Reviewed IG-326 through IG-330 and the completed auth/editor subtasks IG-337 and IG-338. No Jira mutations. Retained the existing brand mark, fonts, auth and editor work.
+- Redesign: public homepage and real template samples; core workspace layout, navigation, branded surfaces and dashboard attention states; customer-owned invoice preview and PDF hierarchy, tables and totals. Document calculations, payment rules and contract fields are unchanged.
+- PDF proof: generated and visually checked a synthetic Bordered invoice from the local Release API. Regression tests cover Banner, Bordered and Plain with long documents. Full backend passed 741 tests. Frontend lint and production build passed. The full frontend run passed 826 tests with three timing-sensitive editor failures; all three passed in an isolated rerun. Local public homepage, dashboard, invoice list/editor and settings returned HTTP 200. Browser extension did not complete the live responsive check.
+- Publish scope: source only. A production deployment, live-device QA and go-live checklist are separate. Keep Claude on non-redesign work.
+
+## IG-328 homepage design pass (2026-11-26)
+
+- Scope: go-live Story [IG-328](https://appitometechnologies.atlassian.net/browse/IG-328), no parent reported. Read Jira; it was To Do with no assignee. No Jira changes.
+- Applied the approved Playful Professionalism direction to the public homepage: split hero, real editor invoice preview with sample data, quote-to-payment walkthrough, expandable template previews, and matching pricing and FAQ treatments. Kept existing authentication, CTA routes and analytics. Replaced the unconfirmed Pro price with a preview label, not a purchasable plan.
+- Changed only homepage composition and landing components/tests. The signed-in dashboard, invoice editor and generated PDFs were not changed. Preserved prior work at 8da5dae.
+- Verification: homepage and invoice editor returned HTTP 200 locally; TypeScript passed. Four focused suites (10 tests) and lint for changed frontend areas passed. The earlier full run had 822 passing tests; the two metadata-suite failures were corrected and rechecked in focused tests. Full-repo lint still flags the pre-existing ref assignment in the shared Dialog. Browser automation did not complete rendered desktop/mobile checks.
+- Next: review the homepage on desktop and phone, then tackle app screen/PDF branding separately under IG-329/IG-330. Nothing pushed or deployed.
+
 ## Current Status (as of 2026-11-22)
 
 Jira was read on 2026-11-22. Writes made that day: 21 go-live Stories created (`IG-316` to `IG-336`) and 4 priority changes to Low.

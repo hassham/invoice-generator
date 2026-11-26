@@ -4,7 +4,7 @@ import { SiteHeader } from "../../../components/landing/SiteHeader";
 import { CreatePurchaseOrderForm } from "./components/CreatePurchaseOrderForm";
 
 export const metadata: Metadata = {
-  title: "New Purchase Order | Invoice App",
+  title: "New Purchase Order",
   description: "Raise a purchase order for a supplier.",
   alternates: {
     canonical: "/documents/purchase-orders/new",
@@ -18,7 +18,7 @@ export default function NewPurchaseOrderPage() {
       <main className="mx-auto max-w-4xl px-6 py-16">
         <CreatePurchaseOrderForm />
       </main>
-      <SiteFooter />
+      <SiteFooter workspace />
     </>
   );
 }

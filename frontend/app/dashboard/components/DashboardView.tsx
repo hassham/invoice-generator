@@ -10,8 +10,7 @@ import { StatusBadge, toneForInvoiceStatus } from "../../components/ui/StatusBad
 
 type LoadState = "loading" | "loaded" | "error";
 
-// IG-327 / IG-329: Bevorly styling (docs/BRANDINGGUIDELINES.md section 10). Metric cards use the
-// pastel tones, amounts use tabular numerals, and status uses labelled StatusBadge.
+// Workspace styling stays quieter than marketing. Use colour to distinguish status, not every total.
 const primaryLink =
   "inline-flex items-center rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a]";
 const selectClass = "rounded-lg border border-border bg-paper px-2 py-1 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink";
@@ -73,9 +72,13 @@ export function DashboardView() {
 
   return (
     <div className="font-sans text-ink">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
+      <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border pb-5">
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div>
+            <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-muted">Workspace / Overview</p>
+            <h1 className="font-display text-4xl font-bold tracking-tight">Dashboard</h1>
+            <p className="mt-1 text-sm text-muted">Your business at a glance.</p>
+          </div>
           <Link href="/invoice/create" className={primaryLink}>
             New invoice
           </Link>
@@ -128,7 +131,11 @@ export function DashboardView() {
 
       {state === "loaded" && summary && summary.recentInvoices.length === 0 ? (
         <Card className="mt-6 p-8 text-center">
-          <p className="text-base">Create your first invoice.</p>
+          <svg aria-hidden="true" viewBox="0 0 60 58" fill="none" className="mx-auto mb-3 size-14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5h30v45H12z" className="fill-lavender" /><path d="M20 15h14m-14 8h14m-14 8h8" /><circle cx="43" cy="42" r="12" className="fill-paper" /><path d="M43 37v10m-5-5h10" />
+          </svg>
+          <h2 className="font-display text-2xl font-bold">Create your first invoice.</h2>
+          <p className="mt-2 text-sm text-muted">Add a client and their line items. We’ll take care of the maths.</p>
           <Link href="/invoice/create" className={`${primaryLink} mt-4`}>
             Create Invoice
           </Link>
@@ -138,23 +145,33 @@ export function DashboardView() {
       {state === "loaded" && summary && summary.recentInvoices.length > 0 ? (
         <>
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Card tone="lavender" className="p-4">
+            <Card className="min-w-0 p-3 sm:p-4">
               <p className="text-sm font-semibold">Total Invoiced</p>
-              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.totalInvoiced, summary.currency)}</p>
+              <p className="mt-1 break-words font-mono text-base font-bold tabular-nums sm:text-xl">{formatCurrency(summary.totalInvoiced, summary.currency)}</p>
             </Card>
-            <Card tone="mint" className="p-4">
+            <Card className="min-w-0 p-3 sm:p-4">
               <p className="text-sm font-semibold">Total Paid</p>
-              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.totalPaid, summary.currency)}</p>
+              <p className="mt-1 break-words font-mono text-base font-bold tabular-nums sm:text-xl">{formatCurrency(summary.totalPaid, summary.currency)}</p>
             </Card>
-            <Card tone="yellow" className="p-4">
+            <Card className="min-w-0 p-3 sm:p-4">
               <p className="text-sm font-semibold">Outstanding</p>
-              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.outstanding, summary.currency)}</p>
+              <p className="mt-1 break-words font-mono text-base font-bold tabular-nums sm:text-xl">{formatCurrency(summary.outstanding, summary.currency)}</p>
             </Card>
-            <Card tone="pink" className="p-4">
+            <Card tone={summary.overdue > 0 ? "pink" : "paper"} className="min-w-0 p-3 sm:p-4">
               <p className="text-sm font-semibold">Overdue</p>
-              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.overdue, summary.currency)}</p>
+              <p className="mt-1 break-words font-mono text-base font-bold tabular-nums sm:text-xl">{formatCurrency(summary.overdue, summary.currency)}</p>
             </Card>
           </div>
+
+          <section aria-labelledby="dashboard-attention" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-paper p-4 sm:p-5">
+            <div>
+              <h2 id="dashboard-attention" className="font-display text-lg font-bold">Needs attention</h2>
+              <p className="mt-1 text-sm text-muted">
+                {summary.overdue > 0 ? `${formatCurrency(summary.overdue, summary.currency)} overdue in this period.` : "No overdue balance in this period."}
+              </p>
+            </div>
+            {summary.overdue > 0 ? <Link className="text-sm font-semibold underline underline-offset-4" href="/reports/overdue">Review overdue invoices</Link> : null}
+          </section>
 
           <h2 className="mt-8 font-display text-xl font-bold">Recent Invoices</h2>
           <DataTable
@@ -167,7 +184,7 @@ export function DashboardView() {
               { key: "due", header: "Due Date", render: (invoice) => invoice.dueDate },
               { key: "amount", header: "Amount", align: "right", render: (invoice) => formatCurrency(invoice.totalAmount, invoice.currency) },
               { key: "due-amount", header: "Amount Due", align: "right", render: (invoice) => formatCurrency(invoice.amountDue, invoice.currency) },
-              { key: "status", header: "Status", render: (invoice) => <StatusBadge tone={toneForInvoiceStatus(invoice.status)} label={invoice.status} /> },
+              { key: "status", header: "Status", render: (invoice) => <StatusBadge tone={toneForInvoiceStatus(invoice.status)} label={invoice.status === "PartiallyPaid" ? "Partially paid" : invoice.status} /> },
               {
                 key: "actions",
                 header: "Actions",

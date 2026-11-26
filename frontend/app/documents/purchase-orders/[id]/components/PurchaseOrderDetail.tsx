@@ -54,7 +54,7 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
   }, [purchaseOrderId]);
 
   if (state === "loading") {
-    return <p className="text-sm text-slate-600">Loading purchase order…</p>;
+    return <p className="text-sm text-muted">Loading purchase order…</p>;
   }
 
   if (state === "error") {
@@ -101,7 +101,7 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
           <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
             Purchase Order
           </span>
-          <h1 className="text-2xl font-bold text-slate-950">{purchaseOrder.poNumber}</h1>
+          <h1 className="text-2xl font-bold text-ink">{purchaseOrder.poNumber}</h1>
         </div>
         <button
           type="button"
@@ -122,24 +122,24 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
       <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Supplier</dt>
-          <dd className="mt-1 text-slate-900">{purchaseOrder.supplierName}</dd>
+          <dd className="mt-1 text-ink">{purchaseOrder.supplierName}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ordered by</dt>
-          <dd className="mt-1 text-slate-900">{purchaseOrder.businessName}</dd>
+          <dd className="mt-1 text-ink">{purchaseOrder.businessName}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Issue date</dt>
-          <dd className="mt-1 text-slate-900">{purchaseOrder.issueDate}</dd>
+          <dd className="mt-1 text-ink">{purchaseOrder.issueDate}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required by</dt>
-          <dd className="mt-1 text-slate-900">{purchaseOrder.dueDate}</dd>
+          <dd className="mt-1 text-ink">{purchaseOrder.dueDate}</dd>
         </div>
         {purchaseOrder.reference ? (
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Reference</dt>
-            <dd className="mt-1 text-slate-900">{purchaseOrder.reference}</dd>
+            <dd className="mt-1 text-ink">{purchaseOrder.reference}</dd>
           </div>
         ) : null}
       </dl>
@@ -148,7 +148,7 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
         <h2 className="sr-only">Items ordered</h2>
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
+            <tr className="border-b border-border text-slate-500">
               <th className="py-2 pr-4 font-medium">Description</th>
               <th className="py-2 pr-4 text-right font-medium">Qty</th>
               <th className="py-2 pr-4 text-right font-medium">Unit price</th>
@@ -158,7 +158,7 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
           <tbody>
             {purchaseOrder.items.map((item, index) => (
               <tr key={index} className="border-b border-slate-100">
-                <td className="py-2 pr-4 text-slate-900">{item.description}</td>
+                <td className="py-2 pr-4 text-ink">{item.description}</td>
                 <td className="py-2 pr-4 text-right text-slate-700">
                   {item.quantity}
                   {item.unit ? ` ${item.unit}` : ""}
@@ -175,40 +175,40 @@ export function PurchaseOrderDetail({ purchaseOrderId }: { purchaseOrderId: stri
         </table>
       </section>
 
-      <div className="mt-8 border-t border-slate-200 pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <dl className="ml-auto max-w-xs space-y-2 text-sm">
           <div className="flex justify-between">
-            <dt className="text-slate-600">Subtotal</dt>
-            <dd className="text-slate-900">{formatCurrency(purchaseOrder.subtotal, purchaseOrder.currency)}</dd>
+            <dt className="text-muted">Subtotal</dt>
+            <dd className="text-ink">{formatCurrency(purchaseOrder.subtotal, purchaseOrder.currency)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-slate-600">Tax</dt>
-            <dd className="text-slate-900">{formatCurrency(purchaseOrder.taxAmount, purchaseOrder.currency)}</dd>
+            <dt className="text-muted">Tax</dt>
+            <dd className="text-ink">{formatCurrency(purchaseOrder.taxAmount, purchaseOrder.currency)}</dd>
           </div>
-          <div className="flex justify-between border-t border-slate-200 pt-2 font-semibold">
-            <dt className="text-slate-900">Total</dt>
-            <dd className="text-slate-900">{formatCurrency(purchaseOrder.totalAmount, purchaseOrder.currency)}</dd>
+          <div className="flex justify-between border-t border-border pt-2 font-semibold">
+            <dt className="text-ink">Total</dt>
+            <dd className="text-ink">{formatCurrency(purchaseOrder.totalAmount, purchaseOrder.currency)}</dd>
           </div>
         </dl>
       </div>
 
       {purchaseOrder.deliveryInstructions ? (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold text-slate-900">Delivery instructions</h2>
+          <h2 className="text-sm font-semibold text-ink">Delivery instructions</h2>
           <p className="mt-1 text-sm text-slate-700">{purchaseOrder.deliveryInstructions}</p>
         </section>
       ) : null}
 
       {purchaseOrder.notes ? (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold text-slate-900">Notes</h2>
+          <h2 className="text-sm font-semibold text-ink">Notes</h2>
           <p className="mt-1 text-sm text-slate-700">{purchaseOrder.notes}</p>
         </section>
       ) : null}
 
       {purchaseOrder.terms ? (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold text-slate-900">Terms</h2>
+          <h2 className="text-sm font-semibold text-ink">Terms</h2>
           <p className="mt-1 text-sm text-slate-700">{purchaseOrder.terms}</p>
         </section>
       ) : null}

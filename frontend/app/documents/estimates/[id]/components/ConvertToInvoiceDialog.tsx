@@ -30,9 +30,9 @@ export function ConvertToInvoiceDialog({ estimateId, estimateNumber, onClose }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="text-lg font-semibold text-slate-950">Convert Estimate to Invoice?</h2>
-        <p className="mt-2 text-sm text-slate-600">
+      <div className="w-full max-w-md rounded-lg bg-paper p-6 shadow-lg">
+        <h2 className="text-lg font-semibold text-ink">Convert Estimate to Invoice?</h2>
+        <p className="mt-2 text-sm text-muted">
           This will create a new invoice from estimate <strong>{estimateNumber}</strong>. The estimate will be marked as converted.
         </p>
         {error ? (
@@ -45,7 +45,7 @@ export function ConvertToInvoiceDialog({ estimateId, estimateNumber, onClose }: 
             type="button"
             onClick={onClose}
             disabled={converting}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
           >
             Cancel
           </button>

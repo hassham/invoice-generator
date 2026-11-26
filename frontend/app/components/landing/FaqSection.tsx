@@ -27,13 +27,13 @@ const faqs = [
 
 export function FaqSection() {
   return (
-    <section aria-labelledby="faq-heading" className="py-20">
+    <section aria-labelledby="faq-heading" className="py-14 sm:py-20">
       <div className="mx-auto max-w-3xl px-6">
-        <h2 id="faq-heading" className="text-center text-3xl font-bold tracking-tight text-ink">
+        <h2 id="faq-heading" className="font-display text-[clamp(2.25rem,5vw,3.5rem)] font-bold leading-[1.03] tracking-[-0.05em] text-ink">
           Frequently asked questions
         </h2>
 
-        <div className="mt-12 divide-y divide-border border-t border-border">
+        <div className="mt-8 divide-y divide-border border-t border-border">
           {faqs.map((faq) => (
             <details key={faq.question} className="group py-4">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-ink marker:content-none">

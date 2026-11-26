@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CreateInvoiceEditor } from "./components/CreateInvoiceEditor";
 
-const title = "Create Invoice | Invoice App";
+const title = "Create Invoice";
 const description = "Build a professional invoice - no account required to get started.";
 
 export const metadata: Metadata = {

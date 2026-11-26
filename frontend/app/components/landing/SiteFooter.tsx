@@ -8,7 +8,14 @@ const footerLinks = [
   { href: "/signup", label: "Sign Up" },
 ];
 
-export function SiteFooter() {
+const workspaceLinks = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/settings/business", label: "Settings" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+];
+
+export function SiteFooter({ workspace = false }: { workspace?: boolean }) {
   return (
     <footer className="border-t border-border">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-10 sm:flex-row sm:justify-between">
@@ -16,7 +23,7 @@ export function SiteFooter() {
           &copy; {new Date().getFullYear()} Bevorly. All rights reserved.
         </p>
         <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          {footerLinks.map((link) => (
+          {(workspace ? workspaceLinks : footerLinks).map((link) => (
             <Link
               key={link.href}
               href={link.href}
