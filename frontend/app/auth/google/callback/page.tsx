@@ -15,5 +15,5 @@ export default function GoogleAuthCallbackPage() {
     window.location.href = loadPendingGateAction() ? "/invoice/create" : "/";
   }, []);
 
-  return <p className="mx-auto max-w-md px-6 py-16 text-sm text-slate-600">Signing you in…</p>;
+  return <p className="mx-auto max-w-md px-6 py-16 text-sm text-muted">Signing you in…</p>;
 }

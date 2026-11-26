@@ -59,13 +59,13 @@ export function InvitationAccept({ token }: InvitationAcceptProps) {
   if (needsSignIn) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-bold text-slate-950">{t("invitation.signIn.title")}</h1>
-        <p className="text-sm text-slate-700">{t("invitation.signIn.body")}</p>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.signIn.title")}</h1>
+        <p className="text-sm text-ink">{t("invitation.signIn.body")}</p>
         <div className="flex gap-3">
-          <Link href="/login" className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+          <Link href="/login" className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink hover:bg-[#c4ee1a]">
             {t("invitation.signIn.button")}
           </Link>
-          <Link href="/signup" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+          <Link href="/signup" className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink">
             {t("invitation.signIn.createAccount")}
           </Link>
         </div>
@@ -76,9 +76,9 @@ export function InvitationAccept({ token }: InvitationAcceptProps) {
   if (joined && preview) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-bold text-slate-950">{t("invitation.joined.title", { businessName: preview.businessName })}</h1>
-        <p className="text-sm text-slate-700">{t("invitation.joined.body", { businessName: preview.businessName })}</p>
-        <Link href="/dashboard" className="inline-block rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.joined.title", { businessName: preview.businessName })}</h1>
+        <p className="text-sm text-ink">{t("invitation.joined.body", { businessName: preview.businessName })}</p>
+        <Link href="/dashboard" className="inline-block rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink hover:bg-[#c4ee1a]">
           {t("invitation.joined.dashboard")}
         </Link>
       </section>
@@ -88,26 +88,26 @@ export function InvitationAccept({ token }: InvitationAcceptProps) {
   if (error && !preview) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-bold text-slate-950">{t("invitation.unavailable.title")}</h1>
-        <p role="alert" className="text-sm text-red-700">{error}</p>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.unavailable.title")}</h1>
+        <p role="alert" className="text-sm font-semibold text-[#991b1b]">{error}</p>
       </section>
     );
   }
 
   if (!preview) {
-    return <p className="text-sm text-slate-600">{t("invitation.loading")}</p>;
+    return <p className="text-sm text-muted">{t("invitation.loading")}</p>;
   }
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-950">{t("invitation.join.title", { businessName: preview.businessName })}</h1>
-      <p className="text-sm text-slate-700">{t("invitation.join.body", { businessName: preview.businessName })}</p>
-      {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+      <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.join.title", { businessName: preview.businessName })}</h1>
+      <p className="text-sm text-ink">{t("invitation.join.body", { businessName: preview.businessName })}</p>
+      {error ? <p role="alert" className="text-sm font-semibold text-[#991b1b]">{error}</p> : null}
       <button
         type="button"
         onClick={() => void handleAccept()}
         disabled={accepting}
-        className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink hover:bg-[#c4ee1a] disabled:opacity-50"
       >
         {accepting ? t("invitation.join.accepting") : t("invitation.join.accept")}
       </button>

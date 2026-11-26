@@ -52,17 +52,17 @@ export function RegisterForm() {
 
   return (
     <div className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-bold text-slate-950">Sign up</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Sign up</h1>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
           {error}
         </p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor="signup-email" className="text-sm font-medium text-slate-700">
+          <label htmlFor="signup-email" className="text-sm font-semibold text-ink">
             Email
           </label>
           <input
@@ -71,25 +71,25 @@ export function RegisterForm() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="signup-name" className="text-sm font-medium text-slate-700">
-            Name <span className="font-normal text-slate-500">(optional)</span>
+          <label htmlFor="signup-name" className="text-sm font-semibold text-ink">
+            Name <span className="font-normal text-muted">(optional)</span>
           </label>
           <input
             id="signup-name"
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="signup-password" className="text-sm font-medium text-slate-700">
+          <label htmlFor="signup-password" className="text-sm font-semibold text-ink">
             Password
           </label>
           <input
@@ -99,15 +99,15 @@ export function RegisterForm() {
             minLength={8}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted">
             At least 8 characters, with an uppercase letter, a lowercase letter and a number.
           </p>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="signup-confirm-password" className="text-sm font-medium text-slate-700">
+          <label htmlFor="signup-confirm-password" className="text-sm font-semibold text-ink">
             Confirm password
           </label>
           <input
@@ -116,37 +116,37 @@ export function RegisterForm() {
             required
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           />
         </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a] disabled:opacity-50"
         >
           {submitting ? "Creating account…" : "Sign up"}
         </button>
       </form>
 
-      <div className="mt-4 flex items-center gap-3 text-xs text-slate-500">
-        <div className="h-px flex-1 bg-slate-200" />
+      <div className="mt-4 flex items-center gap-3 text-xs text-muted">
+        <div className="h-px flex-1 bg-border" />
         or
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-border" />
       </div>
 
       {/* IG-196: a plain <a href>, not a click handler - GET /api/v1/auth/google/login must be a
           genuine full-page navigation to trigger its 302 challenge redirect to Google. */}
       <a
         href={googleLoginUrl()}
-        className="mt-4 flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+        className="mt-4 flex items-center justify-center rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
       >
         Continue with Google
       </a>
 
-      <p className="mt-6 text-sm text-slate-600">
+      <p className="mt-6 text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-slate-950 hover:underline">
+        <Link href="/login" className="font-semibold text-ink underline-offset-4 hover:underline">
           Log in
         </Link>
       </p>
