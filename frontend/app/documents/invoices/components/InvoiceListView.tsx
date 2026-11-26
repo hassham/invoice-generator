@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { computePeriodRange, PERIOD_PRESET_LABELS, type PeriodPreset } from "../../../dashboard/lib/period";
 import { listCustomers, type Customer } from "../../../lib/customers";
+import { Button } from "../../../components/ui/Button";
+import { DataTable } from "../../../components/ui/DataTable";
+import { StatusBadge, toneForInvoiceStatus } from "../../../components/ui/StatusBadge";
 import {
   INVOICE_SORT_OPTIONS,
   INVOICE_SORT_OPTION_LABELS,
@@ -162,16 +165,16 @@ export function InvoiceListView() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-950">Invoices</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Invoices</h1>
           <Link
             href="/invoice/create"
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a]"
           >
             New invoice
           </Link>
         </div>
         {hasActiveFilters ? (
-          <button type="button" onClick={handleClearFilters} className="text-sm font-medium text-slate-600 hover:underline">
+          <button type="button" onClick={handleClearFilters} className="text-sm font-medium text-muted hover:text-ink hover:underline">
             Clear filters
           </button>
         ) : null}
@@ -179,7 +182,7 @@ export function InvoiceListView() {
 
       <form onSubmit={handleSearchSubmit} className="mt-4 flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-search" className="text-sm font-medium text-slate-700">
+          <label htmlFor="invoice-search" className="text-sm font-semibold text-ink">
             Search
           </label>
           <input
@@ -188,22 +191,22 @@ export function InvoiceListView() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Invoice number, reference or customer…"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           />
         </div>
-        <button type="submit" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+        <Button type="submit" variant="secondary">
           Search
-        </button>
+        </Button>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-status-filter" className="text-sm font-medium text-slate-700">
+          <label htmlFor="invoice-status-filter" className="text-sm font-semibold text-ink">
             Status
           </label>
           <select
             id="invoice-status-filter"
             value={status}
             onChange={(event) => navigate({ status: event.target.value || undefined, page: "1" })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="">All statuses</option>
             {INVOICE_STATUS_FILTER_OPTIONS.map((option) => (
@@ -215,14 +218,14 @@ export function InvoiceListView() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-customer-filter" className="text-sm font-medium text-slate-700">
+          <label htmlFor="invoice-customer-filter" className="text-sm font-semibold text-ink">
             Customer
           </label>
           <select
             id="invoice-customer-filter"
             value={customerId}
             onChange={(event) => navigate({ customerId: event.target.value || undefined, page: "1" })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="">All customers</option>
             {customers.map((customer) => (
@@ -234,14 +237,14 @@ export function InvoiceListView() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-date-filter" className="text-sm font-medium text-slate-700">
+          <label htmlFor="invoice-date-filter" className="text-sm font-semibold text-ink">
             Date
           </label>
           <select
             id="invoice-date-filter"
             value={datePreset}
             onChange={(event) => navigate({ datePreset: event.target.value === "All" ? undefined : event.target.value, startDate: undefined, endDate: undefined, page: "1" })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="All">All time</option>
             {DATE_PRESETS.filter((preset) => preset !== "All").map((preset) => (
@@ -255,7 +258,7 @@ export function InvoiceListView() {
         {datePreset === "Custom" ? (
           <>
             <div className="flex flex-col gap-1">
-              <label htmlFor="invoice-date-start" className="text-sm font-medium text-slate-700">
+              <label htmlFor="invoice-date-start" className="text-sm font-semibold text-ink">
                 From
               </label>
               <input
@@ -263,11 +266,11 @@ export function InvoiceListView() {
                 type="date"
                 value={customStart}
                 onChange={(event) => navigate({ startDate: event.target.value || undefined, page: "1" })}
-                className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+                className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="invoice-date-end" className="text-sm font-medium text-slate-700">
+              <label htmlFor="invoice-date-end" className="text-sm font-semibold text-ink">
                 To
               </label>
               <input
@@ -275,21 +278,21 @@ export function InvoiceListView() {
                 type="date"
                 value={customEnd}
                 onChange={(event) => navigate({ endDate: event.target.value || undefined, page: "1" })}
-                className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+                className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
               />
             </div>
           </>
         ) : null}
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-sort" className="text-sm font-medium text-slate-700">
+          <label htmlFor="invoice-sort" className="text-sm font-semibold text-ink">
             Sort
           </label>
           <select
             id="invoice-sort"
             value={sort}
             onChange={(event) => navigate({ sort: event.target.value === DEFAULT_SORT ? undefined : event.target.value })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             {INVOICE_SORT_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -301,17 +304,17 @@ export function InvoiceListView() {
       </form>
 
       {error ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
           {error}
         </p>
       ) : null}
 
-      {state === "loading" ? <p className="mt-6 text-sm text-slate-600">Loading invoices…</p> : null}
+      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading invoices…</p> : null}
 
       {state === "loaded" && result && result.items.length === 0 && !hasActiveFilters ? (
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-muted">
           No invoices yet.{" "}
-          <Link href="/invoice/create" className="font-medium text-slate-950 hover:underline">
+          <Link href="/invoice/create" className="font-semibold text-ink underline-offset-4 hover:underline">
             Create your first invoice
           </Link>
           .
@@ -319,9 +322,9 @@ export function InvoiceListView() {
       ) : null}
 
       {state === "loaded" && result && result.items.length === 0 && hasActiveFilters ? (
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-muted">
           No invoices match these criteria.{" "}
-          <button type="button" onClick={handleClearFilters} className="font-medium text-slate-950 hover:underline">
+          <button type="button" onClick={handleClearFilters} className="font-semibold text-ink underline-offset-4 hover:underline">
             Clear filters
           </button>
           .
@@ -330,44 +333,32 @@ export function InvoiceListView() {
 
       {state === "loaded" && result && result.items.length > 0 ? (
         <>
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-600">
-                  <th className="py-2 pr-4 font-medium">Invoice Number</th>
-                  <th className="py-2 pr-4 font-medium">Customer</th>
-                  <th className="py-2 pr-4 font-medium">Date</th>
-                  <th className="py-2 pr-4 font-medium">Due Date</th>
-                  <th className="py-2 pr-4 font-medium">Amount</th>
-                  <th className="py-2 pr-4 font-medium">Amount Due</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 pr-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.items.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4 text-slate-950">{invoice.invoiceNumber}</td>
-                    <td className="py-2 pr-4 text-slate-700">{invoice.customerName || "—"}</td>
-                    <td className="py-2 pr-4 text-slate-700">{invoice.issueDate}</td>
-                    <td className="py-2 pr-4 text-slate-700">{invoice.dueDate}</td>
-                    <td className="py-2 pr-4 text-slate-700">{formatCurrency(invoice.totalAmount, invoice.currency)}</td>
-                    <td className="py-2 pr-4 text-slate-700">{formatCurrency(invoice.amountDue, invoice.currency)}</td>
-                    <td className="py-2 pr-4">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{invoice.status}</span>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Link href={`/documents/invoices/${invoice.id}`} className="font-medium text-slate-950 hover:underline">
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            className="mt-6"
+            caption="Invoices"
+            columns={[
+              { key: "number", header: "Invoice Number", render: (invoice) => <span className="font-semibold">{invoice.invoiceNumber}</span> },
+              { key: "customer", header: "Customer", render: (invoice) => invoice.customerName || "—" },
+              { key: "issue", header: "Date", render: (invoice) => invoice.issueDate },
+              { key: "due", header: "Due Date", render: (invoice) => invoice.dueDate },
+              { key: "amount", header: "Amount", align: "right", render: (invoice) => formatCurrency(invoice.totalAmount, invoice.currency) },
+              { key: "due-amount", header: "Amount Due", align: "right", render: (invoice) => formatCurrency(invoice.amountDue, invoice.currency) },
+              { key: "status", header: "Status", render: (invoice) => <StatusBadge tone={toneForInvoiceStatus(invoice.status)} label={invoice.status} /> },
+              {
+                key: "actions",
+                header: "Actions",
+                render: (invoice) => (
+                  <Link href={`/documents/invoices/${invoice.id}`} className="font-semibold underline-offset-4 hover:underline">
+                    View
+                  </Link>
+                ),
+              },
+            ]}
+            rows={result.items}
+            getRowKey={(invoice) => invoice.id}
+          />
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
             <div className="flex items-center gap-2">
               <label htmlFor="invoice-page-size" className="font-medium">
                 Per page
@@ -376,7 +367,7 @@ export function InvoiceListView() {
                 id="invoice-page-size"
                 value={pageSize}
                 onChange={(event) => navigate({ pageSize: event.target.value, page: "1" })}
-                className="rounded-md border border-slate-300 px-2 py-1"
+                className="rounded-lg border border-border bg-paper px-2 py-1 font-sans text-sm text-ink"
               >
                 {PAGE_SIZE_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -391,7 +382,7 @@ export function InvoiceListView() {
                 type="button"
                 onClick={() => navigate({ page: String(page - 1) })}
                 disabled={page <= 1}
-                className="rounded-full border border-slate-300 px-4 py-2 font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 font-semibold text-ink hover:bg-canvas disabled:opacity-50"
               >
                 Previous
               </button>
@@ -402,7 +393,7 @@ export function InvoiceListView() {
                 type="button"
                 onClick={() => navigate({ page: String(page + 1) })}
                 disabled={page >= totalPages}
-                className="rounded-full border border-slate-300 px-4 py-2 font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 font-semibold text-ink hover:bg-canvas disabled:opacity-50"
               >
                 Next
               </button>

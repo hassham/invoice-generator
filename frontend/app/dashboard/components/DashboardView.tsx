@@ -4,8 +4,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getDashboardSummary, type DashboardSummary } from "../../lib/dashboard";
 import { computePeriodRange, PERIOD_PRESET_LABELS, PERIOD_PRESETS, type PeriodPreset } from "../lib/period";
+import { Card } from "../../components/ui/Card";
+import { DataTable } from "../../components/ui/DataTable";
+import { StatusBadge, toneForInvoiceStatus } from "../../components/ui/StatusBadge";
 
 type LoadState = "loading" | "loaded" | "error";
+
+// IG-327 / IG-329: Bevorly styling (docs/BRANDINGGUIDELINES.md section 10). Metric cards use the
+// pastel tones, amounts use tabular numerals, and status uses labelled StatusBadge.
+const primaryLink =
+  "inline-flex items-center rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a]";
+const selectClass = "rounded-lg border border-border bg-paper px-2 py-1 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink";
 
 function formatCurrency(amount: number, currency: string): string {
   return `${currency} ${amount.toFixed(2)}`;
@@ -63,27 +72,19 @@ export function DashboardView() {
   }, [preset, customStart, customEnd]);
 
   return (
-    <div>
+    <div className="font-sans text-ink">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-950">Dashboard</h1>
-          <Link
-            href="/invoice/create"
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-          >
+          <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
+          <Link href="/invoice/create" className={primaryLink}>
             New invoice
           </Link>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="dashboard-period" className="text-sm font-medium text-slate-700">
+          <label htmlFor="dashboard-period" className="text-sm font-semibold">
             Period
           </label>
-          <select
-            id="dashboard-period"
-            value={preset}
-            onChange={(event) => setPreset(event.target.value as PeriodPreset)}
-            className="rounded-md border border-slate-300 px-2 py-1 text-sm"
-          >
+          <select id="dashboard-period" value={preset} onChange={(event) => setPreset(event.target.value as PeriodPreset)} className={selectClass}>
             {PERIOD_PRESETS.map((option) => (
               <option key={option} value={option}>
                 {PERIOD_PRESET_LABELS[option]}
@@ -100,7 +101,7 @@ export function DashboardView() {
                 type="date"
                 value={customStart}
                 onChange={(event) => setCustomStart(event.target.value)}
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                className={selectClass}
               />
               <label htmlFor="dashboard-period-end" className="sr-only">
                 End date
@@ -110,92 +111,77 @@ export function DashboardView() {
                 type="date"
                 value={customEnd}
                 onChange={(event) => setCustomEnd(event.target.value)}
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                className={selectClass}
               />
             </>
           ) : null}
         </div>
       </div>
 
-      {state === "loading" ? <p className="mt-6 text-sm text-slate-600">Loading dashboard…</p> : null}
+      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading dashboard…</p> : null}
 
       {state === "error" ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
           {error}
         </p>
       ) : null}
 
       {state === "loaded" && summary && summary.recentInvoices.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-slate-200 p-8 text-center">
-          <p className="text-sm text-slate-600">Create your first invoice.</p>
-          <Link
-            href="/invoice/create"
-            className="mt-4 inline-block rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-          >
+        <Card className="mt-6 p-8 text-center">
+          <p className="text-base">Create your first invoice.</p>
+          <Link href="/invoice/create" className={`${primaryLink} mt-4`}>
             Create Invoice
           </Link>
-        </div>
+        </Card>
       ) : null}
 
       {state === "loaded" && summary && summary.recentInvoices.length > 0 ? (
         <>
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-sm text-slate-500">Total Invoiced</p>
-              <p className="mt-1 text-xl font-bold text-slate-950">{formatCurrency(summary.totalInvoiced, summary.currency)}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-sm text-slate-500">Total Paid</p>
-              <p className="mt-1 text-xl font-bold text-slate-950">{formatCurrency(summary.totalPaid, summary.currency)}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-sm text-slate-500">Outstanding</p>
-              <p className="mt-1 text-xl font-bold text-slate-950">{formatCurrency(summary.outstanding, summary.currency)}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-sm text-slate-500">Overdue</p>
-              <p className="mt-1 text-xl font-bold text-slate-950">{formatCurrency(summary.overdue, summary.currency)}</p>
-            </div>
+            <Card tone="lavender" className="p-4">
+              <p className="text-sm font-semibold">Total Invoiced</p>
+              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.totalInvoiced, summary.currency)}</p>
+            </Card>
+            <Card tone="mint" className="p-4">
+              <p className="text-sm font-semibold">Total Paid</p>
+              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.totalPaid, summary.currency)}</p>
+            </Card>
+            <Card tone="yellow" className="p-4">
+              <p className="text-sm font-semibold">Outstanding</p>
+              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.outstanding, summary.currency)}</p>
+            </Card>
+            <Card tone="pink" className="p-4">
+              <p className="text-sm font-semibold">Overdue</p>
+              <p className="mt-1 font-mono text-2xl font-bold tabular-nums">{formatCurrency(summary.overdue, summary.currency)}</p>
+            </Card>
           </div>
 
-          <h2 className="mt-8 text-lg font-semibold text-slate-950">Recent Invoices</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-600">
-                  <th className="py-2 pr-4 font-medium">Invoice Number</th>
-                  <th className="py-2 pr-4 font-medium">Customer</th>
-                  <th className="py-2 pr-4 font-medium">Issue Date</th>
-                  <th className="py-2 pr-4 font-medium">Due Date</th>
-                  <th className="py-2 pr-4 font-medium">Amount</th>
-                  <th className="py-2 pr-4 font-medium">Amount Due</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 pr-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.recentInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4 text-slate-950">{invoice.invoiceNumber}</td>
-                    <td className="py-2 pr-4 text-slate-700">{invoice.customerName || "—"}</td>
-                    <td className="py-2 pr-4 text-slate-700">{invoice.issueDate}</td>
-                    <td className="py-2 pr-4 text-slate-700">{invoice.dueDate}</td>
-                    <td className="py-2 pr-4 text-slate-700">{formatCurrency(invoice.totalAmount, invoice.currency)}</td>
-                    <td className="py-2 pr-4 text-slate-700">{formatCurrency(invoice.amountDue, invoice.currency)}</td>
-                    <td className="py-2 pr-4">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{invoice.status}</span>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Link href={`/documents/invoices/${invoice.id}`} className="font-medium text-slate-950 hover:underline">
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Link href="/documents/invoices" className="mt-4 inline-block text-sm font-medium text-slate-950 hover:underline">
+          <h2 className="mt-8 font-display text-xl font-bold">Recent Invoices</h2>
+          <DataTable
+            className="mt-4"
+            caption="Recent invoices"
+            columns={[
+              { key: "number", header: "Invoice Number", render: (invoice) => <span className="font-semibold">{invoice.invoiceNumber}</span> },
+              { key: "customer", header: "Customer", render: (invoice) => invoice.customerName || "—" },
+              { key: "issue", header: "Issue Date", render: (invoice) => invoice.issueDate },
+              { key: "due", header: "Due Date", render: (invoice) => invoice.dueDate },
+              { key: "amount", header: "Amount", align: "right", render: (invoice) => formatCurrency(invoice.totalAmount, invoice.currency) },
+              { key: "due-amount", header: "Amount Due", align: "right", render: (invoice) => formatCurrency(invoice.amountDue, invoice.currency) },
+              { key: "status", header: "Status", render: (invoice) => <StatusBadge tone={toneForInvoiceStatus(invoice.status)} label={invoice.status} /> },
+              {
+                key: "actions",
+                header: "Actions",
+                render: (invoice) => (
+                  <Link href={`/documents/invoices/${invoice.id}`} className="font-semibold underline-offset-4 hover:underline">
+                    View
+                  </Link>
+                ),
+              },
+            ]}
+            rows={summary.recentInvoices}
+            getRowKey={(invoice) => invoice.id}
+          />
+          <Link href="/documents/invoices" className="mt-4 inline-block text-sm font-semibold underline-offset-4 hover:underline">
             View all invoices
           </Link>
         </>
