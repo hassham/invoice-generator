@@ -60,16 +60,16 @@ export function LineItemRow({
     onFieldChange(item.id, field, event.target.value);
 
   return (
-    <div className="rounded-lg border border-slate-200 p-4">
+    <div className="rounded-xl border border-border bg-paper p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-700">Item {position}</p>
+        <p className="text-sm font-semibold text-ink">Item {position}</p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => onMoveUp(item.id)}
             disabled={index === 0}
             aria-label={`Move item ${position} up`}
-            className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 disabled:opacity-40"
+            className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-40"
           >
             ↑
           </button>
@@ -78,7 +78,7 @@ export function LineItemRow({
             onClick={() => onMoveDown(item.id)}
             disabled={index === itemCount - 1}
             aria-label={`Move item ${position} down`}
-            className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 disabled:opacity-40"
+            className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-40"
           >
             ↓
           </button>
@@ -86,7 +86,7 @@ export function LineItemRow({
             type="button"
             onClick={() => onDuplicate(item.id)}
             aria-label={`Duplicate item ${position}`}
-            className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700"
+            className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas"
           >
             Duplicate
           </button>
@@ -94,7 +94,7 @@ export function LineItemRow({
             type="button"
             onClick={() => onRemove(item.id)}
             aria-label={isOnlyItem ? `Clear item ${position}` : `Remove item ${position}`}
-            className="rounded border border-red-300 px-2 py-1 text-xs font-medium text-red-700"
+            className="rounded-full border-[1.5px] border-[#991b1b] bg-paper px-3 py-1 text-xs font-semibold text-[#991b1b] hover:bg-pink"
           >
             {isOnlyItem ? "Clear" : "Remove"}
           </button>
@@ -108,7 +108,7 @@ export function LineItemRow({
       ) : null}
 
       <div className="mt-3 flex flex-col gap-1">
-        <label htmlFor={descriptionId} className="text-sm font-medium text-slate-700">
+        <label htmlFor={descriptionId} className="text-sm font-semibold text-ink">
           Description<span aria-hidden="true"> *</span>
         </label>
         <textarea
@@ -123,12 +123,12 @@ export function LineItemRow({
           aria-invalid={errors.description ? true : undefined}
           className={
             errors.description
-              ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-              : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+              ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+              : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           }
         />
         {errors.description ? (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm font-semibold text-[#991b1b]">
             {errors.description}
           </p>
         ) : null}
@@ -136,7 +136,7 @@ export function LineItemRow({
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor={quantityId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={quantityId} className="text-sm font-semibold text-ink">
             Quantity<span aria-hidden="true"> *</span>
           </label>
           <input
@@ -151,26 +151,26 @@ export function LineItemRow({
             aria-invalid={errors.quantity ? true : undefined}
             className={
               errors.quantity
-                ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-                : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+                ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             }
           />
           {errors.quantity ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm font-semibold text-[#991b1b]">
               {errors.quantity}
             </p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor={unitId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={unitId} className="text-sm font-semibold text-ink">
             Unit
           </label>
           <select
             id={unitId}
             value={item.unit}
             onChange={change("unit")}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="">—</option>
             {UNIT_OPTIONS.map((unit) => (
@@ -182,7 +182,7 @@ export function LineItemRow({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor={unitPriceId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={unitPriceId} className="text-sm font-semibold text-ink">
             Unit Price<span aria-hidden="true"> *</span>
           </label>
           <input
@@ -198,26 +198,26 @@ export function LineItemRow({
             aria-invalid={errors.unitPrice ? true : undefined}
             className={
               errors.unitPrice
-                ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-                : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+                ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             }
           />
           {errors.unitPrice ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm font-semibold text-[#991b1b]">
               {errors.unitPrice}
             </p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor={taxRateId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={taxRateId} className="text-sm font-semibold text-ink">
             Tax Rate
           </label>
           <select
             id={taxRateId}
             value={item.taxRatePreset}
             onChange={change("taxRatePreset")}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             {TAX_RATE_PRESETS.map((preset) => (
               <option key={preset} value={preset}>
@@ -229,7 +229,7 @@ export function LineItemRow({
 
         {item.taxRatePreset === "custom" ? (
           <div className="flex flex-col gap-1">
-            <label htmlFor={customTaxRateId} className="text-sm font-medium text-slate-700">
+            <label htmlFor={customTaxRateId} className="text-sm font-semibold text-ink">
               Custom Tax Rate (%)<span aria-hidden="true"> *</span>
             </label>
             <input
@@ -246,12 +246,12 @@ export function LineItemRow({
               aria-invalid={errors.customTaxRate ? true : undefined}
               className={
                 errors.customTaxRate
-                  ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-                  : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+                  ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                  : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
               }
             />
             {errors.customTaxRate ? (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm font-semibold text-[#991b1b]">
                 {errors.customTaxRate}
               </p>
             ) : null}
@@ -259,7 +259,7 @@ export function LineItemRow({
         ) : null}
 
         <div className="flex flex-col gap-1">
-          <label htmlFor={discountId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={discountId} className="text-sm font-semibold text-ink">
             Discount
           </label>
           <input
@@ -273,19 +273,19 @@ export function LineItemRow({
             aria-invalid={errors.discount ? true : undefined}
             className={
               errors.discount
-                ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-                : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+                ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             }
           />
           {errors.discount ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm font-semibold text-[#991b1b]">
               {errors.discount}
             </p>
           ) : null}
         </div>
       </div>
 
-      <p className="mt-3 text-right text-sm font-semibold text-slate-950">
+      <p className="mt-3 text-right text-sm font-semibold text-ink">
         Line Total: {formatCurrency(totals.lineTotal)}
       </p>
     </div>

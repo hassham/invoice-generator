@@ -60,7 +60,7 @@ export function InvoicePreview({
   );
   const { primaryColor, accentColor, font, headerStyle } = templateCustomization;
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200" style={{ fontFamily: font }}>
+    <div className="overflow-hidden rounded-lg border border-border" style={{ fontFamily: font }}>
       {headerStyle === "Banner" ? <div className="h-3" style={{ backgroundColor: primaryColor }} /> : null}
       <div className="p-6">
       <div
@@ -75,50 +75,50 @@ export function InvoicePreview({
             <img src={logo} alt="Business logo" className="h-12 w-auto object-contain" />
           ) : null}
           <div>
-            <p className="text-sm font-semibold text-slate-700">From</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{seller.trim() || "Your business details"}</p>
+            <p className="text-sm font-semibold text-ink">From</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{seller.trim() || "Your business details"}</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold" style={{ color: accentColor }}>
             {header.invoiceNumber.trim() || "Invoice"}
           </p>
-          <p className="text-sm text-slate-600">{currency}</p>
+          <p className="text-sm text-muted">{currency}</p>
         </div>
       </div>
 
       <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt className="text-slate-500">Issue date</dt>
-        <dd className="text-slate-950">{header.issueDate || "—"}</dd>
-        <dt className="text-slate-500">Due date</dt>
-        <dd className="text-slate-950">{header.dueDate || "—"}</dd>
+        <dt className="text-muted">Issue date</dt>
+        <dd className="text-ink">{header.issueDate || "—"}</dd>
+        <dt className="text-muted">Due date</dt>
+        <dd className="text-ink">{header.dueDate || "—"}</dd>
         {header.reference.trim() ? (
           <>
-            <dt className="text-slate-500">Reference</dt>
-            <dd className="text-slate-950">{header.reference}</dd>
+            <dt className="text-muted">Reference</dt>
+            <dd className="text-ink">{header.reference}</dd>
           </>
         ) : null}
       </dl>
 
-      <div className="mt-6 border-t border-slate-200 pt-4">
-        <p className="text-sm font-semibold text-slate-700">Bill to</p>
-        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{customer.trim() || "Customer details"}</p>
+      <div className="mt-6 border-t border-border pt-4">
+        <p className="text-sm font-semibold text-ink">Bill to</p>
+        <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{customer.trim() || "Customer details"}</p>
       </div>
 
       {shipTo.trim() ? (
-        <div className="mt-6 border-t border-slate-200 pt-4">
-          <p className="text-sm font-semibold text-slate-700">Ship to</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{shipTo}</p>
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="text-sm font-semibold text-ink">Ship to</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{shipTo}</p>
         </div>
       ) : null}
 
-      <div className="mt-6 border-t border-slate-200 pt-4">
+      <div className="mt-6 border-t border-border pt-4">
         {itemsWithContent.length === 0 ? (
-          <p className="text-sm text-slate-500">Items will appear here.</p>
+          <p className="text-sm text-muted">Items will appear here.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-500">
+              <tr className="text-left text-muted">
                 <th className="pb-2 font-medium">Description</th>
                 <th className="pb-2 text-right font-medium">Qty</th>
                 <th className="pb-2 text-right font-medium">Unit Price</th>
@@ -127,58 +127,58 @@ export function InvoicePreview({
             </thead>
             <tbody>
               {itemsWithContent.map((item) => (
-                <tr key={item.id} className="border-t border-slate-100">
-                  <td className="py-2 text-slate-950">{item.description.trim() || "—"}</td>
-                  <td className="py-2 text-right text-slate-950">{item.quantity || "—"}</td>
-                  <td className="py-2 text-right text-slate-950">{formatCurrency(Number.parseFloat(item.unitPrice) || 0)}</td>
-                  <td className="py-2 text-right text-slate-950">{formatCurrency(computeLineTotals(item).lineTotal)}</td>
+                <tr key={item.id} className="border-t border-border">
+                  <td className="py-2 text-ink">{item.description.trim() || "—"}</td>
+                  <td className="py-2 text-right text-ink">{item.quantity || "—"}</td>
+                  <td className="py-2 text-right text-ink">{formatCurrency(Number.parseFloat(item.unitPrice) || 0)}</td>
+                  <td className="py-2 text-right text-ink">{formatCurrency(computeLineTotals(item).lineTotal)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-slate-500">Subtotal</dt>
-          <dd className="text-right text-slate-950">
+          <dt className="text-muted">Subtotal</dt>
+          <dd className="text-right text-ink">
             {currency} {formatCurrency(totals.subtotal)}
           </dd>
           {totals.discountAmount > 0 ? (
             <>
-              <dt className="text-slate-500">Discount</dt>
-              <dd className="text-right text-slate-950">
+              <dt className="text-muted">Discount</dt>
+              <dd className="text-right text-ink">
                 -{currency} {formatCurrency(totals.discountAmount)}
               </dd>
             </>
           ) : null}
-          <dt className="text-slate-500">Tax</dt>
-          <dd className="text-right text-slate-950">
+          <dt className="text-muted">Tax</dt>
+          <dd className="text-right text-ink">
             {currency} {formatCurrency(totals.taxAmount)}
           </dd>
-          <dt className="font-semibold text-slate-950">Total</dt>
-          <dd className="text-right font-semibold text-slate-950">
+          <dt className="font-semibold text-ink">Total</dt>
+          <dd className="text-right font-semibold text-ink">
             {currency} {formatCurrency(totals.totalAmount)}
           </dd>
         </dl>
       </div>
 
       {supportingContent.notes.trim() ? (
-        <div className="mt-6 border-t border-slate-200 pt-4">
-          <p className="text-sm font-semibold text-slate-700">Notes</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{supportingContent.notes}</p>
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="text-sm font-semibold text-ink">Notes</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{supportingContent.notes}</p>
         </div>
       ) : null}
 
       {supportingContent.terms.trim() ? (
-        <div className="mt-6 border-t border-slate-200 pt-4">
-          <p className="text-sm font-semibold text-slate-700">Terms and Conditions</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-950">{supportingContent.terms}</p>
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="text-sm font-semibold text-ink">Terms and Conditions</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{supportingContent.terms}</p>
         </div>
       ) : null}
 
       {hasAnyPaymentInstructionContent(supportingContent) ? (
-        <div className="mt-6 border-t border-slate-200 pt-4">
-          <p className="text-sm font-semibold text-slate-700">Payment Instructions</p>
-          <div className="mt-1 text-sm text-slate-950">
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="text-sm font-semibold text-ink">Payment Instructions</p>
+          <div className="mt-1 text-sm text-ink">
             {PAYMENT_INSTRUCTION_FIELDS.map((field) => {
               const value = supportingContent.paymentInstructions[field.name]?.trim();
               return value ? (

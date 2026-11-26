@@ -45,19 +45,19 @@ export function InvoiceTotalsSection({
   const discountValueId = useId();
 
   return (
-    <fieldset className="mt-6 border-t border-slate-200 pt-6">
-      <legend className="text-base font-semibold text-slate-950">Totals</legend>
+    <fieldset className="mt-6 border-t border-border pt-6">
+      <legend className="font-display text-lg font-bold text-ink">Totals</legend>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <label htmlFor={discountTypeId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={discountTypeId} className="text-sm font-semibold text-ink">
             Invoice Discount
           </label>
           <select
             id={discountTypeId}
             value={discountType}
             onChange={(event) => onDiscountTypeChange(event.target.value as InvoiceDiscountType)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             {DISCOUNT_TYPES.map((option) => (
               <option key={option.value} value={option.value}>
@@ -69,7 +69,7 @@ export function InvoiceTotalsSection({
 
         {discountType !== "None" ? (
           <div className="flex flex-col gap-1">
-            <label htmlFor={discountValueId} className="text-sm font-medium text-slate-700">
+            <label htmlFor={discountValueId} className="text-sm font-semibold text-ink">
               {discountType === "Percentage" ? "Discount (%)" : "Discount Amount"}
               <span aria-hidden="true"> *</span>
             </label>
@@ -86,12 +86,12 @@ export function InvoiceTotalsSection({
               aria-invalid={discountError ? true : undefined}
               className={
                 discountError
-                  ? "rounded-md border border-red-500 px-3 py-2 text-sm text-slate-950"
-                  : "rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+                  ? "rounded-lg border-[1.5px] border-[#991b1b] bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                  : "rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
               }
             />
             {discountError ? (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm font-semibold text-[#991b1b]">
                 {discountError}
               </p>
             ) : null}
@@ -100,28 +100,28 @@ export function InvoiceTotalsSection({
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt className="text-slate-500">Subtotal</dt>
-        <dd className="text-right text-slate-950">
+        <dt className="text-muted">Subtotal</dt>
+        <dd className="text-right text-ink">
           {currency} {formatCurrency(totals.subtotal)}
         </dd>
         {totals.discountAmount > 0 ? (
           <>
-            <dt className="text-slate-500">Discount</dt>
-            <dd className="text-right text-slate-950">
+            <dt className="text-muted">Discount</dt>
+            <dd className="text-right text-ink">
               -{currency} {formatCurrency(totals.discountAmount)}
             </dd>
           </>
         ) : null}
-        <dt className="text-slate-500">Tax</dt>
-        <dd className="text-right text-slate-950">
+        <dt className="text-muted">Tax</dt>
+        <dd className="text-right text-ink">
           {currency} {formatCurrency(totals.taxAmount)}
         </dd>
-        <dt className="font-semibold text-slate-950">Total</dt>
-        <dd className="text-right font-semibold text-slate-950">
+        <dt className="font-semibold text-ink">Total</dt>
+        <dd className="text-right font-semibold text-ink">
           {currency} {formatCurrency(totals.totalAmount)}
         </dd>
-        <dt className="text-slate-500">Amount Due</dt>
-        <dd className="text-right text-slate-950">
+        <dt className="text-muted">Amount Due</dt>
+        <dd className="text-right text-ink">
           {currency} {formatCurrency(totals.amountDue)}
         </dd>
       </dl>

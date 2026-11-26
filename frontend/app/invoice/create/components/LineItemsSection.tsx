@@ -36,8 +36,8 @@ export function LineItemsSection({
   onRemove,
 }: LineItemsSectionProps) {
   return (
-    <fieldset className="mt-6 border-t border-slate-200 pt-6">
-      <legend className="text-base font-semibold text-slate-950">Items</legend>
+    <fieldset className="mt-6 border-t border-border pt-6">
+      <legend className="font-display text-lg font-bold text-ink">Items</legend>
       <div className="mt-4 flex flex-col gap-4">
         {items.map((item, index) => (
           <LineItemRow
@@ -62,7 +62,7 @@ export function LineItemsSection({
       <button
         type="button"
         onClick={onAdd}
-        className="mt-4 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+        className="mt-4 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
       >
         Add Item
       </button>
