@@ -18,10 +18,10 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section aria-labelledby="how-it-works-heading" className="bg-slate-50 py-20">
+    <section aria-labelledby="how-it-works-heading" className="bg-canvas py-20">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 id="how-it-works-heading" className="text-3xl font-bold tracking-tight text-slate-950">
+          <h2 id="how-it-works-heading" className="text-3xl font-bold tracking-tight text-ink">
             How it works
           </h2>
         </div>
@@ -31,12 +31,12 @@ export function HowItWorksSection() {
             <li key={item.step} className="text-center sm:text-left">
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white sm:mx-0 mx-auto"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-sm font-semibold text-paper sm:mx-0 mx-auto"
               >
                 {item.step}
               </span>
-              <h3 className="mt-4 text-base font-semibold text-slate-950">{item.title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+              <h3 className="mt-4 text-base font-semibold text-ink">{item.title}</h3>
+              <p className="mt-2 text-sm text-muted">{item.description}</p>
             </li>
           ))}
         </ol>

@@ -13,10 +13,10 @@ export function FeatureOverviewSection() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center">
           <div>
-            <h2 id="features-heading" className="text-3xl font-bold tracking-tight text-slate-950">
+            <h2 id="features-heading" className="text-3xl font-bold tracking-tight text-ink">
               Built for how you actually invoice
             </h2>
-            <p className="mt-4 text-lg text-slate-600">
+            <p className="mt-4 text-lg text-muted">
               From your first invoice to your hundredth, the details that matter are handled
               automatically so you can focus on the work.
             </p>
@@ -29,7 +29,7 @@ export function FeatureOverviewSection() {
                   aria-hidden="true"
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="mt-0.5 h-5 w-5 flex-none text-blue-600"
+                  className="mt-0.5 h-5 w-5 flex-none text-ink"
                 >
                   <path
                     fillRule="evenodd"
@@ -37,7 +37,7 @@ export function FeatureOverviewSection() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="text-sm text-slate-700">{feature}</span>
+                <span className="text-sm text-ink">{feature}</span>
               </li>
             ))}
           </ul>

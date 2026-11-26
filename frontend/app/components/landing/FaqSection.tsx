@@ -29,20 +29,20 @@ export function FaqSection() {
   return (
     <section aria-labelledby="faq-heading" className="py-20">
       <div className="mx-auto max-w-3xl px-6">
-        <h2 id="faq-heading" className="text-center text-3xl font-bold tracking-tight text-slate-950">
+        <h2 id="faq-heading" className="text-center text-3xl font-bold tracking-tight text-ink">
           Frequently asked questions
         </h2>
 
-        <div className="mt-12 divide-y divide-slate-200 border-t border-slate-200">
+        <div className="mt-12 divide-y divide-border border-t border-border">
           {faqs.map((faq) => (
             <details key={faq.question} className="group py-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-slate-950 marker:content-none">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-ink marker:content-none">
                 {faq.question}
-                <span aria-hidden="true" className="flex-none text-xl text-slate-400 group-open:rotate-45">
+                <span aria-hidden="true" className="flex-none text-xl text-muted group-open:rotate-45">
                   +
                 </span>
               </summary>
-              <p className="mt-3 text-sm text-slate-600">{faq.answer}</p>
+              <p className="mt-3 text-sm text-muted">{faq.answer}</p>
             </details>
           ))}
         </div>

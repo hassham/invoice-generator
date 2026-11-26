@@ -10,9 +10,9 @@ const footerLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-slate-200">
+    <footer className="border-t border-border">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-10 sm:flex-row sm:justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           &copy; {new Date().getFullYear()} Bevorly. All rights reserved.
         </p>
         <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
@@ -20,7 +20,7 @@ export function SiteFooter() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm text-slate-600 transition-colors hover:text-slate-950"
+              className="text-sm text-muted transition-colors hover:text-ink"
             >
               {link.label}
             </Link>

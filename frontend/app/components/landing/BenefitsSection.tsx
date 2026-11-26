@@ -27,13 +27,13 @@ const benefits = [
 
 export function BenefitsSection() {
   return (
-    <section aria-labelledby="benefits-heading" className="bg-slate-50 py-20">
+    <section aria-labelledby="benefits-heading" className="bg-canvas py-20">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 id="benefits-heading" className="text-3xl font-bold tracking-tight text-slate-950">
+          <h2 id="benefits-heading" className="text-3xl font-bold tracking-tight text-ink">
             Everything you need, nothing you don&apos;t
           </h2>
-          <p className="mt-4 text-lg text-slate-600">
+          <p className="mt-4 text-lg text-muted">
             A billing tool that respects your time, built around how freelancers and small
             businesses actually get paid.
           </p>
@@ -41,10 +41,10 @@ export function BenefitsSection() {
 
         <ul className="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {benefits.map((benefit) => (
-            <li key={benefit.title} className="rounded-2xl border border-slate-200 bg-white p-6">
+            <li key={benefit.title} className="rounded-2xl border border-border bg-paper p-6">
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-lavender text-ink"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                   <path
@@ -54,8 +54,8 @@ export function BenefitsSection() {
                   />
                 </svg>
               </span>
-              <h3 className="mt-4 text-base font-semibold text-slate-950">{benefit.title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{benefit.description}</p>
+              <h3 className="mt-4 text-base font-semibold text-ink">{benefit.title}</h3>
+              <p className="mt-2 text-sm text-muted">{benefit.description}</p>
             </li>
           ))}
         </ul>
