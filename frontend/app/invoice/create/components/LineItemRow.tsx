@@ -62,7 +62,7 @@ export function LineItemRow({
   return (
     <div className="rounded-xl border border-border bg-paper p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink">Item {position}</p>
+        <p className="whitespace-nowrap text-sm font-semibold text-ink">Item {position}</p>
         <div className="flex gap-2">
           <button
             type="button"
