@@ -10,7 +10,7 @@ export default function ReceiptPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-5xl">
+      <main data-section="documents" className="workspace-main workspace-polish max-w-5xl">
         <Suspense fallback={<p role="status" className="workspace-state">Loading receipts…</p>}>
           <ReceiptContent />
         </Suspense>

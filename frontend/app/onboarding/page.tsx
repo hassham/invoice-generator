@@ -12,7 +12,7 @@ export default function OnboardingPage() {
   return (
     <>
       <SiteHeader />
-      <main>
+      <main data-section="operations" className="workspace-polish">
         <OnboardingWizard />
       </main>
       <SiteFooter workspace />

@@ -108,7 +108,7 @@ export function OnboardingWizard() {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return <p role="status" className="workspace-main workspace-state max-w-xl">Loading…</p>;
   }
 
   if (state === "error" || !profile || !values) {
@@ -127,90 +127,97 @@ export function OnboardingWizard() {
 
   return (
     <div className="workspace-main max-w-xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="workspace-heading">Set up your business</h1>
-        <button type="button" onClick={finish} className="text-sm font-medium text-muted hover:underline">
-          Skip onboarding
-        </button>
-      </div>
-      <p className="mt-1 text-sm text-muted">
-        Step {stepIndex + 1} of {ONBOARDING_STEPS.length}: {STEP_LABELS[step]}
-      </p>
-
-      {saveError ? (
-        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {saveError}
+      <div className="workspace-paper">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="workspace-heading">Set up your business</h1>
+          <button type="button" onClick={finish} className="text-sm font-medium text-muted hover:underline">
+            Skip onboarding
+          </button>
+        </div>
+        <p className="mt-1 text-sm text-muted">
+          Step {stepIndex + 1} of {ONBOARDING_STEPS.length}: {STEP_LABELS[step]}
         </p>
-      ) : null}
+        <div className="setup-progress" aria-hidden="true">
+          {ONBOARDING_STEPS.map((item, index) => (
+            <span key={item} data-complete={index < stepIndex} data-current={index === stepIndex} />
+          ))}
+        </div>
 
-      <div className="mt-6">
-        {step === "business-name" ? (
-          <TextField
-            id="onboarding-business-name"
-            label="Business Name"
-            value={values.businessName}
-            onChange={setField("businessName")}
-          />
+        {saveError ? (
+          <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
+            {saveError}
+          </p>
         ) : null}
 
-        {step === "country" ? (
-          <TextField id="onboarding-country" label="Country" value={values.country} onChange={setField("country")} maxLength={2} />
-        ) : null}
-
-        {step === "currency" ? (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="onboarding-currency" className="text-sm font-medium text-ink">
-              Currency
-            </label>
-            <select
-              id="onboarding-currency"
-              value={values.defaultCurrency}
-              onChange={(event) => setField("defaultCurrency")(event.target.value)}
-              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
-            >
-              {CURRENCY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
-
-        {step === "tax" ? (
-          <div className="flex flex-col gap-4">
+        <div className="mt-6">
+          {step === "business-name" ? (
             <TextField
-              id="onboarding-registration-number"
-              label="Registration Number"
-              value={values.registrationNumber}
-              onChange={setField("registrationNumber")}
+              id="onboarding-business-name"
+              label="Business Name"
+              value={values.businessName}
+              onChange={setField("businessName")}
             />
-            <TextField id="onboarding-tax-number" label="Tax Number" value={values.taxNumber} onChange={setField("taxNumber")} />
-          </div>
-        ) : null}
+          ) : null}
 
-        {step === "logo" ? <BusinessLogoUpload businessId={profile.id} logoUrl={profile.logoUrl} onChange={setProfile} /> : null}
-      </div>
+          {step === "country" ? (
+            <TextField id="onboarding-country" label="Country" value={values.country} onChange={setField("country")} maxLength={2} />
+          ) : null}
 
-      <div className="mt-8 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => advance()}
-          disabled={saving}
-          className="workspace-button-primary disabled:opacity-50"
-        >
-          {saving ? "Saving…" : isLastStep ? "Start Creating Invoices" : "Save & Continue"}
-        </button>
-        {!isLastStep ? (
+          {step === "currency" ? (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="onboarding-currency" className="text-sm font-medium text-ink">
+                Currency
+              </label>
+              <select
+                id="onboarding-currency"
+                value={values.defaultCurrency}
+                onChange={(event) => setField("defaultCurrency")(event.target.value)}
+                className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+              >
+                {CURRENCY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
+          {step === "tax" ? (
+            <div className="flex flex-col gap-4">
+              <TextField
+                id="onboarding-registration-number"
+                label="Registration Number"
+                value={values.registrationNumber}
+                onChange={setField("registrationNumber")}
+              />
+              <TextField id="onboarding-tax-number" label="Tax Number" value={values.taxNumber} onChange={setField("taxNumber")} />
+            </div>
+          ) : null}
+
+          {step === "logo" ? <BusinessLogoUpload businessId={profile.id} logoUrl={profile.logoUrl} onChange={setProfile} /> : null}
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => advance({ skip: true })}
+            onClick={() => advance()}
             disabled={saving}
-            className="text-sm font-medium text-muted hover:underline disabled:opacity-50"
+            className="workspace-button-primary disabled:opacity-50"
           >
-            Skip this step
+            {saving ? "Saving…" : isLastStep ? "Start Creating Invoices" : "Save & Continue"}
           </button>
-        ) : null}
+          {!isLastStep ? (
+            <button
+              type="button"
+              onClick={() => advance({ skip: true })}
+              disabled={saving}
+              className="text-sm font-medium text-muted hover:underline disabled:opacity-50"
+            >
+              Skip this step
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

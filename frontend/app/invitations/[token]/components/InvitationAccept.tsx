@@ -58,8 +58,8 @@ export function InvitationAccept({ token }: InvitationAcceptProps) {
 
   if (needsSignIn) {
     return (
-      <section className="space-y-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.signIn.title")}</h1>
+      <section className="workspace-paper space-y-4">
+        <h1 className="workspace-heading">{t("invitation.signIn.title")}</h1>
         <p className="text-sm text-ink">{t("invitation.signIn.body")}</p>
         <div className="flex gap-3">
           <Link href="/login" className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink hover:bg-[#c4ee1a]">
@@ -75,8 +75,8 @@ export function InvitationAccept({ token }: InvitationAcceptProps) {
 
   if (joined && preview) {
     return (
-      <section className="space-y-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.joined.title", { businessName: preview.businessName })}</h1>
+      <section className="workspace-paper space-y-4">
+        <h1 className="workspace-heading">{t("invitation.joined.title", { businessName: preview.businessName })}</h1>
         <p className="text-sm text-ink">{t("invitation.joined.body", { businessName: preview.businessName })}</p>
         <Link href="/dashboard" className="inline-block rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink hover:bg-[#c4ee1a]">
           {t("invitation.joined.dashboard")}
@@ -87,22 +87,22 @@ export function InvitationAccept({ token }: InvitationAcceptProps) {
 
   if (error && !preview) {
     return (
-      <section className="space-y-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.unavailable.title")}</h1>
-        <p role="alert" className="text-sm font-semibold text-[#991b1b]">{error}</p>
+      <section className="workspace-paper space-y-4">
+        <h1 className="workspace-heading">{t("invitation.unavailable.title")}</h1>
+        <p role="alert" className="workspace-state workspace-error">{error}</p>
       </section>
     );
   }
 
   if (!preview) {
-    return <p className="text-sm text-muted">{t("invitation.loading")}</p>;
+    return <p role="status" className="workspace-state">{t("invitation.loading")}</p>;
   }
 
   return (
-    <section className="space-y-4">
-      <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{t("invitation.join.title", { businessName: preview.businessName })}</h1>
+    <section className="workspace-paper space-y-4">
+      <h1 className="workspace-heading">{t("invitation.join.title", { businessName: preview.businessName })}</h1>
       <p className="text-sm text-ink">{t("invitation.join.body", { businessName: preview.businessName })}</p>
-      {error ? <p role="alert" className="text-sm font-semibold text-[#991b1b]">{error}</p> : null}
+      {error ? <p role="alert" className="workspace-state workspace-error">{error}</p> : null}
       <button
         type="button"
         onClick={() => void handleAccept()}

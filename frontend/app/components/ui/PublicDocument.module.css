@@ -1,0 +1,38 @@
+.bar { border-bottom: 1px solid var(--color-ink); background: var(--color-paper); }
+.barInner, .main { max-width: 52rem; margin-inline: auto; padding-inline: clamp(1rem, 4vw, 2rem); }
+.barInner { display: flex; align-items: center; min-height: 3.6rem; }
+.wordmark {
+  display: inline-flex; align-items: center; gap: .45rem; color: var(--color-ink);
+  font: 750 1.25rem var(--font-display); letter-spacing: -.035em;
+}
+.main { padding-block: clamp(1.5rem, 5vw, 3.5rem); }
+.sheet { min-width: 0; border: 1px solid var(--color-ink); border-radius: 1rem; background: var(--color-paper); box-shadow: 0 3px 0 var(--color-ink); }
+.sheetHead {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .65rem .95rem;
+  border-bottom: 1px solid var(--color-ink); border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+  background: var(--color-lavender); padding: clamp(.9rem, 4vw, 1.5rem);
+}
+.sheet[data-kind="estimate"] .sheetHead { background: var(--color-yellow); }
+.merchant { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; overflow-wrap: anywhere; }
+.merchant h1 { font: 750 clamp(1.35rem, 3.5vw, 1.8rem) var(--font-display); }
+.merchant img { max-width: min(10rem, 100%); }
+.body, .policy { min-width: 0; padding: clamp(.95rem, 4vw, 1.6rem); }
+.meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; font-size: .875rem; }
+.meta > div { min-width: 0; overflow-wrap: anywhere; }
+.meta dd { margin-top: .15rem; font-weight: 650; }
+.total { margin-top: 1.3rem; border: 1px solid var(--color-ink); border-radius: .7rem; background: var(--color-mint); padding: .75rem .9rem; overflow-wrap: anywhere; }
+.total p:last-child { margin-top: .2rem; font: 700 clamp(1.25rem, 4vw, 1.7rem) var(--font-mono); }
+.status { border: 1px solid var(--color-ink); border-radius: 99px; background: var(--color-paper); padding: .3rem .65rem; font-size: .75rem; font-weight: 700; }
+.status:is([data-status="Paid"], [data-status="Accepted"]) { background: var(--color-status-paid-bg); color: var(--color-status-paid-fg); }
+.status:is([data-status="Overdue"], [data-status="Declined"]) { background: var(--color-status-overdue-bg); color: var(--color-status-overdue-fg); }
+.notice { margin-block: .75rem; border: 1px solid var(--color-border); border-radius: .7rem; background: var(--color-paper); padding: .7rem .9rem; color: var(--color-ink); font-size: .875rem; overflow-wrap: anywhere; }
+.notice[data-tone="success"] { background: var(--color-status-paid-bg); color: var(--color-status-paid-fg); border-color: currentColor; }
+.notice[data-tone="error"] { background: var(--color-status-overdue-bg); color: var(--color-status-overdue-fg); border-color: currentColor; }
+.notice[data-tone="pending"] { background: var(--color-status-pending-bg); color: var(--color-status-pending-fg); border-color: currentColor; }
+.actions { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: .6rem; }
+.actions > * { min-height: 2.75rem; }
+.policy { border: 1px solid var(--color-ink); border-radius: 1rem; background: var(--color-paper); line-height: 1.6; overflow-wrap: anywhere; }
+.policy h1, .policy h2 { font-family: var(--font-display); }
+@media (min-width: 40rem) { .meta { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 25rem) { .actions > * { flex: 1 0 100%; } }
+.wordmark:focus-visible, .policy a:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 3px; }

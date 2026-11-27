@@ -8,6 +8,13 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Cross-screen branding pass (2026-11-28, Sydney)
+
+- User-requested combined review under IG-329 (In Progress), covering remaining screens from IG-341 and IG-342 and customer links and frontend copy from IG-343/344. Jira was read but not changed. Retained the accepted dashboard, invoice header, recent Business Profile and Team settings, and existing customer and item forms.
+- Extended the shared paper, ink and pastel styling to onboarding, business management, invitations, estimates, purchase orders, receipts, credit notes, recurring schedules, reminders and all report routes. Replaced remaining legacy frontend brand copy and restyled the privacy, terms and not-found pages without changing policy text other than the brand name.
+- Hosted invoice and estimate pages now use a minimal Bevorly header and branded merchant, totals, status and action layout. Preserve noindex/nofollow, bearer-link access, download endpoints, payments and estimate decisions. No changes to API, PDFs or business rules.
+- Local HTTP smoke check passed all 43 page routes plus the expected 404. Hosted route checks used synthetic invalid tokens to verify the page shells and robots metadata, not customer data. Local API and database were healthy. TypeScript, changed-file lint and 32 focused customer-link/onboarding tests passed. Next: signed-in visual check at desktop and phone widths, including an existing invoice or estimate share link. Backend email branding is separate. No production deployment.
+
 ## Settings form branding (2026-11-28, Sydney)
 
 - User-requested Settings-only pass on IG-341 (To Do under IG-329, In Progress, checked 2026-11-28 Sydney). No Jira changes. Onboarding and business management routes are not part of this pass.

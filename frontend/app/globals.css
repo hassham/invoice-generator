@@ -140,3 +140,46 @@ body {
 .record-form-disclosure > summary { cursor:pointer; min-height:2.75rem; border:1px solid var(--color-border); border-radius:.625rem; background:var(--color-canvas); padding:.65rem .75rem; font-size:.875rem; font-weight:700; }
 .record-form-disclosure > summary:focus-visible { outline:2px solid var(--color-ink); outline-offset:2px; }
 .record-form-disclosure > summary span { margin-inline-start:.35rem; color:var(--color-muted); font-size:.75rem; font-weight:500; }
+
+/* Workspace tools follow the same paper, ink and pastel hierarchy as the core screens.
+   Opt in at the route, so established dashboard, Settings and invoice editor styles stay put. */
+.workspace-polish { --workspace-tint: var(--color-lavender); }
+.workspace-polish[data-section="operations"] { --workspace-tint: var(--color-mint); }
+.workspace-polish[data-section="reporting"] { --workspace-tint: var(--color-yellow); }
+.workspace-polish .workspace-heading {
+  display: block; overflow-wrap: anywhere;
+  font-size: clamp(2rem, 5vw, 3rem); font-weight: 800;
+  line-height: 1.1; letter-spacing: -.045em;
+}
+.workspace-polish .workspace-panel,
+.workspace-polish .workspace-table-scroll,
+.workspace-polish .workspace-paper {
+  border: 1px solid var(--color-ink); border-radius: .9rem;
+  background: var(--color-paper); box-shadow: 0 2px 0 var(--color-ink);
+}
+.workspace-polish .workspace-paper { min-width: 0; padding: clamp(.85rem, 3vw, 1.5rem); }
+.workspace-polish .workspace-table-scroll thead { background: var(--workspace-tint); }
+.workspace-polish .workspace-table-scroll th { color: var(--color-ink); }
+.workspace-polish .workspace-tab-active { background: var(--workspace-tint); }
+.workspace-polish .workspace-field:not([type="checkbox"], [type="radio"], [type="file"]) {
+  min-height: 2.75rem; max-width: 100%;
+  border-color: color-mix(in srgb, var(--color-ink) 48%, var(--color-paper));
+  border-radius: .625rem;
+}
+.workspace-polish .workspace-field[aria-invalid="true"] { border-color: var(--color-status-overdue-fg); }
+.workspace-polish .workspace-state:not(.workspace-error) { border-color: var(--color-ink); }
+.workspace-polish .workspace-state[role="status"]:not(.workspace-error) { background: var(--color-paper); }
+.workspace-polish .workspace-panel > [data-panel-heading] {
+  border-bottom: 1px solid var(--color-ink); padding: .9rem clamp(.85rem, 3vw, 1.4rem);
+  border-radius: calc(.9rem - 1px) calc(.9rem - 1px) 0 0; background: var(--workspace-tint);
+}
+.workspace-polish .workspace-panel > [data-panel-heading] > h2 { font-family: var(--font-display); font-weight: 750; }
+.workspace-polish :is(.workspace-paper, .workspace-panel) :where(legend) { font-family: var(--font-display); color: var(--color-ink); }
+.workspace-polish .setup-progress {
+  display: flex; gap: .35rem; margin-top: 1rem; padding: 0;
+}
+.workspace-polish .setup-progress span {
+  flex: 1; height: .45rem; border: 1px solid var(--color-ink); border-radius: 99px; background: var(--color-paper);
+}
+.workspace-polish .setup-progress span[data-complete="true"] { background: var(--color-mint); }
+.workspace-polish .setup-progress span[data-current="true"] { background: var(--color-accent); }

@@ -18,7 +18,7 @@ export default function RevenueByCustomerPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-5xl">
+      <main data-section="reporting" className="workspace-main workspace-polish max-w-5xl">
         <RevenueByCustomerView />
       </main>
       <SiteFooter workspace />

@@ -14,7 +14,7 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-4xl">
+      <main data-section="documents" className="workspace-main workspace-polish max-w-4xl">
         <PurchaseOrderDetail purchaseOrderId={id} />
       </main>
       <SiteFooter workspace />

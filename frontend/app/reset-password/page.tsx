@@ -5,7 +5,7 @@ import { SiteHeader } from "../components/landing/SiteHeader";
 import { ResetPasswordForm } from "./components/ResetPasswordForm";
 
 const title = "Reset Password";
-const description = "Choose a new password for your Invoice App account.";
+const description = "Choose a new password for your Bevorly account.";
 
 export const metadata: Metadata = {
   title,

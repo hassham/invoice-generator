@@ -12,7 +12,7 @@ export default function BusinessesRoute() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-2xl">
+      <main data-section="operations" className="workspace-main workspace-polish max-w-2xl">
         <BusinessesPage />
       </main>
       <SiteFooter workspace />

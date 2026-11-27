@@ -19,7 +19,7 @@ export default function DocumentsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-6xl">
+      <main data-section="documents" className="workspace-main workspace-polish max-w-6xl">
         {/* DocumentListView reads/writes the URL query string via useSearchParams, which the App
             Router requires a Suspense boundary around on a statically-rendered route - same
             reasoning as the invoice list page. */}

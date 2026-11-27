@@ -247,7 +247,7 @@ export function CreatePurchaseOrderForm() {
           event.preventDefault();
           void handleSubmit();
         }}
-        className="mt-6 rounded-lg border border-border p-6"
+        className="workspace-paper mt-6"
       >
         <fieldset>
           <legend className="text-base font-semibold text-ink">Order details</legend>

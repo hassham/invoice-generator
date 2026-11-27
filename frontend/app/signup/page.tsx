@@ -4,7 +4,7 @@ import { SiteHeader } from "../components/landing/SiteHeader";
 import { RegisterForm } from "./components/RegisterForm";
 
 const title = "Sign Up";
-const description = "Create an Invoice App account.";
+const description = "Create a Bevorly account.";
 
 export const metadata: Metadata = {
   title,

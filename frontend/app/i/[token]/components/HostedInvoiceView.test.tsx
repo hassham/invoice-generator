@@ -148,7 +148,7 @@ describe("HostedInvoiceView", () => {
 
     render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/Payment received/);
+    expect(await screen.findByText(/Payment received/)).toHaveAttribute("role", "status");
     expect(mockedConfirmCheckoutSession).toHaveBeenCalledWith("qk6XMgWUVz9KbfJP", "cs_test_1");
     expect(screen.getByText("Paid")).toBeInTheDocument();
     expect(replaceMock).toHaveBeenCalledWith("/i/qk6XMgWUVz9KbfJP");
@@ -160,7 +160,7 @@ describe("HostedInvoiceView", () => {
 
     render(<HostedInvoiceView token="qk6XMgWUVz9KbfJP" />);
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/cancelled/);
+    expect(await screen.findByText(/Payment was cancelled/)).toHaveAttribute("role", "status");
     expect(mockedConfirmCheckoutSession).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Pay Now" })).toBeInTheDocument();
   });

@@ -95,11 +95,13 @@ export function CreditNoteContent() {
     <div>
       <div className="min-w-0">
         <div className="workspace-panel">
-          <div className="p-4 sm:p-7">
+          <header data-panel-heading>
             <h1 className="workspace-heading">Credit Notes</h1>
             <p className="mt-2 text-muted">
               Create and manage credit notes for your invoices.
             </p>
+          </header>
+          <div className="p-4 sm:p-7">
 
             <div className="mt-8">
               <div className="flex flex-wrap gap-2 border-b border-border pb-3">

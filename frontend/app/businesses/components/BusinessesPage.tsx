@@ -86,13 +86,13 @@ export function BusinessesPage() {
           </Link>
         </div>
 
-        <ul className="divide-y divide-border rounded-lg border border-border bg-paper">
+        <ul className="workspace-panel divide-y divide-border">
           {businesses.map((business) => {
             const isSelected = business.id === selectedBusinessId;
             return (
               <li key={business.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium text-ink">
+                <div className="min-w-0 break-words">
+                  <p className="font-semibold text-ink">
                     {business.businessName}
                     {isSelected ? (
                       <span className="ml-2 rounded-full bg-status-paid-bg px-2 py-0.5 text-xs font-medium text-status-paid-fg">
@@ -105,12 +105,12 @@ export function BusinessesPage() {
                     {String(business.nextInvoiceNumber).padStart(business.invoiceNumberPadding, "0")}
                   </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {isSelected ? null : (
                     <button
                       type="button"
                       onClick={() => selectBusiness(business.id)}
-                      className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas"
+                      className="workspace-button-secondary"
                     >
                       Use {business.businessName}
                     </button>
@@ -130,8 +130,8 @@ export function BusinessesPage() {
       </section>
 
       {showCreate ? (
-        <form onSubmit={handleCreate} aria-labelledby="create-business-heading" className="space-y-4 rounded-lg border border-border bg-paper p-6">
-          <h2 id="create-business-heading" className="text-lg font-semibold text-ink">
+        <form onSubmit={handleCreate} aria-labelledby="create-business-heading" className="workspace-paper space-y-4">
+          <h2 id="create-business-heading" className="font-display text-xl font-bold text-ink">
             New business
           </h2>
 
@@ -189,7 +189,7 @@ export function BusinessesPage() {
             </p>
           ) : null}
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={submitting}

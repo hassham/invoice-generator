@@ -15,7 +15,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Invoice App — Free Invoice Generator",
+    default: "Bevorly — Free Invoice Generator",
     template: "%s | BEVORLY",
   },
   description: "Fast, professional invoicing for small businesses.",

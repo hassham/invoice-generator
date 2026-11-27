@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PublicDocumentShell } from "../../components/ui/PublicDocumentShell";
 import { Suspense } from "react";
+import styles from "../../components/ui/PublicDocument.module.css";
 import { HostedInvoiceView } from "./components/HostedInvoiceView";
 
 export const metadata: Metadata = {
@@ -21,20 +22,13 @@ export default async function HostedInvoicePage({ params }: { params: Promise<{ 
   const { token } = await params;
 
   return (
-    <>
-      <header className="border-b border-slate-200 px-6 py-4">
-        <Link href="/" className="text-lg font-bold tracking-tight text-slate-950">
-          Invoice App
-        </Link>
-      </header>
-      <main className="mx-auto max-w-2xl px-6 py-16">
+    <PublicDocumentShell>
         {/* IG-216: HostedInvoiceView reads ?session_id=/?checkout= via useSearchParams
             (next/navigation) - same "missing suspense boundary" requirement as
             BusinessProfileSettings.tsx's own Stripe redirect-back handling. */}
-        <Suspense fallback={<p className="text-sm text-slate-500">Loading invoice…</p>}>
+        <Suspense fallback={<p role="status" className={styles.notice}>Loading invoice…</p>}>
           <HostedInvoiceView token={token} />
         </Suspense>
-      </main>
-    </>
+    </PublicDocumentShell>
   );
 }

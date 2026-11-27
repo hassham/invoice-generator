@@ -4,7 +4,7 @@ import { SiteHeader } from "../components/landing/SiteHeader";
 import { LoginForm } from "./components/LoginForm";
 
 const title = "Log In";
-const description = "Log in to your Invoice App account.";
+const description = "Log in to your Bevorly account.";
 
 export const metadata: Metadata = {
   title,

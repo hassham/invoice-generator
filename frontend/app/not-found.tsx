@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PublicDocumentShell } from "./components/ui/PublicDocumentShell";
+import styles from "./components/ui/PublicDocument.module.css";
 
 export const metadata = {
   title: "Page not found",
@@ -11,18 +13,13 @@ export const metadata = {
  */
 export default function NotFound() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">404</p>
-      <h1 className="text-3xl font-bold text-slate-950">Page not found</h1>
-      <p className="text-base text-slate-600">
-        The page you were looking for doesn&apos;t exist or has moved.
-      </p>
-      <Link
-        href="/"
-        className="mt-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-      >
-        Go to the home page
-      </Link>
-    </main>
+    <PublicDocumentShell>
+      <section className={styles.policy}>
+        <p className="font-mono text-sm font-bold uppercase tracking-widest text-muted">404</p>
+        <h1 className="mt-2 text-3xl font-bold text-ink">Page not found</h1>
+        <p className="mt-2 text-muted">The page you were looking for doesn&apos;t exist or has moved.</p>
+        <Link href="/" className="workspace-button-primary mt-5">Go to the home page</Link>
+      </section>
+    </PublicDocumentShell>
   );
 }

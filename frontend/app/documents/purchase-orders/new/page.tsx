@@ -15,7 +15,7 @@ export default function NewPurchaseOrderPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-4xl">
+      <main data-section="documents" className="workspace-main workspace-polish max-w-4xl">
         <CreatePurchaseOrderForm />
       </main>
       <SiteFooter workspace />

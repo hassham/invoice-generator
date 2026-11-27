@@ -14,7 +14,7 @@ export default async function EstimateDetailPage({ params }: { params: Promise<{
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-4xl">
+      <main data-section="documents" className="workspace-main workspace-polish max-w-4xl">
         <EstimateDetail estimateId={id} />
       </main>
       <SiteFooter workspace />

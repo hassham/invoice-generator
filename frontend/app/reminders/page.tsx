@@ -10,7 +10,7 @@ export default function ReminderPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-5xl">
+      <main data-section="operations" className="workspace-main workspace-polish max-w-5xl">
         <Suspense fallback={<p role="status" className="workspace-state">Loading reminders…</p>}>
           <ReminderContent />
         </Suspense>

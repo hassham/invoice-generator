@@ -69,11 +69,13 @@ export function RecurringScheduleContent() {
     <div>
       <div className="min-w-0">
         <div className="workspace-panel">
-          <div className="p-4 sm:p-7">
+          <header data-panel-heading>
             <h1 className="workspace-heading">Recurring Schedules</h1>
             <p className="mt-2 text-muted">
               Manage recurring invoice schedules for your business.
             </p>
+          </header>
+          <div className="p-4 sm:p-7">
 
             <div className="mt-8">
               <div className="flex flex-wrap gap-2 border-b border-border pb-3">

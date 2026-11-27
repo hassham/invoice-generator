@@ -1,5 +1,7 @@
 "use client";
 
+import styles from "../../../components/ui/PublicDocument.module.css";
+
 import { useEffect, useState } from "react";
 import { acceptEstimate, declineEstimate, getHostedEstimate, hostedEstimatePdfUrl, type HostedEstimate } from "../../lib/hostedEstimate";
 
@@ -49,12 +51,12 @@ export function HostedEstimateView({ token }: HostedEstimateViewProps) {
   }, [token]);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading estimate…</p>;
+    return <p role="status" className={styles.notice}>Loading estimate…</p>;
   }
 
   if (error || !estimate) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <p role="alert" className={styles.notice} data-tone="error">
         {error ?? "This estimate could not be found."}
       </p>
     );
@@ -76,9 +78,9 @@ export function HostedEstimateView({ token }: HostedEstimateViewProps) {
   const canRespond = estimate.status === "Sent";
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <article className={styles.sheet} data-kind="estimate">
+      <header className={styles.sheetHead}>
+        <div className={styles.merchant}>
           {estimate.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -87,75 +89,76 @@ export function HostedEstimateView({ token }: HostedEstimateViewProps) {
               className="h-12 w-auto object-contain"
             />
           ) : null}
-          <p className="text-lg font-semibold text-slate-950">{estimate.businessName}</p>
+          <h1>{estimate.businessName}</h1>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{estimate.status}</span>
-      </div>
+        <span className={styles.status} data-status={estimate.status}>{estimate.status}</span>
+      </header>
+      <div className={styles.body}>
+        <dl className={styles.meta}>
+          <div>
+            <dt className="text-muted">Estimate</dt>
+            <dd>{estimate.estimateNumber}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Issue date</dt>
+            <dd>{estimate.issueDate}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Expiry date</dt>
+            <dd>{estimate.expiryDate}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Total</dt>
+            <dd>{formatCurrency(estimate.totalAmount, estimate.currency)}</dd>
+          </div>
+        </dl>
 
-      <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-        <div>
-          <p className="text-slate-500">Estimate</p>
-          <p className="font-medium text-slate-950">{estimate.estimateNumber}</p>
-        </div>
-        <div>
-          <p className="text-slate-500">Issue date</p>
-          <p className="font-medium text-slate-950">{estimate.issueDate}</p>
-        </div>
-        <div>
-          <p className="text-slate-500">Expiry date</p>
-          <p className="font-medium text-slate-950">{estimate.expiryDate}</p>
-        </div>
-        <div>
-          <p className="text-slate-500">Total</p>
-          <p className="font-medium text-slate-950">{formatCurrency(estimate.totalAmount, estimate.currency)}</p>
-        </div>
-      </div>
-
-      {estimate.status === "Accepted" ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          You accepted this estimate.
-        </p>
-      ) : null}
-      {estimate.status === "Declined" ? (
-        <p role="status" className="mt-6 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          You declined this estimate.
-        </p>
-      ) : null}
-
-      {actionError ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {actionError}
-        </p>
-      ) : null}
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        {canRespond ? (
-          <>
-            <button
-              type="button"
-              onClick={() => handleAction("accept")}
-              disabled={actionPending !== null}
-              className="inline-block rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {actionPending === "accept" ? "Accepting…" : "Accept"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAction("decline")}
-              disabled={actionPending !== null}
-              className="inline-block rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {actionPending === "decline" ? "Declining…" : "Decline"}
-            </button>
-          </>
+        {estimate.status === "Accepted" ? (
+          <p role="status" className={styles.notice} data-tone="success">
+            You accepted this estimate.
+          </p>
         ) : null}
-        <a
-          href={hostedEstimatePdfUrl(token)}
-          className="inline-block rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-        >
-          Download PDF
-        </a>
+        {estimate.status === "Declined" ? (
+          <p role="status" className={styles.notice}>
+            You declined this estimate.
+          </p>
+        ) : null}
+
+        {actionError ? (
+          <p role="alert" className={styles.notice} data-tone="error">
+            {actionError}
+          </p>
+        ) : null}
+
+        <div className={styles.actions}>
+          {canRespond ? (
+            <>
+              <button
+                type="button"
+                onClick={() => handleAction("accept")}
+                disabled={actionPending !== null}
+                className="workspace-button-primary"
+              >
+                {actionPending === "accept" ? "Accepting…" : "Accept"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAction("decline")}
+                disabled={actionPending !== null}
+                className="workspace-button-secondary"
+              >
+                {actionPending === "decline" ? "Declining…" : "Decline"}
+              </button>
+            </>
+          ) : null}
+          <a
+            href={hostedEstimatePdfUrl(token)}
+            className={canRespond ? "workspace-button-secondary" : "workspace-button-primary"}
+          >
+            Download PDF
+          </a>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

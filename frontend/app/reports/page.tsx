@@ -20,7 +20,7 @@ export default function ReportsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-5xl">
+      <main data-section="reporting" className="workspace-main workspace-polish max-w-5xl">
         <Link href="/reports/combined" className="mb-6 inline-block text-sm font-semibold text-ink underline">
           {t("combined.link")}
         </Link>

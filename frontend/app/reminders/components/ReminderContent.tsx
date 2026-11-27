@@ -76,11 +76,13 @@ export function ReminderContent() {
     <div>
       <div className="min-w-0">
         <div className="workspace-panel">
-          <div className="p-4 sm:p-7">
+          <header data-panel-heading>
             <h1 className="workspace-heading">Payment Reminders</h1>
             <p className="mt-2 text-muted">
               Configure automatic payment reminder rules for your invoices.
             </p>
+          </header>
+          <div className="p-4 sm:p-7">
 
             {error && (
               <div className="mt-6 rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg">
@@ -93,7 +95,7 @@ export function ReminderContent() {
                 <p role="status" className="workspace-state">Loading reminder rules...</p>
               ) : rules.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
-                  <p className="text-muted mb-4">No reminder rules configured yet.</p>
+                  <p className="workspace-state mb-4">No reminder rules configured yet.</p>
                   <button
                     onClick={handleInitializeDefaults}
                     className="workspace-button-primary"

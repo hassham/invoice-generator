@@ -342,7 +342,7 @@ export function CreateEstimateEditor() {
         </p>
       ) : null}
       {saveStatus === "error" ? (
-        <p role="alert" className="mt-6 flex items-center justify-between gap-3 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
+        <p role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           <span>{saveError}</span>
           <button type="button" onClick={() => void handleSave()} className="font-semibold underline">
             Retry
@@ -350,7 +350,7 @@ export function CreateEstimateEditor() {
         </p>
       ) : null}
 
-      <div className="mt-6 rounded-lg border border-border p-6">
+      <div className="workspace-paper mt-6">
         <TemplateSelector
           templates={templates}
           selectedTemplateId={editable.templateId}

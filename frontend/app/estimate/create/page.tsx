@@ -17,7 +17,7 @@ export default function CreateEstimatePage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-4xl">
+      <main data-section="documents" className="workspace-main workspace-polish max-w-4xl">
         <h1 className="sr-only">Create an estimate</h1>
         <CreateEstimateEditor />
       </main>
