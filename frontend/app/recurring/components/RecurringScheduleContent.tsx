@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useWorkspaceBusiness } from "../../lib/useWorkspaceBusiness";
 import { CreateRecurringScheduleForm } from "./CreateRecurringScheduleForm";
 import { RecurringScheduleList } from "./RecurringScheduleList";
 import { listRecurringSchedules, RecurringSchedule } from "../../lib/recurring";
@@ -17,8 +18,7 @@ interface Invoice {
 }
 
 export function RecurringScheduleContent() {
-  const searchParams = useSearchParams();
-  const businessId = searchParams.get("businessId") || "";
+  const { businessId, error: businessError } = useWorkspaceBusiness();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
@@ -44,16 +44,21 @@ export function RecurringScheduleContent() {
   }, [businessId]);
 
   const handleSuccess = () => {
+    if (!businessId) return;
     setActiveTab("list");
     listRecurringSchedules(businessId).then(setSchedules).catch(console.error);
   };
 
   if (!businessId) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-paper rounded-lg shadow p-6">
-            <p className="text-red-600">Business context required. Please access through the main app.</p>
+      <div>
+        <div className="min-w-0">
+          <div className="workspace-panel p-6">
+            {businessError ? (
+              <p role="alert" className="workspace-state workspace-error">{businessError} <Link href="/businesses" className="font-semibold underline">Manage businesses</Link></p>
+            ) : (
+              <p role="status" className="text-sm text-muted">Loading your business…</p>
+            )}
           </div>
         </div>
       </div>
@@ -61,33 +66,37 @@ export function RecurringScheduleContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-paper rounded-lg shadow">
-          <div className="px-6 py-8">
-            <h1 className="text-3xl font-bold text-gray-900">Recurring Schedules</h1>
-            <p className="mt-2 text-gray-600">
+    <div>
+      <div className="min-w-0">
+        <div className="workspace-panel">
+          <div className="p-4 sm:p-7">
+            <h1 className="workspace-heading">Recurring Schedules</h1>
+            <p className="mt-2 text-muted">
               Manage recurring invoice schedules for your business.
             </p>
 
             <div className="mt-8">
-              <div className="flex gap-4 border-b">
+              <div className="flex flex-wrap gap-2 border-b border-border pb-3">
                 <button
+                  type="button"
+                  aria-pressed={activeTab === "list"}
                   onClick={() => setActiveTab("list")}
-                  className={`px-4 py-2 font-medium border-b-2 transition ${
+                  className={`workspace-tab ${
                     activeTab === "list"
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-600 hover:text-gray-900"
+                      ? "workspace-tab-active"
+                      : "workspace-tab-idle"
                   }`}
                 >
                   Schedules ({schedules.length})
                 </button>
                 <button
+                  type="button"
+                  aria-pressed={activeTab === "create"}
                   onClick={() => setActiveTab("create")}
-                  className={`px-4 py-2 font-medium border-b-2 transition ${
+                  className={`workspace-tab ${
                     activeTab === "create"
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-600 hover:text-gray-900"
+                      ? "workspace-tab-active"
+                      : "workspace-tab-idle"
                   }`}
                 >
                   Create New
@@ -97,9 +106,9 @@ export function RecurringScheduleContent() {
               {activeTab === "list" && (
                 <div className="mt-6">
                   {loading ? (
-                    <p className="text-gray-500">Loading schedules...</p>
+                    <p role="status" className="workspace-state">Loading schedules...</p>
                   ) : schedules.length === 0 ? (
-                    <p className="text-gray-500">No recurring schedules yet.</p>
+                    <p className="workspace-state">No recurring schedules yet.</p>
                   ) : (
                     <RecurringScheduleList
                       businessId={businessId}

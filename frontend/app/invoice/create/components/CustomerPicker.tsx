@@ -43,7 +43,7 @@ export function CustomerPicker({ customers, onSelect }: CustomerPickerProps) {
         }
       }}
     >
-      <label htmlFor="customer-picker-search" className="text-sm font-medium text-slate-700">
+      <label htmlFor="customer-picker-search" className="text-sm font-medium text-ink">
         Search saved customers
       </label>
       <input
@@ -56,12 +56,12 @@ export function CustomerPicker({ customers, onSelect }: CustomerPickerProps) {
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="Start typing a customer name…"
-        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+        className="workspace-field mt-1 w-full rounded-md border border-border px-3 py-2 text-sm text-ink"
       />
       {showDropdown ? (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-slate-200 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-paper shadow-lg">
           {matches.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-500">No matching customers.</p>
+            <p className="px-3 py-2 text-sm text-muted">No matching customers.</p>
           ) : (
             <ul>
               {matches.map((customer) => (
@@ -73,10 +73,10 @@ export function CustomerPicker({ customers, onSelect }: CustomerPickerProps) {
                     // for keyboard activation (Enter/Space), not just a mouse click.
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleSelect(customer)}
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas"
                   >
-                    <span className="font-medium text-slate-950">{customerDisplayName(customer)}</span>
-                    {customerDisplayContact(customer) ? <span className="ml-2 text-slate-500">{customerDisplayContact(customer)}</span> : null}
+                    <span className="font-medium text-ink">{customerDisplayName(customer)}</span>
+                    {customerDisplayContact(customer) ? <span className="ml-2 text-muted">{customerDisplayContact(customer)}</span> : null}
                   </button>
                 </li>
               ))}

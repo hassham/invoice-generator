@@ -8,6 +8,14 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Interior workspace theme pass (2026-11-27)
+
+- Scope: IG-329 with its interior subtasks IG-339 to IG-342. Read Jira; did not change it. Customer-facing token links under IG-343 and the separate app-name sweep under IG-344 are not covered by this pass.
+- Replaced old colours, headings, and page spacing across documents, customers, items, templates, settings, businesses, onboarding, reports, recurring and reminders. Shared workspace styles cover actions, field focus, scrollable financial tables, tabs and state panels. Also treated remaining invoice editor picker controls without changing document preview colours.
+- Receipts, credit notes, recurring and reminders now use the main workspace header and footer. Recurring and reminders resolve the selected or default business from normal navigation while preserving explicit deep links. Added regression tests for that resolution. No change to calculations, payment processing, PDFs or the marketing homepage.
+- Verification: frontend lint, TypeScript and production build passed. Full frontend run passed 729 tests; 13 files could not start workers under local load, then all passed in a 16-file, 114-test replay. Backend Release passed 741 tests; Debug output was in use by the running dev API. Confirmed the new CSS and representative prerendered route shells.
+- Verify representative pages with a signed-in local session on desktop and at 390px; the initial connected Chrome check only exposed the logged-out state. Keep actual device QA as a separate launch requirement.
+
 ## BEVORLY redesign ownership (2026-11-26)
 
 - Reviewed IG-326 through IG-330 and the completed auth/editor subtasks IG-337 and IG-338. No Jira mutations. Retained the existing brand mark, fonts, auth and editor work.

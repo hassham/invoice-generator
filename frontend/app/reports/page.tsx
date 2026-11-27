@@ -20,8 +20,8 @@ export default function ReportsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-6 py-16">
-        <Link href="/reports/combined" className="mb-6 inline-block text-sm font-semibold text-slate-700 underline">
+      <main className="workspace-main max-w-5xl">
+        <Link href="/reports/combined" className="mb-6 inline-block text-sm font-semibold text-ink underline">
           {t("combined.link")}
         </Link>
         <RevenueReportView />

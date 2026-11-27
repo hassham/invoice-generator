@@ -39,13 +39,13 @@ export function EstimateEmailHistorySection({ estimateId }: EstimateEmailHistory
       <legend className="text-base font-semibold text-ink">Email History</legend>
 
       {loadError ? (
-        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {loadError}
         </p>
       ) : null}
 
       {history.length > 0 ? (
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 workspace-table-scroll">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border text-muted">
@@ -57,16 +57,16 @@ export function EstimateEmailHistorySection({ estimateId }: EstimateEmailHistory
             </thead>
             <tbody>
               {history.map((entry) => (
-                <tr key={entry.id} className="border-b border-slate-100">
+                <tr key={entry.id} className="border-b border-border">
                   <td className="py-2 pr-4 text-ink">{formatDateTime(entry.sentAt)}</td>
-                  <td className="py-2 pr-4 text-slate-700">{[...entry.to, ...entry.cc].join(", ")}</td>
-                  <td className="py-2 pr-4 text-slate-700">{entry.subject}</td>
+                  <td className="py-2 pr-4 text-ink">{[...entry.to, ...entry.cc].join(", ")}</td>
+                  <td className="py-2 pr-4 text-ink">{entry.subject}</td>
                   <td className="py-2 pr-4">
                     <span
                       className={
                         entry.status === "Sent"
-                          ? "rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700"
-                          : "rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700"
+                          ? "rounded-full bg-status-paid-bg px-3 py-1 text-xs font-semibold text-status-paid-fg"
+                          : "rounded-full bg-status-overdue-bg px-3 py-1 text-xs font-semibold text-status-overdue-fg"
                       }
                     >
                       {entry.status}

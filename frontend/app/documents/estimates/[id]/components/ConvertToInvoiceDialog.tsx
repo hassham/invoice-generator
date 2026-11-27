@@ -36,7 +36,7 @@ export function ConvertToInvoiceDialog({ estimateId, estimateNumber, onClose }: 
           This will create a new invoice from estimate <strong>{estimateNumber}</strong>. The estimate will be marked as converted.
         </p>
         {error ? (
-          <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-3 py-2 text-sm text-status-overdue-fg">
             {error}
           </p>
         ) : null}
@@ -45,7 +45,7 @@ export function ConvertToInvoiceDialog({ estimateId, estimateNumber, onClose }: 
             type="button"
             onClick={onClose}
             disabled={converting}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             Cancel
           </button>
@@ -53,7 +53,7 @@ export function ConvertToInvoiceDialog({ estimateId, estimateNumber, onClose }: 
             type="button"
             onClick={() => void handleConfirm()}
             disabled={converting}
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="workspace-button-primary disabled:opacity-50"
           >
             {converting ? "Converting…" : "Convert"}
           </button>

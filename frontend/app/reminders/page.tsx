@@ -1,18 +1,21 @@
-"use client";
-
+import type { Metadata } from "next";
 import { Suspense } from "react";
+import { SiteHeader } from "../components/landing/SiteHeader";
+import { SiteFooter } from "../components/landing/SiteFooter";
 import { ReminderContent } from "./components/ReminderContent";
 
-export default function RemindersPage() {
+export const metadata: Metadata = { title: "Payment reminders" };
+
+export default function ReminderPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-50 py-12 px-4 flex items-center justify-center">
-          <p className="text-gray-500">Loading reminders...</p>
-        </div>
-      }
-    >
-      <ReminderContent />
-    </Suspense>
+    <>
+      <SiteHeader />
+      <main className="workspace-main max-w-5xl">
+        <Suspense fallback={<p role="status" className="workspace-state">Loading reminders…</p>}>
+          <ReminderContent />
+        </Suspense>
+      </main>
+      <SiteFooter workspace />
+    </>
   );
 }

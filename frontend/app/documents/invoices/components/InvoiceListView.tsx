@@ -191,7 +191,7 @@ export function InvoiceListView() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Invoice number, reference or customer…"
-            className="rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            className="workspace-field rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           />
         </div>
         <Button type="submit" variant="secondary">
@@ -206,7 +206,7 @@ export function InvoiceListView() {
             id="invoice-status-filter"
             value={status}
             onChange={(event) => navigate({ status: event.target.value || undefined, page: "1" })}
-            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="">All statuses</option>
             {INVOICE_STATUS_FILTER_OPTIONS.map((option) => (
@@ -225,7 +225,7 @@ export function InvoiceListView() {
             id="invoice-customer-filter"
             value={customerId}
             onChange={(event) => navigate({ customerId: event.target.value || undefined, page: "1" })}
-            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="">All customers</option>
             {customers.map((customer) => (
@@ -244,7 +244,7 @@ export function InvoiceListView() {
             id="invoice-date-filter"
             value={datePreset}
             onChange={(event) => navigate({ datePreset: event.target.value === "All" ? undefined : event.target.value, startDate: undefined, endDate: undefined, page: "1" })}
-            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             <option value="All">All time</option>
             {DATE_PRESETS.filter((preset) => preset !== "All").map((preset) => (
@@ -266,7 +266,7 @@ export function InvoiceListView() {
                 type="date"
                 value={customStart}
                 onChange={(event) => navigate({ startDate: event.target.value || undefined, page: "1" })}
-                className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -278,7 +278,7 @@ export function InvoiceListView() {
                 type="date"
                 value={customEnd}
                 onChange={(event) => navigate({ endDate: event.target.value || undefined, page: "1" })}
-                className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
               />
             </div>
           </>
@@ -292,7 +292,7 @@ export function InvoiceListView() {
             id="invoice-sort"
             value={sort}
             onChange={(event) => navigate({ sort: event.target.value === DEFAULT_SORT ? undefined : event.target.value })}
-            className="rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
           >
             {INVOICE_SORT_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -367,7 +367,7 @@ export function InvoiceListView() {
                 id="invoice-page-size"
                 value={pageSize}
                 onChange={(event) => navigate({ pageSize: event.target.value, page: "1" })}
-                className="rounded-lg border border-border bg-paper px-2 py-1 font-sans text-sm text-ink"
+                className="workspace-field rounded-lg border border-border bg-paper px-2 py-1 font-sans text-sm text-ink"
               >
                 {PAGE_SIZE_OPTIONS.map((option) => (
                   <option key={option} value={option}>

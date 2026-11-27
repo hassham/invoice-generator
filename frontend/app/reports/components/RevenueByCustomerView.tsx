@@ -68,33 +68,33 @@ export function RevenueByCustomerView() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500">{t("reports.byCustomer.loading")}</div>;
+    return <div role="status" className="workspace-state">{t("reports.byCustomer.loading")}</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{t("reports.error.display", { message: error })}</div>;
+    return <div role="alert" className="workspace-state workspace-error">{t("reports.error.display", { message: error })}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("reports.byCustomer.title")}</h1>
-          <p className="text-sm text-gray-600 mt-1">{t("reports.byCustomer.description")}</p>
+          <h1 className="workspace-heading">{t("reports.byCustomer.title")}</h1>
+          <p className="text-sm text-muted mt-1">{t("reports.byCustomer.description")}</p>
         </div>
         {customers.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+              className="workspace-button-secondary"
             >
               {exporting ? t("reports.export.busy") : t("reports.export.csv")}
             </button>
             <button
               onClick={handleExportPdf}
               disabled={exportingPdf}
-              className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+              className="workspace-button-secondary"
             >
               {exportingPdf ? t("reports.export.busy") : t("reports.export.pdf")}
             </button>
@@ -103,22 +103,22 @@ export function RevenueByCustomerView() {
       </div>
 
       {customers.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">{t("reports.byCustomer.empty")}</div>
+        <div className="text-center py-8 text-muted">{t("reports.byCustomer.empty")}</div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div role="region" aria-label="Revenue by customer" tabIndex={0} className="workspace-table-scroll">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.customer")}</th>
-                  <th className="text-right py-3 px-4 font-semibold text-gray-900">{t("reports.column.revenue")}</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 font-semibold text-ink">{t("reports.column.customer")}</th>
+                  <th className="text-right tabular-nums py-3 px-4 font-semibold text-ink">{t("reports.column.revenue")}</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map((customer) => (
-                  <tr key={customer.customerId} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900">{customer.customerName}</td>
-                    <td className="py-3 px-4 text-right font-medium text-gray-900">
+                  <tr key={customer.customerId} className="border-b border-border hover:bg-canvas">
+                    <td className="py-3 px-4 text-ink">{customer.customerName}</td>
+                    <td className="py-3 px-4 text-right tabular-nums font-medium text-ink">
                       {formatCurrency(customer.revenue, customer.currency)}
                     </td>
                   </tr>
@@ -127,8 +127,8 @@ export function RevenueByCustomerView() {
             </table>
           </div>
 
-          <div className="pt-4 border-t border-gray-300">
-            <div className="flex justify-between font-semibold text-gray-900">
+          <div className="pt-4 border-t border-border">
+            <div className="flex justify-between font-semibold text-ink">
               <span>{t("reports.byCustomer.total")}</span>
               <span>{formatCurrency(totalRevenue, customers[0]?.currency || "USD")}</span>
             </div>

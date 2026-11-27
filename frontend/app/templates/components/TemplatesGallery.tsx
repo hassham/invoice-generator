@@ -24,12 +24,12 @@ function TemplateMockup({ templateCode }: { templateCode: string }) {
         <div className={`h-2 w-16 rounded-full ${headerBarClass}`} />
       </div>
       <div className="space-y-2 p-4">
-        <div className="h-2 w-3/4 rounded-full bg-slate-200" />
-        <div className="h-2 w-1/2 rounded-full bg-slate-200" />
+        <div className="h-2 w-3/4 rounded-full bg-status-draft-bg" />
+        <div className="h-2 w-1/2 rounded-full bg-status-draft-bg" />
         <div className="mt-4 space-y-1.5">
-          <div className="h-1.5 w-full rounded-full bg-slate-100" />
-          <div className="h-1.5 w-full rounded-full bg-slate-100" />
-          <div className="h-1.5 w-2/3 rounded-full bg-slate-100" />
+          <div className="h-1.5 w-full rounded-full bg-status-draft-bg" />
+          <div className="h-1.5 w-full rounded-full bg-status-draft-bg" />
+          <div className="h-1.5 w-2/3 rounded-full bg-status-draft-bg" />
         </div>
       </div>
     </div>
@@ -74,12 +74,12 @@ export function TemplatesGallery() {
   }, []);
 
   if (loading) {
-    return <p className="mt-8 text-sm text-slate-500">Loading templates…</p>;
+    return <p className="mt-8 text-sm text-muted">Loading templates…</p>;
   }
 
   if (error) {
     return (
-      <p role="alert" className="mt-8 text-sm text-red-600">
+      <p role="alert" className="mt-8 text-sm text-status-overdue-fg">
         {error}
       </p>
     );
@@ -99,7 +99,7 @@ export function TemplatesGallery() {
                 className={
                   template.isPremium
                     ? "rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white"
-                    : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-muted"
+                    : "rounded-full bg-status-draft-bg px-2 py-0.5 text-xs font-semibold text-muted"
                 }
               >
                 {template.isPremium ? "Pro" : "Free"}
@@ -110,7 +110,7 @@ export function TemplatesGallery() {
               <button
                 type="button"
                 onClick={() => setPreviewTemplate(template)}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-canvas"
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
               >
                 Preview
               </button>
@@ -118,14 +118,14 @@ export function TemplatesGallery() {
                 <button
                   type="button"
                   onClick={() => setBlockedTemplateId(template.id)}
-                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white opacity-50"
+                  className="workspace-button-primary opacity-50"
                 >
                   Use Template
                 </button>
               ) : (
                 <Link
                   href={`/invoice/create?template=${encodeURIComponent(template.templateCode)}`}
-                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                  className="workspace-button-primary"
                 >
                   Use Template
                 </Link>
@@ -133,7 +133,7 @@ export function TemplatesGallery() {
             </div>
 
             {blockedTemplateId === template.id ? (
-              <p role="alert" className="mt-2 text-sm text-slate-700">
+              <p role="alert" className="mt-2 text-sm text-ink">
                 Upgrade to Pro to use this template.
               </p>
             ) : null}

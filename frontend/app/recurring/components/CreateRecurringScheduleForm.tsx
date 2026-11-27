@@ -89,14 +89,14 @@ export function CreateRecurringScheduleForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div>
-        <label htmlFor="customer" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="customer" className="block text-sm font-medium text-ink">
           Customer *
         </label>
         <select
           id="customer"
           value={customerId}
           onChange={(e) => setCustomerId(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
           required
         >
           <option value="">Select a customer</option>
@@ -109,14 +109,14 @@ export function CreateRecurringScheduleForm({
       </div>
 
       <div>
-        <label htmlFor="template" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="template" className="block text-sm font-medium text-ink">
           Invoice Template *
         </label>
         <select
           id="template"
           value={invoiceTemplateId}
           onChange={(e) => setInvoiceTemplateId(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
           required
         >
           <option value="">Select an invoice template</option>
@@ -129,14 +129,14 @@ export function CreateRecurringScheduleForm({
       </div>
 
       <div>
-        <label htmlFor="frequency" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="frequency" className="block text-sm font-medium text-ink">
           Frequency *
         </label>
         <select
           id="frequency"
           value={frequency}
           onChange={(e) => setFrequency(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
         >
           {FREQUENCIES.map((f) => (
             <option key={f} value={f}>
@@ -148,7 +148,7 @@ export function CreateRecurringScheduleForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="startDate" className="block text-sm font-medium text-gray-900">
+          <label htmlFor="startDate" className="block text-sm font-medium text-ink">
             Start Date *
           </label>
           <input
@@ -156,13 +156,13 @@ export function CreateRecurringScheduleForm({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="endDate" className="block text-sm font-medium text-gray-900">
+          <label htmlFor="endDate" className="block text-sm font-medium text-ink">
             End Date (Optional)
           </label>
           <input
@@ -170,7 +170,7 @@ export function CreateRecurringScheduleForm({
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
           />
         </div>
       </div>
@@ -181,17 +181,17 @@ export function CreateRecurringScheduleForm({
           type="checkbox"
           checked={autoSend}
           onChange={(e) => setAutoSend(e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          className="workspace-field h-4 w-4 text-ink focus:ring-ink border-border rounded"
         />
-        <label htmlFor="autoSend" className="ml-2 block text-sm text-gray-900">
+        <label htmlFor="autoSend" className="ml-2 block text-sm text-ink">
           Automatically send invoice when generated
         </label>
       </div>
 
-      {error && <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">{error}</div>}
+      {error && <div className="rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg">{error}</div>}
 
       {success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">
+        <div className="rounded-md bg-status-paid-bg/65 p-4 text-sm text-status-paid-fg">
           Recurring schedule created successfully!
         </div>
       )}
@@ -199,7 +199,7 @@ export function CreateRecurringScheduleForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400"
+        className="workspace-button-primary w-full"
       >
         {loading ? "Creating..." : "Create Recurring Schedule"}
       </button>

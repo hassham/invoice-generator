@@ -54,33 +54,34 @@ export function CustomerListView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Customers</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="workspace-heading">Customers</h1>
         <Link
           href="/customers/new"
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+          className="workspace-button-primary"
         >
           Add customer
         </Link>
       </div>
 
       {error ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
 
-      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading customers…</p> : null}
+      {state === "loading" ? <p role="status" className="workspace-state mt-6">Loading customers…</p> : null}
 
       {state === "loaded" && customers.length === 0 ? (
-        <p className="mt-6 text-sm text-muted">
+        <p className="workspace-state mt-6">
           No customers yet. <Link href="/customers/new" className="font-medium text-ink hover:underline">Add your first customer</Link>.
         </p>
       ) : null}
 
       {state === "loaded" && customers.length > 0 ? (
-        <div className="mt-6 overflow-x-auto">
+        <div role="region" aria-label="Customers" tabIndex={0} className="mt-6 workspace-table-scroll">
           <table className="w-full text-left text-sm">
+            <caption className="sr-only">Customers</caption>
             <thead>
               <tr className="border-b border-border text-muted">
                 <th className="py-2 pr-4 font-medium">Customer Name</th>
@@ -92,11 +93,11 @@ export function CustomerListView() {
             </thead>
             <tbody>
               {customers.map((customer) => (
-                <tr key={customer.id} className="border-b border-slate-100">
+                <tr key={customer.id} className="border-b border-border">
                   <td className="py-2 pr-4 text-ink">{displayName(customer)}</td>
-                  <td className="py-2 pr-4 text-slate-700">{displayContact(customer)}</td>
-                  <td className="py-2 pr-4 text-slate-700">{customer.email ?? "—"}</td>
-                  <td className="py-2 pr-4 text-slate-700">{customer.phone ?? "—"}</td>
+                  <td className="py-2 pr-4 text-ink">{displayContact(customer)}</td>
+                  <td className="py-2 pr-4 text-ink">{customer.email ?? "—"}</td>
+                  <td className="py-2 pr-4 text-ink">{customer.phone ?? "—"}</td>
                   <td className="py-2 pr-4">
                     <div className="flex items-center gap-3">
                       <Link href={`/customers/${customer.id}`} className="font-medium text-ink hover:underline">
@@ -106,7 +107,7 @@ export function CustomerListView() {
                         type="button"
                         onClick={() => handleArchive(customer.id)}
                         disabled={archivingId === customer.id}
-                        className="font-medium text-red-700 hover:underline disabled:opacity-50"
+                        className="font-medium text-status-overdue-fg hover:underline disabled:opacity-50"
                       >
                         {archivingId === customer.id ? "Archiving…" : "Archive"}
                       </button>

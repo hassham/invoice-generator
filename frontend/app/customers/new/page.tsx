@@ -18,9 +18,10 @@ export default function NewCustomerPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-bold text-ink">New customer</h1>
-        <div className="mt-6">
+      <main className="workspace-main max-w-2xl">
+        <h1 className="workspace-heading">New customer</h1>
+        <p className="mt-2 text-sm text-muted">Save this customer so you can reuse the details in future invoices.</p>
+        <div className="workspace-panel mt-6 p-4 sm:p-6">
           <CreateCustomerForm />
         </div>
       </main>

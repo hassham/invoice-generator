@@ -14,7 +14,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-xl px-6 py-16">
+      <main className="workspace-main max-w-xl">
         <InvitationAccept token={token} />
       </main>
       <SiteFooter />

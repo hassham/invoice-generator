@@ -113,7 +113,7 @@ export function TeamSettings() {
   };
 
   if (loadError) {
-    return <p role="alert" className="text-sm text-red-700">{loadError}</p>;
+    return <p role="alert" className="text-sm text-status-overdue-fg">{loadError}</p>;
   }
 
   if (!team) {
@@ -123,30 +123,30 @@ export function TeamSettings() {
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-bold text-ink">{t("team.title")}</h1>
+        <h1 className="workspace-heading">{t("team.title")}</h1>
         <p className="mt-2 text-sm text-muted">{t("team.intro")}</p>
       </header>
 
-      {notice ? <p role="status" className="text-sm text-emerald-700">{notice}</p> : null}
-      {formError ? <p role="alert" className="text-sm text-red-700">{formError}</p> : null}
+      {notice ? <p role="status" className="text-sm text-status-paid-fg">{notice}</p> : null}
+      {formError ? <p role="alert" className="text-sm text-status-overdue-fg">{formError}</p> : null}
 
       <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="flex-1 text-sm font-medium text-slate-700">
+        <label className="flex-1 text-sm font-medium text-ink">
           {t("team.invite.emailLabel")}
           <input
             type="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="workspace-field mt-1 block w-full rounded-lg border border-border px-3 py-2 text-sm"
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           {t("team.invite.roleLabel")}
           <select
             value={inviteRole}
             onChange={(event) => setInviteRole(event.target.value as BusinessRole)}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="workspace-field mt-1 block w-full rounded-lg border border-border px-3 py-2 text-sm"
           >
             <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
             <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
@@ -155,7 +155,7 @@ export function TeamSettings() {
         <button
           type="submit"
           disabled={submitting || email.trim().length === 0}
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="workspace-button-primary disabled:opacity-50"
         >
           {submitting ? t("team.invite.submitting") : t("team.invite.submit")}
         </button>
@@ -166,7 +166,7 @@ export function TeamSettings() {
         {team.pendingInvitations.length === 0 ? (
           <p className="mt-2 text-sm text-muted">{t("team.pending.empty")}</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-200">
+          <ul className="mt-3 divide-y divide-border">
             {team.pendingInvitations.map((invitation) => (
               <li key={invitation.id} className="flex items-center justify-between gap-4 py-3">
                 <div>
@@ -182,7 +182,7 @@ export function TeamSettings() {
                   type="button"
                   onClick={() => void handleCancelInvitation(invitation.id)}
                   disabled={busyId === invitation.id}
-                  className="rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+                  className="rounded-full border border-border px-3 py-1 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
                 >
                   {t("team.pending.cancel")}
                 </button>
@@ -197,7 +197,7 @@ export function TeamSettings() {
         {team.members.length === 0 ? (
           <p className="mt-2 text-sm text-muted">{t("team.members.empty")}</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-200">
+          <ul className="mt-3 divide-y divide-border">
             {team.members.map((member) => (
               <li key={member.id} className="flex flex-wrap items-center justify-between gap-4 py-3">
                 <div>
@@ -205,13 +205,13 @@ export function TeamSettings() {
                   <p className="text-xs text-muted">{t("team.members.joined", { date: new Date(member.joinedAt).toLocaleDateString() })}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <label className="text-sm text-slate-700">
+                  <label className="text-sm text-ink">
                     <span className="sr-only">{t("team.members.roleFor", { email: member.email })}</span>
                     <select
                       value={member.role}
                       disabled={busyId === member.id}
                       onChange={(event) => void handleRoleChange(member.id, event.target.value as BusinessRole)}
-                      className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      className="workspace-field rounded-lg border border-border px-2 py-1 text-sm"
                     >
                       <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
                       <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
@@ -221,7 +221,7 @@ export function TeamSettings() {
                     type="button"
                     onClick={() => void handleRemoveMember(member.id)}
                     disabled={busyId === member.id}
-                    className="rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    className="rounded-full border border-status-overdue-fg/25 px-3 py-1 text-sm font-semibold text-status-overdue-fg hover:bg-status-overdue-bg/55 disabled:opacity-50"
                   >
                     {t("team.members.remove")}
                   </button>

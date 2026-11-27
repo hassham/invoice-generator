@@ -32,12 +32,12 @@ function formatCurrency(amount: number, currency: string): string {
   return `${currency} ${amount.toFixed(2)}`;
 }
 
-const textAreaClass = "rounded-md border border-slate-300 px-3 py-2 text-sm text-ink";
+const textAreaClass = "rounded-md border border-border px-3 py-2 text-sm text-ink";
 
 function fieldClass(hasError: boolean): string {
   return hasError
     ? "rounded-md border border-red-500 px-3 py-2 text-sm text-ink"
-    : "rounded-md border border-slate-300 px-3 py-2 text-sm text-ink";
+    : "rounded-md border border-border px-3 py-2 text-sm text-ink";
 }
 
 /**
@@ -99,10 +99,10 @@ export function CreatePurchaseOrderForm() {
   if (loadError) {
     return (
       <div>
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {loadError}
         </p>
-        <Link href="/documents/purchase-orders" className="mt-4 inline-block text-sm text-slate-700 hover:underline">
+        <Link href="/documents/purchase-orders" className="mt-4 inline-block text-sm text-ink hover:underline">
           Back to purchase orders
         </Link>
       </div>
@@ -206,15 +206,15 @@ export function CreatePurchaseOrderForm() {
 
   return (
     <div>
-      <Link href="/documents/purchase-orders" className="text-sm text-slate-700 hover:underline">
+      <Link href="/documents/purchase-orders" className="text-sm text-ink hover:underline">
         Back to purchase orders
       </Link>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+        <span className="rounded-full bg-status-pending-bg px-3 py-1 text-xs font-semibold text-status-pending-fg">
           Purchase Order
         </span>
-        <h1 className="text-2xl font-bold text-ink">New Purchase Order</h1>
+        <h1 className="workspace-heading">New Purchase Order</h1>
       </div>
       <p className="mt-2 text-sm text-muted">
         An order you are placing with a supplier. It gets its own numbering sequence, separate from
@@ -222,7 +222,7 @@ export function CreatePurchaseOrderForm() {
       </p>
 
       {suppliers.length === 0 ? (
-        <p role="alert" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p role="alert" className="mt-6 rounded-md border border-status-pending-fg/25 bg-status-pending-bg/60 px-4 py-3 text-sm text-status-pending-fg">
           You need at least one saved supplier before you can raise a purchase order. Suppliers are
           kept with your customer records.{" "}
           <Link href="/customers/new" className="font-semibold underline">
@@ -233,7 +233,7 @@ export function CreatePurchaseOrderForm() {
       ) : null}
 
       {submitError ? (
-        <p role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           <span>{submitError}</span>
           <button type="button" onClick={() => void handleSubmit()} className="font-semibold underline">
             Retry
@@ -254,7 +254,7 @@ export function CreatePurchaseOrderForm() {
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-supplier" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-supplier" className="text-sm font-medium text-ink">
                 Supplier<span aria-hidden="true"> *</span>
               </label>
               <select
@@ -276,14 +276,14 @@ export function CreatePurchaseOrderForm() {
                 ))}
               </select>
               {draftErrors.supplierId ? (
-                <p id="po-supplier-error" role="alert" className="text-sm text-red-600">
+                <p id="po-supplier-error" role="alert" className="text-sm text-status-overdue-fg">
                   {draftErrors.supplierId}
                 </p>
               ) : null}
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-currency" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-currency" className="text-sm font-medium text-ink">
                 Currency<span aria-hidden="true"> *</span>
               </label>
               <select
@@ -302,7 +302,7 @@ export function CreatePurchaseOrderForm() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-issue-date" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-issue-date" className="text-sm font-medium text-ink">
                 Issue date<span aria-hidden="true"> *</span>
               </label>
               <input
@@ -317,14 +317,14 @@ export function CreatePurchaseOrderForm() {
                 className={fieldClass(Boolean(draftErrors.issueDate))}
               />
               {draftErrors.issueDate ? (
-                <p id="po-issue-date-error" role="alert" className="text-sm text-red-600">
+                <p id="po-issue-date-error" role="alert" className="text-sm text-status-overdue-fg">
                   {draftErrors.issueDate}
                 </p>
               ) : null}
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-due-date" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-due-date" className="text-sm font-medium text-ink">
                 Required by<span aria-hidden="true"> *</span>
               </label>
               <input
@@ -339,14 +339,14 @@ export function CreatePurchaseOrderForm() {
                 className={fieldClass(Boolean(draftErrors.dueDate))}
               />
               {draftErrors.dueDate ? (
-                <p id="po-due-date-error" role="alert" className="text-sm text-red-600">
+                <p id="po-due-date-error" role="alert" className="text-sm text-status-overdue-fg">
                   {draftErrors.dueDate}
                 </p>
               ) : null}
             </div>
 
             <div className="flex flex-col gap-1 sm:col-span-2">
-              <label htmlFor="po-reference" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-reference" className="text-sm font-medium text-ink">
                 Reference
               </label>
               <input
@@ -388,7 +388,7 @@ export function CreatePurchaseOrderForm() {
               <dd className="text-ink">{formatCurrency(totals.total, draft.currency)}</dd>
             </div>
           </dl>
-          <p className="mt-2 text-right text-xs text-slate-500">
+          <p className="mt-2 text-right text-xs text-muted">
             Preview only — these are recalculated when the order is created.
           </p>
         </div>
@@ -398,7 +398,7 @@ export function CreatePurchaseOrderForm() {
 
           <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-delivery-instructions" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-delivery-instructions" className="text-sm font-medium text-ink">
                 Delivery instructions
               </label>
               <textarea
@@ -412,7 +412,7 @@ export function CreatePurchaseOrderForm() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-terms" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-terms" className="text-sm font-medium text-ink">
                 Terms
               </label>
               <textarea
@@ -426,7 +426,7 @@ export function CreatePurchaseOrderForm() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="po-notes" className="text-sm font-medium text-slate-700">
+              <label htmlFor="po-notes" className="text-sm font-medium text-ink">
                 Notes
               </label>
               <textarea
@@ -444,14 +444,14 @@ export function CreatePurchaseOrderForm() {
         <div className="mt-6 flex items-center justify-end gap-3 border-t border-border pt-6">
           <Link
             href="/documents/purchase-orders"
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={submitting || suppliers.length === 0}
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60"
+            className="workspace-button-primary disabled:opacity-60"
           >
             {submitting ? "Creating…" : "Create purchase order"}
           </button>

@@ -18,8 +18,8 @@ export default function TemplatesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-6 py-16">
-        <h1 className="text-2xl font-bold text-ink">Templates</h1>
+      <main className="workspace-main max-w-6xl">
+        <h1 className="workspace-heading">Templates</h1>
         <p className="mt-2 text-sm text-muted">Preview a template, then use it to start a new invoice.</p>
         <TemplatesGallery />
       </main>

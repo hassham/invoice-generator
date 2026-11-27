@@ -97,7 +97,7 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 cursor-default" tabIndex={-1} />
       <div
         ref={dialogRef}
@@ -114,7 +114,7 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
 
         <div className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label htmlFor="send-invoice-to" className="text-sm font-medium text-slate-700">
+            <label htmlFor="send-invoice-to" className="text-sm font-medium text-ink">
               Recipient
             </label>
             <input
@@ -123,12 +123,12 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
               value={to}
               onChange={(event) => setTo(event.target.value)}
               placeholder="customer@example.com"
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="send-invoice-cc" className="text-sm font-medium text-slate-700">
+            <label htmlFor="send-invoice-cc" className="text-sm font-medium text-ink">
               CC
             </label>
             <input
@@ -137,12 +137,12 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
               value={cc}
               onChange={(event) => setCc(event.target.value)}
               placeholder="accounts@example.com"
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="send-invoice-subject" className="text-sm font-medium text-slate-700">
+            <label htmlFor="send-invoice-subject" className="text-sm font-medium text-ink">
               Subject
             </label>
             <input
@@ -150,12 +150,12 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
               type="text"
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="send-invoice-message" className="text-sm font-medium text-slate-700">
+            <label htmlFor="send-invoice-message" className="text-sm font-medium text-ink">
               Message
             </label>
             <textarea
@@ -163,13 +163,13 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               rows={5}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
         </div>
 
         {error ? (
-          <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-3 py-2 text-sm text-status-overdue-fg">
             {error}
           </p>
         ) : null}
@@ -179,7 +179,7 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
             type="button"
             onClick={onClose}
             disabled={sending}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             Cancel
           </button>
@@ -187,7 +187,7 @@ export function SendInvoiceEmailDialog({ invoiceId, invoiceNumber, customerId, o
             type="button"
             onClick={() => void handleSend()}
             disabled={sending}
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="workspace-button-primary disabled:opacity-50"
           >
             {sending ? "Sending…" : "Send"}
           </button>

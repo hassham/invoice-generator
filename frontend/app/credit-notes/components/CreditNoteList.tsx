@@ -56,7 +56,7 @@ export function CreditNoteList({
 
   if (creditNotes.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-muted">
         <p>No credit notes yet</p>
       </div>
     );
@@ -65,7 +65,7 @@ export function CreditNoteList({
   return (
     <>
       {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-800 mb-4">
+        <div className="rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg mb-4">
           {error}
         </div>
       )}
@@ -74,24 +74,24 @@ export function CreditNoteList({
         {creditNotes.map((note) => (
           <div
             key={note.id}
-            className="border border-gray-200 rounded-lg p-4 hover:border-gray-300"
+            className="border border-border rounded-lg p-4 hover:border-border"
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900">{note.creditNoteNumber}</h3>
-                <p className="text-sm text-gray-500 mt-1">{note.reason}</p>
+                <h3 className="font-medium text-ink">{note.creditNoteNumber}</h3>
+                <p className="text-sm text-muted mt-1">{note.reason}</p>
               </div>
               <div className="text-right">
-                <p className="font-medium text-gray-900">
+                <p className="font-medium text-ink">
                   {note.amount.toFixed(2)} {note.currency}
                 </p>
-                <p className="text-sm text-gray-500">{formatDate(note.issueDate)}</p>
+                <p className="text-sm text-muted">{formatDate(note.issueDate)}</p>
               </div>
             </div>
 
             {note.notes && (
-              <div className="mb-4 p-3 bg-gray-50 rounded text-sm text-gray-600">
-                <p className="font-medium text-gray-700 mb-1">Notes</p>
+              <div className="mb-4 p-3 bg-canvas rounded text-sm text-muted">
+                <p className="font-medium text-ink mb-1">Notes</p>
                 <p>{note.notes}</p>
               </div>
             )}
@@ -100,7 +100,7 @@ export function CreditNoteList({
               <button
                 onClick={() => handleDownload(note)}
                 disabled={downloading === note.id}
-                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                className="flex-1 px-3 py-2 text-sm font-medium text-ink bg-canvas border border-border rounded-md hover:bg-status-draft-bg disabled:opacity-50"
               >
                 {downloading === note.id ? "Preparing…" : "Download PDF"}
               </button>
@@ -110,17 +110,17 @@ export function CreditNoteList({
                   onClick={() =>
                     setConfirmDelete(confirmDelete === note.id ? null : note.id)
                   }
-                  className="w-full px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
+                  className="w-full px-3 py-2 text-sm font-medium text-status-overdue-fg bg-status-overdue-bg/55 border border-status-overdue-fg/25 rounded-md hover:bg-status-overdue-bg"
                 >
                   Delete
                 </button>
 
                 {confirmDelete === note.id && (
-                  <div className="absolute right-0 top-full mt-1 bg-paper border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-48">
-                    <p className="text-sm text-gray-900 font-medium mb-2">
+                  <div className="absolute right-0 top-full mt-1 bg-paper border border-border rounded-lg shadow-lg p-3 z-10 w-48">
+                    <p className="text-sm text-ink font-medium mb-2">
                       Delete this credit note permanently?
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleDelete(note.id)}
                         disabled={actionLoading === note.id}
@@ -130,7 +130,7 @@ export function CreditNoteList({
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
-                        className="flex-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+                        className="flex-1 px-2 py-1 text-xs font-medium text-ink bg-status-draft-bg rounded hover:bg-status-draft-bg"
                       >
                         Keep
                       </button>

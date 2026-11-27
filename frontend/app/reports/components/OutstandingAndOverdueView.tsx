@@ -124,33 +124,33 @@ export function OutstandingAndOverdueView({ type }: Props) {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500">{t(keys.loading)}</div>;
+    return <div className="text-center text-muted">{t(keys.loading)}</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{t("reports.error.display", { message: error })}</div>;
+    return <div role="alert" className="workspace-state workspace-error">{t("reports.error.display", { message: error })}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t(keys.title)}</h1>
-          <p className="text-sm text-gray-600 mt-1">{t(keys.description)}</p>
+          <h1 className="workspace-heading">{t(keys.title)}</h1>
+          <p className="text-sm text-muted mt-1">{t(keys.description)}</p>
         </div>
         {invoices.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+              className="workspace-button-secondary"
             >
               {exporting ? t("reports.export.busy") : t("reports.export.csv")}
             </button>
             <button
               onClick={handleExportPdf}
               disabled={exportingPdf}
-              className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+              className="workspace-button-secondary"
             >
               {exportingPdf ? t("reports.export.busy") : t("reports.export.pdf")}
             </button>
@@ -159,32 +159,32 @@ export function OutstandingAndOverdueView({ type }: Props) {
       </div>
 
       {invoices.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">{t(keys.empty)}</div>
+        <div className="text-center py-8 text-muted">{t(keys.empty)}</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Outstanding and overdue invoices" tabIndex={0} className="workspace-table-scroll">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-gray-300">
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.invoice")}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.customer")}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.dueDate")}</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-900">{t("reports.column.amountDue")}</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-900">{t("reports.column.action")}</th>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 px-4 font-semibold text-ink">{t("reports.column.invoice")}</th>
+                <th className="text-left py-3 px-4 font-semibold text-ink">{t("reports.column.customer")}</th>
+                <th className="text-left py-3 px-4 font-semibold text-ink">{t("reports.column.dueDate")}</th>
+                <th className="text-right tabular-nums py-3 px-4 font-semibold text-ink">{t("reports.column.amountDue")}</th>
+                <th className="text-center py-3 px-4 font-semibold text-ink">{t("reports.column.action")}</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map((invoice) => (
-                <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-blue-600 font-medium">{invoice.invoiceNumber}</td>
-                  <td className="py-3 px-4 text-gray-900">{invoice.customerName}</td>
-                  <td className="py-3 px-4 text-gray-900">{formatDate(invoice.dueDate)}</td>
-                  <td className="py-3 px-4 text-right font-medium text-gray-900">
+                <tr key={invoice.id} className="border-b border-border hover:bg-canvas">
+                  <td className="py-3 px-4 text-ink font-medium">{invoice.invoiceNumber}</td>
+                  <td className="py-3 px-4 text-ink">{invoice.customerName}</td>
+                  <td className="py-3 px-4 text-ink">{formatDate(invoice.dueDate)}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-medium text-ink">
                     {formatCurrency(invoice.amountDue, invoice.currency)}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <Link
                       href={`/documents/invoices/${invoice.id}`}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      className="text-ink hover:text-status-sent-fg text-sm font-medium"
                     >
                       {t("reports.action.view")}
                     </Link>
@@ -196,10 +196,10 @@ export function OutstandingAndOverdueView({ type }: Props) {
         </div>
       )}
 
-      <div className="text-sm text-gray-600 mt-4">
+      <div className="text-sm text-muted mt-4">
         <p>
           {t(keys.total)}{" "}
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-ink">
             {t(invoices.length === 1 ? "reports.count.one" : "reports.count.many", { count: invoices.length })}
           </span>
         </p>

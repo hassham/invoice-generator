@@ -58,7 +58,7 @@ export function AccountGateModal({ action, onClose }: AccountGateModalProps) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
       <button
         type="button"
         aria-label="Close"
@@ -72,30 +72,30 @@ export function AccountGateModal({ action, onClose }: AccountGateModalProps) {
         aria-modal="true"
         aria-labelledby="account-gate-heading"
         tabIndex={-1}
-        className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl outline-none"
+        className="relative w-full max-w-sm rounded-lg bg-paper p-6 shadow-xl outline-none"
       >
-        <h2 id="account-gate-heading" className="text-lg font-bold text-slate-950">
+        <h2 id="account-gate-heading" className="text-lg font-bold text-ink">
           Create a free account to download and securely save your invoice.
         </h2>
         <div className="mt-6 flex flex-col gap-3">
           <Link
             href="/signup"
             onClick={() => track({ name: "anonymous_gate_conversion", properties: { action, method: "signup" } })}
-            className="rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            className="workspace-button-primary text-center"
           >
             Sign up
           </Link>
           <Link
             href="/login"
             onClick={() => track({ name: "anonymous_gate_conversion", properties: { action, method: "login" } })}
-            className="rounded-full border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            className="rounded-full border border-border px-4 py-2 text-center text-sm font-semibold text-ink transition-colors hover:bg-canvas"
           >
             Log in
           </Link>
           <button
             type="button"
             onClick={onClose}
-            className="mt-1 text-sm font-medium text-slate-500 hover:text-slate-700"
+            className="mt-1 text-sm font-medium text-muted hover:text-ink"
           >
             Not now
           </button>

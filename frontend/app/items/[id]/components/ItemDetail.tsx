@@ -94,7 +94,7 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
 
   if (state === "error" || !item) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
         {loadError}
       </p>
     );
@@ -107,9 +107,9 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
           <Link href="/items" className="text-sm font-medium text-muted hover:underline">
             ← Back to items
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-ink">{item.name}</h1>
+          <h1 className="workspace-heading mt-2 ">{item.name}</h1>
           {item.isArchived ? (
-            <span className="mt-1 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-muted">Archived</span>
+            <span className="mt-1 inline-block rounded-full bg-status-draft-bg px-3 py-1 text-xs font-semibold text-muted">Archived</span>
           ) : null}
         </div>
         {!item.isArchived ? (
@@ -117,7 +117,7 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
             type="button"
             onClick={handleArchive}
             disabled={archiving}
-            className="rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+            className="rounded-full border border-status-overdue-fg/40 px-4 py-2 text-sm font-semibold text-status-overdue-fg transition-colors hover:bg-status-overdue-bg/55 disabled:opacity-50"
           >
             {archiving ? "Archiving…" : "Archive"}
           </button>
@@ -125,7 +125,7 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
       </div>
 
       {savedAt ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
           Changes saved.
         </p>
       ) : null}

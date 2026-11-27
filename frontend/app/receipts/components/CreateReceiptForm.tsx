@@ -91,14 +91,14 @@ export function CreateReceiptForm({ businessId, invoices, onSuccess }: CreateRec
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div>
-        <label htmlFor="invoice" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="invoice" className="block text-sm font-medium text-ink">
           Invoice *
         </label>
         <select
           id="invoice"
           value={invoiceId}
           onChange={(e) => handleInvoiceChange(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
           required
         >
           <option value="">Select an invoice</option>
@@ -111,7 +111,7 @@ export function CreateReceiptForm({ businessId, invoices, onSuccess }: CreateRec
       </div>
 
       <div>
-        <label htmlFor="payment" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="payment" className="block text-sm font-medium text-ink">
           Payment *
         </label>
         <select
@@ -119,7 +119,7 @@ export function CreateReceiptForm({ businessId, invoices, onSuccess }: CreateRec
           value={paymentId}
           onChange={(e) => setPaymentId(e.target.value)}
           disabled={!invoiceId || paymentsLoading || payments.length === 0}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink disabled:bg-status-draft-bg"
           required
         >
           <option value="">
@@ -137,16 +137,16 @@ export function CreateReceiptForm({ businessId, invoices, onSuccess }: CreateRec
             </option>
           ))}
         </select>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted">
           The receipt records the payment exactly as it was banked - amount, date and method come
           from the payment itself.
         </p>
       </div>
 
-      {error && <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">{error}</div>}
+      {error && <div className="rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg">{error}</div>}
 
       {success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">
+        <div className="rounded-md bg-status-paid-bg/65 p-4 text-sm text-status-paid-fg">
           Receipt created successfully!
         </div>
       )}
@@ -154,7 +154,7 @@ export function CreateReceiptForm({ businessId, invoices, onSuccess }: CreateRec
       <button
         type="submit"
         disabled={loading || !paymentId}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400"
+        className="workspace-button-primary w-full"
       >
         {loading ? "Creating..." : "Create Receipt"}
       </button>

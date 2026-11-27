@@ -113,7 +113,7 @@ export function OnboardingWizard() {
 
   if (state === "error" || !profile || !values) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
         {loadError}
       </p>
     );
@@ -126,9 +126,9 @@ export function OnboardingWizard() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-6 py-16">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Set up your business</h1>
+    <div className="workspace-main max-w-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="workspace-heading">Set up your business</h1>
         <button type="button" onClick={finish} className="text-sm font-medium text-muted hover:underline">
           Skip onboarding
         </button>
@@ -138,7 +138,7 @@ export function OnboardingWizard() {
       </p>
 
       {saveError ? (
-        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {saveError}
         </p>
       ) : null}
@@ -159,14 +159,14 @@ export function OnboardingWizard() {
 
         {step === "currency" ? (
           <div className="flex flex-col gap-1">
-            <label htmlFor="onboarding-currency" className="text-sm font-medium text-slate-700">
+            <label htmlFor="onboarding-currency" className="text-sm font-medium text-ink">
               Currency
             </label>
             <select
               id="onboarding-currency"
               value={values.defaultCurrency}
               onChange={(event) => setField("defaultCurrency")(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             >
               {CURRENCY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -197,7 +197,7 @@ export function OnboardingWizard() {
           type="button"
           onClick={() => advance()}
           disabled={saving}
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+          className="workspace-button-primary disabled:opacity-50"
         >
           {saving ? "Saving…" : isLastStep ? "Start Creating Invoices" : "Save & Continue"}
         </button>
@@ -227,7 +227,7 @@ interface TextFieldProps {
 function TextField({ id, label, value, maxLength, onChange }: TextFieldProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       <input
@@ -236,7 +236,7 @@ function TextField({ id, label, value, maxLength, onChange }: TextFieldProps) {
         value={value}
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+        className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
       />
     </div>
   );

@@ -85,7 +85,7 @@ export function CombinedReportsView() {
   }, []);
 
   if (error) {
-    return <p role="alert" className="text-sm text-red-700">{error}</p>;
+    return <p role="alert" className="text-sm text-status-overdue-fg">{error}</p>;
   }
 
   if (!data) {
@@ -99,22 +99,22 @@ export function CombinedReportsView() {
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-bold text-ink">{t("combined.title")}</h1>
+        <h1 className="workspace-heading">{t("combined.title")}</h1>
         <p className="mt-2 text-sm text-muted">{t("combined.intro")}</p>
-        <Link href="/reports" className="mt-2 inline-block text-sm font-semibold text-slate-700 underline">
+        <Link href="/reports" className="mt-2 inline-block text-sm font-semibold text-ink underline">
           {t("combined.backToRevenue")}
         </Link>
       </header>
 
-      <section aria-labelledby="combined-revenue">
+      <section className="workspace-panel p-4 sm:p-6" aria-labelledby="combined-revenue">
         <h2 id="combined-revenue" className="text-lg font-semibold text-ink">
           {t("combined.revenue.heading")} · {t("combined.period")}
         </h2>
-        <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
+        <h3 className="mt-3 text-sm font-medium text-ink">{t("combined.totals")}</h3>
         <TotalsByCurrency totals={data.revenue.totalsByCurrency.map((total) => ({ currency: total.currency, amount: total.total }))} />
-        <ul className="mt-4 divide-y divide-slate-200">
+        <ul className="mt-4 divide-y divide-border">
           {data.revenue.businesses.map((business) => (
-            <li key={business.businessId} className="flex items-center justify-between py-2 text-sm">
+            <li key={business.businessId} className="flex items-start justify-between gap-3 py-2 text-sm tabular-nums">
               <span className="text-ink">{business.businessName}</span>
               <span>{formatMoney(business.total, business.currency)}</span>
             </li>
@@ -126,9 +126,9 @@ export function CombinedReportsView() {
         { id: "combined-outstanding", heading: t("combined.outstanding.heading"), list: data.outstanding },
         { id: "combined-overdue", heading: t("combined.overdue.heading"), list: data.overdue },
       ].map(({ id, heading, list }) => (
-        <section key={id} aria-labelledby={id}>
+        <section className="workspace-panel p-4 sm:p-6" key={id} aria-labelledby={id}>
           <h2 id={id} className="text-lg font-semibold text-ink">{heading}</h2>
-          <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
+          <h3 className="mt-3 text-sm font-medium text-ink">{t("combined.totals")}</h3>
           <TotalsByCurrency totals={list.amountDueByCurrency} />
           <div className="mt-4 space-y-4">
             {list.businesses.map((business) => (
@@ -137,9 +137,9 @@ export function CombinedReportsView() {
                 {business.invoices.length === 0 ? (
                   <p className="text-sm text-muted">{t("combined.none")}</p>
                 ) : (
-                  <ul className="divide-y divide-slate-200">
+                  <ul className="divide-y divide-border">
                     {business.invoices.map((invoice) => (
-                      <li key={invoice.id} className="flex items-center justify-between py-2 text-sm">
+                      <li key={invoice.id} className="flex items-start justify-between gap-3 py-2 text-sm tabular-nums">
                         <span>{invoice.invoiceNumber} · {invoice.customerName}</span>
                         <span>{formatMoney(invoice.amountDue, invoice.currency)}</span>
                       </li>
@@ -152,11 +152,11 @@ export function CombinedReportsView() {
         </section>
       ))}
 
-      <section aria-labelledby="combined-customers">
+      <section className="workspace-panel p-4 sm:p-6" aria-labelledby="combined-customers">
         <h2 id="combined-customers" className="text-lg font-semibold text-ink">
           {t("combined.customers.heading")} · {t("combined.period")}
         </h2>
-        <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
+        <h3 className="mt-3 text-sm font-medium text-ink">{t("combined.totals")}</h3>
         <TotalsByCurrency totals={data.customers.revenueByCurrency} />
         <div className="mt-4 space-y-4">
           {data.customers.businesses.map((business) => (
@@ -165,9 +165,9 @@ export function CombinedReportsView() {
               {business.customers.length === 0 ? (
                 <p className="text-sm text-muted">{t("combined.none")}</p>
               ) : (
-                <ul className="divide-y divide-slate-200">
+                <ul className="divide-y divide-border">
                   {business.customers.map((customer) => (
-                    <li key={customer.customerId} className="flex items-center justify-between py-2 text-sm">
+                    <li key={customer.customerId} className="flex items-start justify-between gap-3 py-2 text-sm tabular-nums">
                       <span>{customer.customerName}</span>
                       <span>{formatMoney(customer.revenue, customer.currency)}</span>
                     </li>
@@ -179,15 +179,15 @@ export function CombinedReportsView() {
         </div>
       </section>
 
-      <section aria-labelledby="combined-tax">
+      <section className="workspace-panel p-4 sm:p-6" aria-labelledby="combined-tax">
         <h2 id="combined-tax" className="text-lg font-semibold text-ink">
           {t("combined.tax.heading")} · {t("combined.period")}
         </h2>
-        <h3 className="mt-3 text-sm font-medium text-slate-700">{t("combined.totals")}</h3>
+        <h3 className="mt-3 text-sm font-medium text-ink">{t("combined.totals")}</h3>
         <TotalsByCurrency totals={data.tax.taxCollectedByCurrency} />
-        <ul className="mt-4 divide-y divide-slate-200">
+        <ul className="mt-4 divide-y divide-border">
           {data.tax.businesses.map((business) => (
-            <li key={business.businessId} className="flex items-center justify-between py-2 text-sm">
+            <li key={business.businessId} className="flex items-start justify-between gap-3 py-2 text-sm tabular-nums">
               <span className="text-ink">{business.businessName}</span>
               <span>{formatMoney(business.summary.totalTaxCollected, business.summary.currency)}</span>
             </li>

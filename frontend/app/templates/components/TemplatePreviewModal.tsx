@@ -54,7 +54,7 @@ export function TemplatePreviewModal({ template, onClose }: TemplatePreviewModal
   const previewProps = buildSamplePreviewProps(template.templateCode);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/50 p-4">
       <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 cursor-default" tabIndex={-1} />
       <div
         ref={dialogRef}

@@ -1,18 +1,21 @@
-"use client";
-
+import type { Metadata } from "next";
 import { Suspense } from "react";
+import { SiteHeader } from "../components/landing/SiteHeader";
+import { SiteFooter } from "../components/landing/SiteFooter";
 import { ReceiptContent } from "./components/ReceiptContent";
 
-export default function ReceiptsPage() {
+export const metadata: Metadata = { title: "Receipts" };
+
+export default function ReceiptPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-50 py-12 px-4 flex items-center justify-center">
-          <p className="text-gray-500">Loading...</p>
-        </div>
-      }
-    >
-      <ReceiptContent />
-    </Suspense>
+    <>
+      <SiteHeader />
+      <main className="workspace-main max-w-5xl">
+        <Suspense fallback={<p role="status" className="workspace-state">Loading receipts…</p>}>
+          <ReceiptContent />
+        </Suspense>
+      </main>
+      <SiteFooter workspace />
+    </>
   );
 }

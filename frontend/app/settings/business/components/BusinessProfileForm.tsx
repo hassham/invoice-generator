@@ -157,12 +157,12 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
       {nameError ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {nameError}
         </p>
       ) : null}
@@ -207,14 +207,14 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
         <legend className="text-base font-semibold text-ink">Invoice Defaults</legend>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
-            <label htmlFor="business-default-currency" className="text-sm font-medium text-slate-700">
+            <label htmlFor="business-default-currency" className="text-sm font-medium text-ink">
               Default Currency
             </label>
             <select
               id="business-default-currency"
               value={values.defaultCurrency}
               onChange={setField("defaultCurrency")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             >
               {CURRENCY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -227,14 +227,14 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
           <TextField id="business-default-tax-rate" label="Default Tax Rate (%)" type="number" value={values.defaultTaxRate} onChange={setField("defaultTaxRate")} />
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="business-tax-calculation-method" className="text-sm font-medium text-slate-700">
+            <label htmlFor="business-tax-calculation-method" className="text-sm font-medium text-ink">
               Tax Calculation
             </label>
             <select
               id="business-tax-calculation-method"
               value={values.taxCalculationMethod}
               onChange={setField("taxCalculationMethod")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             >
               <option value="Exclusive">Tax Exclusive</option>
               <option value="Inclusive">Tax Inclusive</option>
@@ -242,14 +242,14 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="business-default-payment-terms" className="text-sm font-medium text-slate-700">
+            <label htmlFor="business-default-payment-terms" className="text-sm font-medium text-ink">
               Default Payment Terms
             </label>
             <select
               id="business-default-payment-terms"
               value={values.defaultPaymentTerms}
               onChange={setField("defaultPaymentTerms")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             >
               {PAYMENT_TERMS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -271,7 +271,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
         </div>
 
         <div className="mt-4 flex flex-col gap-1">
-          <label htmlFor="business-default-invoice-notes" className="text-sm font-medium text-slate-700">
+          <label htmlFor="business-default-invoice-notes" className="text-sm font-medium text-ink">
             Default Invoice Notes
           </label>
           <textarea
@@ -279,7 +279,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             value={values.defaultInvoiceNotes}
             onChange={setField("defaultInvoiceNotes")}
             rows={3}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+            className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
           />
         </div>
 
@@ -290,18 +290,18 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             type="checkbox"
             checked={values.openTrackingEnabled ?? true}
             onChange={(event) => setValues((current) => ({ ...current, openTrackingEnabled: event.target.checked }))}
-            className="mt-1 h-4 w-4 rounded border-slate-300"
+            className="workspace-field mt-1 h-4 w-4 rounded border-border"
           />
-          <label htmlFor="business-open-tracking" className="flex flex-col gap-1 text-sm text-slate-700">
+          <label htmlFor="business-open-tracking" className="flex flex-col gap-1 text-sm text-ink">
             <span className="font-medium">Track when invoice emails are opened</span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted">
               Adds a tracking image to each invoice email so you can see when it was opened. Recipients are told about it in the email.
             </span>
           </label>
         </div>
 
         <div className="mt-4 flex flex-col gap-1">
-          <label htmlFor="business-default-terms" className="text-sm font-medium text-slate-700">
+          <label htmlFor="business-default-terms" className="text-sm font-medium text-ink">
             Default Terms &amp; Conditions
           </label>
           <textarea
@@ -309,7 +309,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             value={values.defaultTermsAndConditions}
             onChange={setField("defaultTermsAndConditions")}
             rows={3}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+            className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
           />
         </div>
 
@@ -342,7 +342,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
       <button
         type="submit"
         disabled={submitting}
-        className="self-start rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+        className="workspace-button-primary self-start disabled:opacity-50"
       >
         {submitting ? "Saving…" : "Save changes"}
       </button>
@@ -362,7 +362,7 @@ interface TextFieldProps {
 function TextField({ id, label, value, type = "text", maxLength, onChange }: TextFieldProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       <input
@@ -371,7 +371,7 @@ function TextField({ id, label, value, type = "text", maxLength, onChange }: Tex
         value={value}
         maxLength={maxLength}
         onChange={onChange}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+        className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
       />
     </div>
   );

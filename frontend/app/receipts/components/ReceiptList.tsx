@@ -43,35 +43,35 @@ export function ReceiptList({ businessId, receipts, onReceiptDeleted }: ReceiptL
 
   return (
     <>
-      {error && <div className="rounded-md bg-red-50 p-4 text-sm text-red-800 mb-4">{error}</div>}
+      {error && <div className="rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg mb-4">{error}</div>}
 
       <div className="space-y-4">
         {receipts.map((receipt) => (
           <div
             key={receipt.id}
-            className="border border-gray-200 rounded-lg p-4 hover:border-gray-300"
+            className="border border-border rounded-lg p-4 hover:border-border"
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900">{receipt.receiptNumber}</h3>
-                <p className="text-sm text-gray-500 mt-1">Invoice {receipt.invoiceNumber}</p>
+                <h3 className="font-medium text-ink">{receipt.receiptNumber}</h3>
+                <p className="text-sm text-muted mt-1">Invoice {receipt.invoiceNumber}</p>
               </div>
               <div className="text-right">
-                <p className="font-medium text-gray-900">
+                <p className="font-medium text-ink">
                   {receipt.amount.toFixed(2)} {receipt.currency}
                 </p>
-                <p className="text-sm text-gray-500">{receipt.paymentMethod}</p>
+                <p className="text-sm text-muted">{receipt.paymentMethod}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
               <div>
-                <p className="text-gray-500">Payment Date</p>
-                <p className="text-gray-900">{receipt.paymentDate}</p>
+                <p className="text-muted">Payment Date</p>
+                <p className="text-ink">{receipt.paymentDate}</p>
               </div>
               <div>
-                <p className="text-gray-500">Receipt Date</p>
-                <p className="text-gray-900">{receipt.issueDate}</p>
+                <p className="text-muted">Receipt Date</p>
+                <p className="text-ink">{receipt.issueDate}</p>
               </div>
             </div>
 
@@ -79,7 +79,7 @@ export function ReceiptList({ businessId, receipts, onReceiptDeleted }: ReceiptL
               <button
                 onClick={() => handleDownload(receipt)}
                 disabled={downloadLoading === receipt.id}
-                className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 disabled:opacity-50"
+                className="flex-1 px-3 py-2 text-sm font-medium text-status-sent-fg bg-status-sent-bg/55 border border-status-sent-fg/25 rounded-md hover:bg-status-sent-bg disabled:opacity-50"
               >
                 {downloadLoading === receipt.id ? "Downloading..." : "Download PDF"}
               </button>
@@ -87,17 +87,17 @@ export function ReceiptList({ businessId, receipts, onReceiptDeleted }: ReceiptL
               <div className="relative">
                 <button
                   onClick={() => setConfirmDelete(confirmDelete === receipt.id ? null : receipt.id)}
-                  className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
+                  className="px-3 py-2 text-sm font-medium text-status-overdue-fg bg-status-overdue-bg/55 border border-status-overdue-fg/25 rounded-md hover:bg-status-overdue-bg"
                 >
                   Delete
                 </button>
 
                 {confirmDelete === receipt.id && (
-                  <div className="absolute right-0 top-full mt-1 bg-paper border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-48">
-                    <p className="text-sm text-gray-900 font-medium mb-2">
+                  <div className="absolute right-0 top-full mt-1 bg-paper border border-border rounded-lg shadow-lg p-3 z-10 w-48">
+                    <p className="text-sm text-ink font-medium mb-2">
                       Delete this receipt permanently?
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleDelete(receipt.id)}
                         disabled={actionLoading === receipt.id}
@@ -107,7 +107,7 @@ export function ReceiptList({ businessId, receipts, onReceiptDeleted }: ReceiptL
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
-                        className="flex-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+                        className="flex-1 px-2 py-1 text-xs font-medium text-ink bg-status-draft-bg rounded hover:bg-status-draft-bg"
                       >
                         Keep
                       </button>

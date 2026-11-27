@@ -14,7 +14,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-6 py-16">
+      <main className="workspace-main max-w-2xl">
         <CustomerDetail customerId={id} />
       </main>
       <SiteFooter workspace />

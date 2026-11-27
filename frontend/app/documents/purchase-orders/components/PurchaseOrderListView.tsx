@@ -45,10 +45,10 @@ export function PurchaseOrderListView() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink">Purchase Orders</h1>
+        <h1 className="workspace-heading">Purchase Orders</h1>
         <Link
           href="/documents/purchase-orders/new"
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+          className="workspace-button-primary"
         >
           New purchase order
         </Link>
@@ -63,7 +63,7 @@ export function PurchaseOrderListView() {
       ) : null}
 
       {state === "error" ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
@@ -82,7 +82,7 @@ export function PurchaseOrderListView() {
         <table className="mt-6 w-full text-left text-sm">
           <caption className="sr-only">Purchase orders</caption>
           <thead>
-            <tr className="border-b border-border text-slate-500">
+            <tr className="border-b border-border text-muted">
               <th className="py-2 pr-4 font-medium">Purchase order</th>
               <th className="py-2 pr-4 font-medium">Type</th>
               <th className="py-2 pr-4 font-medium">Supplier</th>
@@ -92,7 +92,7 @@ export function PurchaseOrderListView() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-100">
+              <tr key={item.id} className="border-b border-border">
                 <td className="py-2 pr-4">
                   <Link
                     href={`/documents/purchase-orders/${item.id}`}
@@ -102,13 +102,13 @@ export function PurchaseOrderListView() {
                   </Link>
                 </td>
                 <td className="py-2 pr-4">
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                  <span className="rounded-full bg-status-pending-bg px-3 py-1 text-xs font-semibold text-status-pending-fg">
                     Purchase Order
                   </span>
                 </td>
-                <td className="py-2 pr-4 text-slate-700">{item.supplierName}</td>
-                <td className="py-2 pr-4 text-slate-700">{item.issueDate}</td>
-                <td className="py-2 pr-4 text-slate-700">
+                <td className="py-2 pr-4 text-ink">{item.supplierName}</td>
+                <td className="py-2 pr-4 text-ink">{item.issueDate}</td>
+                <td className="py-2 pr-4 text-ink">
                   {formatCurrency(item.totalAmount, item.currency)}
                 </td>
               </tr>

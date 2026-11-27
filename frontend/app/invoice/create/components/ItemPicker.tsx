@@ -42,7 +42,7 @@ export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
         }
       }}
     >
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         Search saved items
       </label>
       <input
@@ -55,12 +55,12 @@ export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="Start typing an item name…"
-        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+        className="workspace-field mt-1 w-full rounded-md border border-border px-3 py-2 text-sm text-ink"
       />
       {showDropdown ? (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-slate-200 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-paper shadow-lg">
           {matches.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-500">No matching items.</p>
+            <p className="px-3 py-2 text-sm text-muted">No matching items.</p>
           ) : (
             <ul>
               {matches.map((item) => (
@@ -72,11 +72,11 @@ export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
                     // for keyboard activation (Enter/Space), not just a mouse click.
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleSelect(item)}
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas"
                   >
-                    <span className="font-medium text-slate-950">{item.name}</span>
-                    <span className="ml-2 text-slate-500">{item.unitPrice.toFixed(2)}</span>
-                    {item.unit ? <span className="ml-2 text-slate-500">{item.unit}</span> : null}
+                    <span className="font-medium text-ink">{item.name}</span>
+                    <span className="ml-2 text-muted">{item.unitPrice.toFixed(2)}</span>
+                    {item.unit ? <span className="ml-2 text-muted">{item.unit}</span> : null}
                   </button>
                 </li>
               ))}

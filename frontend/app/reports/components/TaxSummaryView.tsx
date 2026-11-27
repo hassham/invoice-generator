@@ -66,37 +66,37 @@ export function TaxSummaryView() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500">{t("reports.tax.loading")}</div>;
+    return <div role="status" className="workspace-state">{t("reports.tax.loading")}</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{t("reports.error.display", { message: error })}</div>;
+    return <div role="alert" className="workspace-state workspace-error">{t("reports.error.display", { message: error })}</div>;
   }
 
   if (!summary) {
-    return <div className="text-center text-gray-500">{t("reports.tax.noData")}</div>;
+    return <div className="text-center text-muted">{t("reports.tax.noData")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("reports.tax.title")}</h1>
-          <p className="text-sm text-gray-600 mt-1">{t("reports.tax.description")}</p>
+          <h1 className="workspace-heading">{t("reports.tax.title")}</h1>
+          <p className="text-sm text-muted mt-1">{t("reports.tax.description")}</p>
         </div>
         {summary.totalTaxCollected > 0 && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+              className="workspace-button-secondary"
             >
               {exporting ? t("reports.export.busy") : t("reports.export.csv")}
             </button>
             <button
               onClick={handleExportPdf}
               disabled={exportingPdf}
-              className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+              className="workspace-button-secondary"
             >
               {exportingPdf ? t("reports.export.busy") : t("reports.export.pdf")}
             </button>
@@ -105,20 +105,20 @@ export function TaxSummaryView() {
       </div>
 
       {summary.totalTaxCollected === 0 ? (
-        <div className="text-center py-8 text-gray-500">{t("reports.tax.noneCollected")}</div>
+        <div className="text-center py-8 text-muted">{t("reports.tax.noneCollected")}</div>
       ) : (
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm font-medium text-gray-600">{t("reports.column.taxableAmount")}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
+            <div className="bg-canvas rounded-lg p-4">
+              <p className="text-sm font-medium text-muted">{t("reports.column.taxableAmount")}</p>
+              <p className="text-2xl font-bold text-ink mt-2">
                 {formatCurrency(summary.totalTaxableAmount, summary.currency)}
               </p>
             </div>
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm font-medium text-gray-600">{t("reports.column.taxCollected")}</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">
+            <div className="bg-status-sent-bg/55 rounded-lg p-4">
+              <p className="text-sm font-medium text-muted">{t("reports.column.taxCollected")}</p>
+              <p className="text-2xl font-bold text-ink mt-2">
                 {formatCurrency(summary.totalTaxCollected, summary.currency)}
               </p>
             </div>
@@ -126,23 +126,23 @@ export function TaxSummaryView() {
 
           {/* Taxes by Rate Table */}
           {summary.taxesByRate.length > 0 && (
-            <div className="overflow-x-auto">
+            <div role="region" aria-label="Tax summary" tabIndex={0} className="workspace-table-scroll">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-300">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.taxRate")}</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-900">{t("reports.column.taxableAmount")}</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-900">{t("reports.column.taxCollected")}</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 font-semibold text-ink">{t("reports.column.taxRate")}</th>
+                    <th className="text-right tabular-nums py-3 px-4 font-semibold text-ink">{t("reports.column.taxableAmount")}</th>
+                    <th className="text-right tabular-nums py-3 px-4 font-semibold text-ink">{t("reports.column.taxCollected")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {summary.taxesByRate.map((tax, idx) => (
-                    <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 text-gray-900">{tax.taxRate.toFixed(2)}%</td>
-                      <td className="py-3 px-4 text-right font-medium text-gray-900">
+                    <tr key={idx} className="border-b border-border hover:bg-canvas">
+                      <td className="py-3 px-4 text-ink">{tax.taxRate.toFixed(2)}%</td>
+                      <td className="py-3 px-4 text-right tabular-nums font-medium text-ink">
                         {formatCurrency(tax.taxableAmount, summary.currency)}
                       </td>
-                      <td className="py-3 px-4 text-right font-medium text-gray-900">
+                      <td className="py-3 px-4 text-right tabular-nums font-medium text-ink">
                         {formatCurrency(tax.taxCollected, summary.currency)}
                       </td>
                     </tr>
@@ -152,8 +152,8 @@ export function TaxSummaryView() {
             </div>
           )}
 
-          <div className="pt-4 border-t border-gray-300">
-            <p className="text-sm text-gray-600">{t("reports.tax.footnote")}</p>
+          <div className="pt-4 border-t border-border">
+            <p className="text-sm text-muted">{t("reports.tax.footnote")}</p>
           </div>
         </div>
       )}

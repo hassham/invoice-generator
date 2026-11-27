@@ -59,7 +59,7 @@ export function ConfirmDialog({ title, body, confirmLabel, dismissLabel = "Cance
   }, [onDismiss]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
       <button type="button" aria-label="Close" onClick={onDismiss} className="fixed inset-0 cursor-default" tabIndex={-1} />
       <div
         ref={dialogRef}
@@ -75,7 +75,7 @@ export function ConfirmDialog({ title, body, confirmLabel, dismissLabel = "Cance
         <p className="mt-2 text-sm text-muted">{body}</p>
 
         {error ? (
-          <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-3 py-2 text-sm text-status-overdue-fg">
             {error}
           </p>
         ) : null}
@@ -85,7 +85,7 @@ export function ConfirmDialog({ title, body, confirmLabel, dismissLabel = "Cance
             type="button"
             onClick={onDismiss}
             disabled={pending}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             {dismissLabel}
           </button>

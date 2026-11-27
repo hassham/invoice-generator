@@ -12,7 +12,7 @@ export default function TeamSettingsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-6 py-16">
+      <main className="workspace-main max-w-2xl">
         <TeamSettings />
       </main>
       <SiteFooter workspace />

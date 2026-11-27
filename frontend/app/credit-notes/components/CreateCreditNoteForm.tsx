@@ -103,7 +103,7 @@ export function CreateCreditNoteForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div>
-        <label htmlFor="invoice" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="invoice" className="block text-sm font-medium text-ink">
           Invoice *
         </label>
         <select
@@ -115,7 +115,7 @@ export function CreateCreditNoteForm({
             // longer about the figures the user agreed to.
             resetConfirmation();
           }}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
           required
         >
           <option value="">Select an invoice</option>
@@ -128,10 +128,10 @@ export function CreateCreditNoteForm({
       </div>
 
       <div>
-        <label htmlFor="amount" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="amount" className="block text-sm font-medium text-ink">
           Credit Amount *
           {selectedInvoice && (
-            <span className="ml-2 text-sm font-normal text-gray-500">
+            <span className="ml-2 text-sm font-normal text-muted">
               (Outstanding: {amountDue.toFixed(2)} {currency} · Invoice total: {invoiceTotal.toFixed(2)} {currency})
             </span>
           )}
@@ -147,23 +147,23 @@ export function CreateCreditNoteForm({
             resetConfirmation();
           }}
           className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-            exceedsInvoiceTotal ? "border-red-300" : exceedsAmountDue ? "border-amber-300" : "border-gray-300"
+            exceedsInvoiceTotal ? "border-status-overdue-fg/40" : exceedsAmountDue ? "border-amber-300" : "border-border"
           }`}
           required
         />
         {exceedsInvoiceTotal ? (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-status-overdue-fg">
             More than the invoice was worth. The most you can credit is {invoiceTotal.toFixed(2)} {currency}.
           </p>
         ) : exceedsAmountDue ? (
-          <p className="mt-1 text-sm text-amber-700">
+          <p className="mt-1 text-sm text-status-pending-fg">
             More than the {amountDue.toFixed(2)} {currency} still outstanding. You will be asked to confirm.
           </p>
         ) : null}
       </div>
 
       <div>
-        <label htmlFor="reason" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="reason" className="block text-sm font-medium text-ink">
           Reason *
         </label>
         <input
@@ -172,13 +172,13 @@ export function CreateCreditNoteForm({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="e.g., Duplicate invoice, Defective goods, Early payment discount"
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+        <label htmlFor="notes" className="block text-sm font-medium text-ink">
           Notes (Optional)
         </label>
         <textarea
@@ -186,14 +186,14 @@ export function CreateCreditNoteForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="workspace-field mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ink focus:border-ink"
         />
       </div>
 
-      {error && <div role="alert" className="rounded-md bg-red-50 p-4 text-sm text-red-800">{error}</div>}
+      {error && <div role="alert" className="rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg">{error}</div>}
 
       {success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">
+        <div className="rounded-md bg-status-paid-bg/65 p-4 text-sm text-status-paid-fg">
           Credit note created successfully!
         </div>
       )}
@@ -201,7 +201,7 @@ export function CreateCreditNoteForm({
       {/* IG-309: states the actual figures rather than a generic "are you sure" - the user needs
           to see what they are over-crediting by before they agree to it. */}
       {pendingConfirmation && (
-        <div role="alert" className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div role="alert" className="rounded-md border border-status-pending-fg/25 bg-status-pending-bg/60 p-4 text-sm text-status-pending-fg">
           <p className="font-semibold">Credit more than is outstanding?</p>
           <p className="mt-1">
             This invoice has {amountDue.toFixed(2)} {currency} outstanding, and you are crediting{" "}
@@ -213,7 +213,7 @@ export function CreateCreditNoteForm({
               type="button"
               onClick={() => void submit(true)}
               disabled={loading}
-              className="px-3 py-2 bg-amber-700 text-white rounded-md text-sm font-medium hover:bg-amber-800 disabled:bg-gray-400"
+              className="px-3 py-2 bg-amber-700 text-white rounded-md text-sm font-medium hover:bg-amber-800 disabled:bg-border"
             >
               {loading ? "Creating..." : "Yes, credit this amount"}
             </button>
@@ -221,7 +221,7 @@ export function CreateCreditNoteForm({
               type="button"
               onClick={resetConfirmation}
               disabled={loading}
-              className="px-3 py-2 bg-paper border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50"
+              className="px-3 py-2 bg-paper border border-border text-ink rounded-md text-sm font-medium hover:bg-canvas"
             >
               Cancel
             </button>
@@ -232,7 +232,7 @@ export function CreateCreditNoteForm({
       <button
         type="submit"
         disabled={loading || exceedsInvoiceTotal || pendingConfirmation}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400"
+        className="workspace-button-primary w-full"
       >
         {loading ? "Creating..." : "Create Credit Note"}
       </button>

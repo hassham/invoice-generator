@@ -18,7 +18,7 @@ export default function RevenueByCustomerPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-6 py-16">
+      <main className="workspace-main max-w-5xl">
         <RevenueByCustomerView />
       </main>
       <SiteFooter workspace />

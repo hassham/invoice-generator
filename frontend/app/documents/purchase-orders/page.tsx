@@ -15,7 +15,7 @@ export default function PurchaseOrdersPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-6 py-16">
+      <main className="workspace-main max-w-5xl">
         <PurchaseOrderListView />
       </main>
       <SiteFooter workspace />

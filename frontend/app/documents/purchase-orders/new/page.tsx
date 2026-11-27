@@ -15,7 +15,7 @@ export default function NewPurchaseOrderPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-4xl px-6 py-16">
+      <main className="workspace-main max-w-4xl">
         <CreatePurchaseOrderForm />
       </main>
       <SiteFooter workspace />

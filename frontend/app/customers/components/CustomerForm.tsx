@@ -90,12 +90,12 @@ export function CustomerForm({ initialValues = emptyCustomerFormValues, submitti
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
       {nameError ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {nameError}
         </p>
       ) : null}
@@ -115,7 +115,7 @@ export function CustomerForm({ initialValues = emptyCustomerFormValues, submitti
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="customer-notes" className="text-sm font-medium text-slate-700">
+        <label htmlFor="customer-notes" className="text-sm font-medium text-ink">
           Notes
         </label>
         <textarea
@@ -123,14 +123,14 @@ export function CustomerForm({ initialValues = emptyCustomerFormValues, submitti
           value={values.notes}
           onChange={setField("notes")}
           rows={4}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+          className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
         />
       </div>
 
       <button
         type="submit"
         disabled={submitting}
-        className="self-start rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+        className="workspace-button-primary self-start disabled:opacity-50"
       >
         {submitting ? "Saving…" : submitLabel}
       </button>
@@ -150,7 +150,7 @@ interface TextFieldProps {
 function TextField({ id, label, value, type = "text", maxLength, onChange }: TextFieldProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       <input
@@ -159,7 +159,7 @@ function TextField({ id, label, value, type = "text", maxLength, onChange }: Tex
         value={value}
         maxLength={maxLength}
         onChange={onChange}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+        className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
       />
     </div>
   );

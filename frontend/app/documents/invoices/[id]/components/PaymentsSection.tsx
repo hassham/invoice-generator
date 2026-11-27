@@ -117,13 +117,13 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
       <legend className="text-base font-semibold text-ink">Payments</legend>
 
       {loadError ? (
-        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {loadError}
         </p>
       ) : null}
 
       {payments.length > 0 ? (
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 workspace-table-scroll">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border text-muted">
@@ -136,17 +136,17 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
             </thead>
             <tbody>
               {payments.map((payment) => (
-                <tr key={payment.id} className="border-b border-slate-100">
+                <tr key={payment.id} className="border-b border-border">
                   <td className="py-2 pr-4 text-ink">{payment.paymentDate}</td>
-                  <td className="py-2 pr-4 text-slate-700">{formatCurrency(payment.amount, currency)}</td>
-                  <td className="py-2 pr-4 text-slate-700">{payment.paymentMethod}</td>
-                  <td className="py-2 pr-4 text-slate-700">{payment.reference ?? "—"}</td>
+                  <td className="py-2 pr-4 text-ink">{formatCurrency(payment.amount, currency)}</td>
+                  <td className="py-2 pr-4 text-ink">{payment.paymentMethod}</td>
+                  <td className="py-2 pr-4 text-ink">{payment.reference ?? "—"}</td>
                   <td className="py-2 pr-4">
                     <button
                       type="button"
                       onClick={() => void handleRemove(payment.id)}
                       disabled={removingId === payment.id}
-                      className="font-medium text-red-700 hover:underline disabled:opacity-50"
+                      className="font-medium text-status-overdue-fg hover:underline disabled:opacity-50"
                     >
                       {removingId === payment.id ? "Removing…" : "Remove"}
                     </button>
@@ -161,7 +161,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
       )}
 
       {removeError ? (
-        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {removeError}
         </p>
       ) : null}
@@ -169,7 +169,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
       {canRecordPayment ? (
         <div className="mt-6 grid grid-cols-1 gap-4 rounded-md border border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="payment-date" className="text-sm font-medium text-slate-700">
+            <label htmlFor="payment-date" className="text-sm font-medium text-ink">
               Date
             </label>
             <input
@@ -177,11 +177,11 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               type="date"
               value={paymentDate}
               onChange={(event) => setPaymentDate(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="payment-amount" className="text-sm font-medium text-slate-700">
+            <label htmlFor="payment-amount" className="text-sm font-medium text-ink">
               Amount
             </label>
             <input
@@ -191,18 +191,18 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               min="0"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="payment-method" className="text-sm font-medium text-slate-700">
+            <label htmlFor="payment-method" className="text-sm font-medium text-ink">
               Method
             </label>
             <select
               id="payment-method"
               value={paymentMethod}
               onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             >
               {PAYMENT_METHODS.map((method) => (
                 <option key={method} value={method}>
@@ -212,7 +212,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="payment-reference" className="text-sm font-medium text-slate-700">
+            <label htmlFor="payment-reference" className="text-sm font-medium text-ink">
               Reference (optional)
             </label>
             <input
@@ -220,11 +220,11 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               type="text"
               value={reference}
               onChange={(event) => setReference(event.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
           <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3">
-            <label htmlFor="payment-notes" className="text-sm font-medium text-slate-700">
+            <label htmlFor="payment-notes" className="text-sm font-medium text-ink">
               Notes (optional)
             </label>
             <textarea
@@ -232,12 +232,12 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               rows={2}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
 
           {recordError ? (
-            <p role="alert" className="sm:col-span-2 lg:col-span-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p role="alert" className="sm:col-span-2 lg:col-span-3 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
               {recordError}
             </p>
           ) : null}
@@ -247,7 +247,7 @@ export function PaymentsSection({ invoiceId, currency, status, amountDue, onInvo
               type="button"
               onClick={() => void handleRecord()}
               disabled={recording}
-              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="workspace-button-primary disabled:opacity-50"
             >
               {recording ? "Recording…" : "Record Payment"}
             </button>

@@ -67,7 +67,7 @@ export function BusinessesPage() {
 
   if (loadState === "error") {
     return (
-      <p role="alert" className="text-sm text-red-700">
+      <p role="alert" className="text-sm text-status-overdue-fg">
         We couldn&apos;t load your businesses. Please refresh the page to try again.
       </p>
     );
@@ -77,16 +77,16 @@ export function BusinessesPage() {
     <div className="space-y-8">
       <section aria-labelledby="business-list-heading" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 id="business-list-heading" className="text-2xl font-semibold text-ink">
+          <h1 id="business-list-heading" className="workspace-heading">
             Your businesses
           </h1>
           {/* IG-239: team invitations are managed per selected business. */}
-          <Link href="/settings/team" className="text-sm font-semibold text-slate-700 underline">
+          <Link href="/settings/team" className="text-sm font-semibold text-ink underline">
             Manage team
           </Link>
         </div>
 
-        <ul className="divide-y divide-slate-200 rounded-lg border border-border bg-paper">
+        <ul className="divide-y divide-border rounded-lg border border-border bg-paper">
           {businesses.map((business) => {
             const isSelected = business.id === selectedBusinessId;
             return (
@@ -95,7 +95,7 @@ export function BusinessesPage() {
                   <p className="font-medium text-ink">
                     {business.businessName}
                     {isSelected ? (
-                      <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                      <span className="ml-2 rounded-full bg-status-paid-bg px-2 py-0.5 text-xs font-medium text-status-paid-fg">
                         Selected
                       </span>
                     ) : null}
@@ -110,7 +110,7 @@ export function BusinessesPage() {
                     <button
                       type="button"
                       onClick={() => selectBusiness(business.id)}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-canvas"
+                      className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas"
                     >
                       Use {business.businessName}
                     </button>
@@ -118,7 +118,7 @@ export function BusinessesPage() {
                   <Link
                     href="/settings/business"
                     onClick={() => selectBusiness(business.id)}
-                    className="rounded-md px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                    className="rounded-md px-3 py-1.5 text-sm font-medium text-status-sent-fg hover:bg-status-sent-bg/55"
                   >
                     Edit profile
                   </Link>
@@ -136,7 +136,7 @@ export function BusinessesPage() {
           </h2>
 
           <div>
-            <label htmlFor="new-business-name" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="new-business-name" className="block text-sm font-medium text-ink">
               Business name
             </label>
             <input
@@ -146,13 +146,13 @@ export function BusinessesPage() {
               maxLength={200}
               value={values.businessName}
               onChange={(event) => setValues({ ...values, businessName: event.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="workspace-field mt-1 w-full rounded-md border border-border px-3 py-2 text-sm"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="new-business-country" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="new-business-country" className="block text-sm font-medium text-ink">
                 Country code
               </label>
               <input
@@ -163,11 +163,11 @@ export function BusinessesPage() {
                 maxLength={2}
                 value={values.country}
                 onChange={(event) => setValues({ ...values, country: event.target.value })}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm uppercase"
+                className="workspace-field mt-1 w-full rounded-md border border-border px-3 py-2 text-sm uppercase"
               />
             </div>
             <div>
-              <label htmlFor="new-business-currency" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="new-business-currency" className="block text-sm font-medium text-ink">
                 Currency code
               </label>
               <input
@@ -178,13 +178,13 @@ export function BusinessesPage() {
                 maxLength={3}
                 value={values.defaultCurrency}
                 onChange={(event) => setValues({ ...values, defaultCurrency: event.target.value })}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm uppercase"
+                className="workspace-field mt-1 w-full rounded-md border border-border px-3 py-2 text-sm uppercase"
               />
             </div>
           </div>
 
           {submitError ? (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-status-overdue-fg">
               {submitError}
             </p>
           ) : null}
@@ -193,7 +193,7 @@ export function BusinessesPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+              className="workspace-button-primary disabled:opacity-60"
             >
               {submitting ? "Creating…" : "Create business"}
             </button>
@@ -203,7 +203,7 @@ export function BusinessesPage() {
                 setShowCreate(false);
                 setSubmitError(null);
               }}
-              className="rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              className="rounded-md px-4 py-2 text-sm font-medium text-ink hover:bg-status-draft-bg"
             >
               Cancel
             </button>
@@ -213,7 +213,7 @@ export function BusinessesPage() {
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="workspace-button-primary"
         >
           New business
         </button>

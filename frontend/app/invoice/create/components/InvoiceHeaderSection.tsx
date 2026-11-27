@@ -40,7 +40,7 @@ export function InvoiceHeaderSection({
 
   return (
     <fieldset>
-      <legend className="text-base font-semibold text-slate-950">{legend}</legend>
+      <legend className="text-base font-semibold text-ink">{legend}</legend>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map((field) => {
           const isAdvanced = ADVANCED_HEADER_FIELD_NAMES.includes(field.name);
@@ -57,14 +57,14 @@ export function InvoiceHeaderSection({
           );
         })}
         <div className="flex flex-col gap-1">
-          <label htmlFor={currencyId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={currencyId} className="text-sm font-medium text-ink">
             Currency
           </label>
           <select
             id={currencyId}
             value={currency}
             onChange={(event) => onCurrencyChange(event.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950"
+            className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
           >
             {CURRENCY_OPTIONS.map((code) => (
               <option key={code} value={code}>

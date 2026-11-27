@@ -1,12 +1,21 @@
-"use client";
-
+import type { Metadata } from "next";
 import { Suspense } from "react";
+import { SiteHeader } from "../components/landing/SiteHeader";
+import { SiteFooter } from "../components/landing/SiteFooter";
 import { CreditNoteContent } from "./components/CreditNoteContent";
 
-export default function CreditNotesPage() {
+export const metadata: Metadata = { title: "Credit notes" };
+
+export default function CreditNotePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 py-12 px-4 flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>}>
-      <CreditNoteContent />
-    </Suspense>
+    <>
+      <SiteHeader />
+      <main className="workspace-main max-w-5xl">
+        <Suspense fallback={<p role="status" className="workspace-state">Loading credit notes…</p>}>
+          <CreditNoteContent />
+        </Suspense>
+      </main>
+      <SiteFooter workspace />
+    </>
   );
 }

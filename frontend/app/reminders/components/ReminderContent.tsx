@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useWorkspaceBusiness } from "../../lib/useWorkspaceBusiness";
 import { ReminderRuleList } from "./ReminderRuleList";
 import { listReminderRules, initializeDefaultReminderRules, ReminderRule } from "../../lib/reminders";
 
 export function ReminderContent() {
-  const searchParams = useSearchParams();
-  const businessId = searchParams.get("businessId") || "";
+  const { businessId, error: businessError } = useWorkspaceBusiness();
   const [rules, setRules] = useState<ReminderRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +33,7 @@ export function ReminderContent() {
   }, [businessId]);
 
   const handleInitializeDefaults = async () => {
+    if (!businessId) return;
     try {
       setLoading(true);
       const data = await initializeDefaultReminderRules(businessId);
@@ -46,6 +47,7 @@ export function ReminderContent() {
   };
 
   const handleRulesUpdated = async () => {
+    if (!businessId) return;
     try {
       const data = await listReminderRules(businessId);
       setRules(data);
@@ -56,10 +58,14 @@ export function ReminderContent() {
 
   if (!businessId) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-paper rounded-lg shadow p-6">
-            <p className="text-red-600">Business context required. Please access through the main app.</p>
+      <div>
+        <div className="min-w-0">
+          <div className="workspace-panel p-6">
+            {businessError ? (
+              <p role="alert" className="workspace-state workspace-error">{businessError} <Link href="/businesses" className="font-semibold underline">Manage businesses</Link></p>
+            ) : (
+              <p role="status" className="text-sm text-muted">Loading your business…</p>
+            )}
           </div>
         </div>
       </div>
@@ -67,30 +73,30 @@ export function ReminderContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-paper rounded-lg shadow">
-          <div className="px-6 py-8">
-            <h1 className="text-3xl font-bold text-gray-900">Payment Reminders</h1>
-            <p className="mt-2 text-gray-600">
+    <div>
+      <div className="min-w-0">
+        <div className="workspace-panel">
+          <div className="p-4 sm:p-7">
+            <h1 className="workspace-heading">Payment Reminders</h1>
+            <p className="mt-2 text-muted">
               Configure automatic payment reminder rules for your invoices.
             </p>
 
             {error && (
-              <div className="mt-6 rounded-md bg-red-50 p-4 text-sm text-red-800">
+              <div className="mt-6 rounded-md bg-status-overdue-bg/55 p-4 text-sm text-status-overdue-fg">
                 {error}
               </div>
             )}
 
             <div className="mt-8">
               {loading ? (
-                <p className="text-gray-500">Loading reminder rules...</p>
+                <p role="status" className="workspace-state">Loading reminder rules...</p>
               ) : rules.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                  <p className="text-gray-500 mb-4">No reminder rules configured yet.</p>
+                <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
+                  <p className="text-muted mb-4">No reminder rules configured yet.</p>
                   <button
                     onClick={handleInitializeDefaults}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="workspace-button-primary"
                   >
                     Initialize Default Rules
                   </button>

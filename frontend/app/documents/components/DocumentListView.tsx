@@ -30,8 +30,8 @@ const TYPE_BADGE_CLASSES: Record<DocumentType, string> = {
   Invoice: "bg-sky-100 text-sky-900",
   Estimate: "bg-violet-100 text-violet-900",
   CreditNote: "bg-rose-100 text-rose-900",
-  Receipt: "bg-emerald-100 text-emerald-900",
-  PurchaseOrder: "bg-amber-100 text-amber-900",
+  Receipt: "bg-status-paid-bg text-emerald-900",
+  PurchaseOrder: "bg-status-pending-bg text-status-pending-fg",
 };
 
 function formatCurrency(amount: number, currency: string): string {
@@ -144,7 +144,7 @@ export function DocumentListView() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink">Documents</h1>
+        <h1 className="workspace-heading">Documents</h1>
         {hasActiveFilters ? (
           <button type="button" onClick={handleClearFilters} className="text-sm font-medium text-muted hover:underline">
             Clear filters
@@ -158,7 +158,7 @@ export function DocumentListView() {
 
       <form onSubmit={handleSearchSubmit} className="mt-4 flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor="document-search" className="text-sm font-medium text-slate-700">
+          <label htmlFor="document-search" className="text-sm font-medium text-ink">
             Search
           </label>
           <input
@@ -167,22 +167,22 @@ export function DocumentListView() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Document number or name…"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+            className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
           />
         </div>
-        <button type="submit" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+        <button type="submit" className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink">
           Search
         </button>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="document-type-filter" className="text-sm font-medium text-slate-700">
+          <label htmlFor="document-type-filter" className="text-sm font-medium text-ink">
             Document type
           </label>
           <select
             id="document-type-filter"
             value={documentType}
             onChange={(event) => navigate({ documentType: event.target.value || undefined, page: "1" })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="workspace-field rounded-md border border-border px-2 py-2 text-sm"
           >
             <option value="">All types</option>
             {DOCUMENT_TYPES.map((type) => (
@@ -194,14 +194,14 @@ export function DocumentListView() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="document-date-filter" className="text-sm font-medium text-slate-700">
+          <label htmlFor="document-date-filter" className="text-sm font-medium text-ink">
             Date
           </label>
           <select
             id="document-date-filter"
             value={datePreset}
             onChange={(event) => navigate({ datePreset: event.target.value === "All" ? undefined : event.target.value, page: "1" })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="workspace-field rounded-md border border-border px-2 py-2 text-sm"
           >
             <option value="All">All time</option>
             {DATE_PRESETS.filter((preset) => preset !== "All").map((preset) => (
@@ -213,14 +213,14 @@ export function DocumentListView() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="document-sort" className="text-sm font-medium text-slate-700">
+          <label htmlFor="document-sort" className="text-sm font-medium text-ink">
             Sort
           </label>
           <select
             id="document-sort"
             value={sort}
             onChange={(event) => navigate({ sort: event.target.value === DEFAULT_SORT ? undefined : event.target.value })}
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+            className="workspace-field rounded-md border border-border px-2 py-2 text-sm"
           >
             {DOCUMENT_SORT_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -232,15 +232,15 @@ export function DocumentListView() {
       </form>
 
       {state === "error" ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
 
-      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading documents…</p> : null}
+      {state === "loading" ? <p role="status" className="workspace-state mt-6">Loading documents…</p> : null}
 
       {state === "loaded" && result && result.items.length === 0 && !hasActiveFilters ? (
-        <p className="mt-6 text-sm text-muted">
+        <p className="workspace-state mt-6">
           No documents yet.{" "}
           <Link href="/invoice/create" className="font-medium text-ink hover:underline">
             Create your first invoice
@@ -250,7 +250,7 @@ export function DocumentListView() {
       ) : null}
 
       {state === "loaded" && result && result.items.length === 0 && hasActiveFilters ? (
-        <p className="mt-6 text-sm text-muted">
+        <p className="workspace-state mt-6">
           No documents match these criteria.{" "}
           <button type="button" onClick={handleClearFilters} className="font-medium text-ink hover:underline">
             Clear filters
@@ -261,7 +261,7 @@ export function DocumentListView() {
 
       {state === "loaded" && result && result.items.length > 0 ? (
         <>
-          <div className="mt-6 overflow-x-auto">
+          <div role="region" aria-label="All documents" tabIndex={0} className="mt-6 workspace-table-scroll">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">All documents</caption>
               <thead>
@@ -272,13 +272,13 @@ export function DocumentListView() {
                       other type's is a customer. */}
                   <th className="py-2 pr-4 font-medium">Customer / Supplier</th>
                   <th className="py-2 pr-4 font-medium">Issue date</th>
-                  <th className="py-2 pr-4 font-medium">Amount</th>
+                  <th className="py-2 pr-4 text-right font-medium">Amount</th>
                   <th className="py-2 pr-4 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {result.items.map((item) => (
-                  <tr key={`${item.documentType}-${item.id}`} className="border-b border-slate-100">
+                  <tr key={`${item.documentType}-${item.id}`} className="border-b border-border">
                     <td className="py-2 pr-4">
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${TYPE_BADGE_CLASSES[item.documentType]}`}>
                         {DOCUMENT_TYPE_LABELS[item.documentType]}
@@ -289,12 +289,12 @@ export function DocumentListView() {
                         {item.documentNumber}
                       </Link>
                     </td>
-                    <td className="py-2 pr-4 text-slate-700">{item.partyName || "—"}</td>
-                    <td className="py-2 pr-4 text-slate-700">{item.issueDate}</td>
-                    <td className="py-2 pr-4 text-slate-700">{formatCurrency(item.totalAmount, item.currency)}</td>
-                    <td className="py-2 pr-4 text-slate-700">
+                    <td className="py-2 pr-4 text-ink">{item.partyName || "—"}</td>
+                    <td className="py-2 pr-4 text-ink">{item.issueDate}</td>
+                    <td className="py-2 pr-4 text-right font-mono tabular-nums text-ink">{formatCurrency(item.totalAmount, item.currency)}</td>
+                    <td className="py-2 pr-4 text-ink">
                       {item.status ? (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{item.status}</span>
+                        <span className="rounded-full bg-status-draft-bg px-3 py-1 text-xs font-semibold text-ink">{item.status}</span>
                       ) : (
                         "—"
                       )}
@@ -314,7 +314,7 @@ export function DocumentListView() {
                 id="document-page-size"
                 value={pageSize}
                 onChange={(event) => navigate({ pageSize: event.target.value, page: "1" })}
-                className="rounded-md border border-slate-300 px-2 py-1"
+                className="workspace-field rounded-md border border-border px-2 py-1"
               >
                 {PAGE_SIZE_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -329,7 +329,7 @@ export function DocumentListView() {
                 type="button"
                 onClick={() => navigate({ page: String(page - 1) })}
                 disabled={page <= 1}
-                className="rounded-full border border-slate-300 px-4 py-2 font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-full border border-border px-4 py-2 font-semibold text-ink disabled:opacity-50"
               >
                 Previous
               </button>
@@ -340,7 +340,7 @@ export function DocumentListView() {
                 type="button"
                 onClick={() => navigate({ page: String(page + 1) })}
                 disabled={page >= totalPages}
-                className="rounded-full border border-slate-300 px-4 py-2 font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-full border border-border px-4 py-2 font-semibold text-ink disabled:opacity-50"
               >
                 Next
               </button>

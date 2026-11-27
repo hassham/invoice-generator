@@ -75,15 +75,15 @@ export function CreditNoteContent() {
 
   if (!businessId) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-paper rounded-lg shadow p-6">
+      <div>
+        <div className="min-w-0">
+          <div className="workspace-panel p-6">
             {businessError ? (
-              <p role="alert" className="text-red-600">
+              <p role="alert" className="text-status-overdue-fg">
                 {businessError}
               </p>
             ) : (
-              <p className="text-gray-500">Loading credit notes...</p>
+              <p role="status" className="workspace-state">Loading credit notes...</p>
             )}
           </div>
         </div>
@@ -92,33 +92,37 @@ export function CreditNoteContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-paper rounded-lg shadow">
-          <div className="px-6 py-8">
-            <h1 className="text-3xl font-bold text-gray-900">Credit Notes</h1>
-            <p className="mt-2 text-gray-600">
+    <div>
+      <div className="min-w-0">
+        <div className="workspace-panel">
+          <div className="p-4 sm:p-7">
+            <h1 className="workspace-heading">Credit Notes</h1>
+            <p className="mt-2 text-muted">
               Create and manage credit notes for your invoices.
             </p>
 
             <div className="mt-8">
-              <div className="flex gap-4 border-b">
+              <div className="flex flex-wrap gap-2 border-b border-border pb-3">
                 <button
+                  type="button"
+                  aria-pressed={activeTab === "list"}
                   onClick={() => setActiveTab("list")}
-                  className={`px-4 py-2 font-medium border-b-2 transition ${
+                  className={`workspace-tab ${
                     activeTab === "list"
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-600 hover:text-gray-900"
+                      ? "workspace-tab-active"
+                      : "workspace-tab-idle"
                   }`}
                 >
                   Credit Notes ({creditNotes.length})
                 </button>
                 <button
+                  type="button"
+                  aria-pressed={activeTab === "create"}
                   onClick={() => setActiveTab("create")}
-                  className={`px-4 py-2 font-medium border-b-2 transition ${
+                  className={`workspace-tab ${
                     activeTab === "create"
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-600 hover:text-gray-900"
+                      ? "workspace-tab-active"
+                      : "workspace-tab-idle"
                   }`}
                 >
                   Create New
@@ -128,9 +132,9 @@ export function CreditNoteContent() {
               {activeTab === "list" && (
                 <div className="mt-6">
                   {loading ? (
-                    <p className="text-gray-500">Loading credit notes...</p>
+                    <p role="status" className="workspace-state">Loading credit notes...</p>
                   ) : creditNotes.length === 0 ? (
-                    <p className="text-gray-500">No credit notes yet.</p>
+                    <p className="workspace-state">No credit notes yet.</p>
                   ) : (
                     <CreditNoteList
                       businessId={businessId}

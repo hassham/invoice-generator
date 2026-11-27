@@ -97,15 +97,15 @@ export function RevenueReportView() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500">{t("reports.revenue.loading")}</div>;
+    return <div role="status" className="workspace-state">{t("reports.revenue.loading")}</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{t("reports.error.display", { message: error })}</div>;
+    return <div role="alert" className="workspace-state workspace-error">{t("reports.error.display", { message: error })}</div>;
   }
 
   if (!report) {
-    return <div className="text-center text-gray-500">{t("reports.revenue.noData")}</div>;
+    return <div className="text-center text-muted">{t("reports.revenue.noData")}</div>;
   }
 
   const formatCurrency = (amount: number) => {
@@ -118,57 +118,59 @@ export function RevenueReportView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("reports.revenue.title")}</h1>
-        <p className="text-sm text-gray-600 mt-1">{t("reports.revenue.subtitle", { period: periodType })}</p>
+        <h1 className="workspace-heading">{t("reports.revenue.title")}</h1>
+        <p className="text-sm text-muted mt-1">{t("reports.revenue.subtitle", { period: periodType })}</p>
       </div>
 
-      <div className="flex gap-2 justify-between items-center">
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
           {(["month", "quarter", "year"] as const).map((period) => (
             <button
               key={period}
+              type="button"
+              aria-pressed={periodType === period}
               onClick={() => setPeriodType(period)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`workspace-tab ${
                 periodType === period
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  ? "workspace-tab-active"
+                  : "workspace-tab-idle"
               }`}
             >
               {t(periodLabelKeys[period])}
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400"
+            className="workspace-button-secondary"
           >
             {exporting ? t("reports.export.busy") : t("reports.export.csv")}
           </button>
           <button
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="px-4 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 disabled:bg-gray-400"
+            className="workspace-button-secondary"
           >
             {exportingPdf ? t("reports.export.busy") : t("reports.export.pdf")}
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div role="region" aria-label="Revenue report" tabIndex={0} className="workspace-table-scroll">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-gray-300">
-              <th className="text-left py-3 px-4 font-semibold text-gray-900">{t("reports.column.period")}</th>
-              <th className="text-right py-3 px-4 font-semibold text-gray-900">{t("reports.column.revenue")}</th>
+            <tr className="border-b border-border">
+              <th className="text-left py-3 px-4 font-semibold text-ink">{t("reports.column.period")}</th>
+              <th className="text-right tabular-nums py-3 px-4 font-semibold text-ink">{t("reports.column.revenue")}</th>
             </tr>
           </thead>
           <tbody>
             {report.periods.map((period) => (
-              <tr key={period.period} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-3 px-4 text-gray-900">{period.period}</td>
-                <td className="py-3 px-4 text-right font-medium text-gray-900">
+              <tr key={period.period} className="border-b border-border hover:bg-canvas">
+                <td className="py-3 px-4 text-ink">{period.period}</td>
+                <td className="py-3 px-4 text-right tabular-nums font-medium text-ink">
                   {formatCurrency(period.revenue)}
                 </td>
               </tr>
@@ -178,7 +180,7 @@ export function RevenueReportView() {
       </div>
 
       {report.periods.every((p) => p.revenue === 0) && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted">
           {t("reports.revenue.empty")}
         </div>
       )}

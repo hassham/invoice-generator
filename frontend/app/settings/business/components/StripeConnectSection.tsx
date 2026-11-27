@@ -40,7 +40,7 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
       </p>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
@@ -48,13 +48,13 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
       <div className="mt-4">
         {stripeAccountId ? (
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Connected</span>
+            <span className="rounded-full bg-status-paid-bg px-3 py-1 text-xs font-semibold text-status-paid-fg">Connected</span>
             <span className="text-sm text-muted">{stripeAccountId}</span>
             <button
               type="button"
               onClick={() => void handleDisconnect()}
               disabled={disconnecting}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
             >
               {disconnecting ? "Disconnecting…" : "Disconnect"}
             </button>
@@ -62,7 +62,7 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
         ) : (
           <a
             href={stripeConnectUrl(businessId)}
-            className="inline-block rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            className="workspace-button-primary inline-block"
           >
             Connect with Stripe
           </a>

@@ -18,7 +18,7 @@ export default function OverduePage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-6 py-16">
+      <main className="workspace-main max-w-5xl">
         <OutstandingAndOverdueView type="overdue" />
       </main>
       <SiteFooter workspace />

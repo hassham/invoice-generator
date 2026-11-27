@@ -161,7 +161,7 @@ export function CreateEstimateEditor() {
 
   if (loadError) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
         {loadError}
       </p>
     );
@@ -305,14 +305,14 @@ export function CreateEstimateEditor() {
         <div>
           {/* IG-220 AC: visually distinguishable from an invoice, on screen. */}
           <p className="text-sm font-medium text-muted">Estimate</p>
-          <h1 className="text-2xl font-bold text-ink">New Estimate</h1>
+          <h1 className="workspace-heading">New Estimate</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void handleDownloadPdf()}
             disabled={pdfDownloading}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             {pdfDownloading ? "Generating…" : "Download PDF"}
           </button>
@@ -320,7 +320,7 @@ export function CreateEstimateEditor() {
             type="button"
             onClick={() => void handleSave()}
             disabled={saveStatus === "saving"}
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="workspace-button-primary disabled:opacity-50"
           >
             {saveStatus === "saving" ? "Saving…" : "Save"}
           </button>
@@ -328,13 +328,13 @@ export function CreateEstimateEditor() {
       </div>
 
       {pdfError ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {pdfError}
         </p>
       ) : null}
 
       {saveStatus === "saved" ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
           Saved.{" "}
           <button type="button" onClick={() => router.push(`/documents/estimates/${savedEstimateId}`)} className="font-semibold underline">
             View saved estimate
@@ -342,7 +342,7 @@ export function CreateEstimateEditor() {
         </p>
       ) : null}
       {saveStatus === "error" ? (
-        <p role="alert" className="mt-6 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 flex items-center justify-between gap-3 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           <span>{saveError}</span>
           <button type="button" onClick={() => void handleSave()} className="font-semibold underline">
             Retry
@@ -477,7 +477,7 @@ export function CreateEstimateEditor() {
         <fieldset className="mt-6 border-t border-border pt-6">
           <legend className="text-base font-semibold text-ink">Payment Instructions</legend>
           <div className="mt-4 flex flex-col gap-1">
-            <label htmlFor="estimate-payment-instructions" className="text-sm font-medium text-slate-700">
+            <label htmlFor="estimate-payment-instructions" className="text-sm font-medium text-ink">
               Payment Instructions
             </label>
             <textarea
@@ -485,7 +485,7 @@ export function CreateEstimateEditor() {
               value={editable.paymentInstructions}
               onChange={(event) => setEditable({ ...editable, paymentInstructions: event.target.value })}
               rows={4}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
         </fieldset>

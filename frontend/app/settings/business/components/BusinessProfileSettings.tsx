@@ -139,7 +139,7 @@ export function BusinessProfileSettings() {
 
   if (state === "error" || !profile) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
         {loadError}
       </p>
     );
@@ -152,18 +152,18 @@ export function BusinessProfileSettings() {
       <p className="mt-1 text-sm text-muted">Configure once and reuse on all your invoices.</p>
 
       {stripeConnectResult === "connected" ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
           Stripe account connected.
         </p>
       ) : null}
       {stripeConnectResult === "error" ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           Failed to connect your Stripe account. Please try again.
         </p>
       ) : null}
 
       {savedAt ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
           Changes saved.
         </p>
       ) : null}

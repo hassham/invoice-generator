@@ -168,7 +168,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
 
   if (state === "error" || !detail || !editable) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
         {loadError}
       </p>
     );
@@ -365,9 +365,9 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted">Invoice</p>
-          <h1 className="text-2xl font-bold text-ink">{detail.invoiceNumber}</h1>
+          <h1 className="workspace-heading">{detail.invoiceNumber}</h1>
           <p className="mt-1 text-sm text-muted">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{detail.status}</span>
+            <span className="rounded-full bg-status-draft-bg px-3 py-1 text-xs font-semibold text-ink">{detail.status}</span>
           </p>
         </div>
         {/* IG-68: wraps onto a second line rather than overflowing horizontally at mobile
@@ -377,7 +377,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             type="button"
             onClick={() => void handleDuplicate()}
             disabled={duplicating}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             {duplicating ? "Duplicating…" : "Duplicate"}
           </button>
@@ -385,7 +385,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             type="button"
             onClick={() => void handleDownloadPdf()}
             disabled={pdfDownloading}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas disabled:opacity-50"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             {pdfDownloading ? "Generating…" : "Download PDF"}
           </button>
@@ -395,7 +395,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
               setEmailSent(false);
               setEmailDialogOpen(true);
             }}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas"
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
           >
             Send by Email
           </button>
@@ -403,7 +403,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <button
               type="button"
               onClick={() => void handleMarkIssued()}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas"
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
             >
               Mark as Issued
             </button>
@@ -412,7 +412,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <button
               type="button"
               onClick={() => setActiveDialog("cancel")}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-canvas"
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
             >
               Cancel Invoice
             </button>
@@ -420,7 +420,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           <button
             type="button"
             onClick={() => setActiveDialog("delete")}
-            className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+            className="rounded-full border border-status-overdue-fg/25 px-4 py-2 text-sm font-semibold text-status-overdue-fg hover:bg-status-overdue-bg/55"
           >
             Delete
           </button>
@@ -428,7 +428,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             type="button"
             onClick={() => void handleSave()}
             disabled={saveStatus === "saving"}
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="workspace-button-primary disabled:opacity-50"
           >
             {saveStatus === "saving" ? "Saving…" : "Save"}
           </button>
@@ -474,41 +474,41 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
         />
       ) : null}
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-muted">
         Created {formatDateTime(detail.createdAt)} · Last updated {formatDateTime(detail.updatedAt)}
       </p>
 
       {detail.status === "Paid" ? (
-        <p role="alert" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p role="alert" className="mt-6 rounded-md border border-status-pending-fg/25 bg-status-pending-bg/60 px-4 py-3 text-sm text-status-pending-fg">
           This invoice is marked Paid. You can still edit it, but changes may affect records that depend on it.
         </p>
       ) : null}
 
       {duplicateError ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {duplicateError}
         </p>
       ) : null}
 
       {pdfError ? (
-        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           {pdfError}
         </p>
       ) : null}
 
       {emailSent ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
           Invoice sent.
         </p>
       ) : null}
 
       {saveStatus === "saved" ? (
-        <p role="status" className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
           Saved.
         </p>
       ) : null}
       {saveStatus === "error" ? (
-        <p role="alert" className="mt-6 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="mt-6 flex items-center justify-between gap-3 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
           <span>{saveError}</span>
           <button type="button" onClick={() => void handleSave()} className="font-semibold underline">
             Retry
@@ -518,19 +518,19 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
 
       <div className="mt-6 grid grid-cols-2 gap-4 rounded-lg border border-border p-4 text-sm sm:grid-cols-4">
         <div>
-          <p className="text-slate-500">Subtotal</p>
+          <p className="text-muted">Subtotal</p>
           <p className="font-semibold text-ink">{formatCurrency(detail.subtotal, detail.currency)}</p>
         </div>
         <div>
-          <p className="text-slate-500">Tax</p>
+          <p className="text-muted">Tax</p>
           <p className="font-semibold text-ink">{formatCurrency(detail.taxAmount, detail.currency)}</p>
         </div>
         <div>
-          <p className="text-slate-500">Total</p>
+          <p className="text-muted">Total</p>
           <p className="font-semibold text-ink">{formatCurrency(detail.totalAmount, detail.currency)}</p>
         </div>
         <div>
-          <p className="text-slate-500">Amount Due</p>
+          <p className="text-muted">Amount Due</p>
           <p className="font-semibold text-ink">{formatCurrency(detail.amountDue, detail.currency)}</p>
         </div>
       </div>
@@ -658,7 +658,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
         <fieldset className="mt-6 border-t border-border pt-6">
           <legend className="text-base font-semibold text-ink">Payment Instructions</legend>
           <div className="mt-4 flex flex-col gap-1">
-            <label htmlFor="invoice-payment-instructions" className="text-sm font-medium text-slate-700">
+            <label htmlFor="invoice-payment-instructions" className="text-sm font-medium text-ink">
               Payment Instructions
             </label>
             <textarea
@@ -666,7 +666,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
               value={editable.paymentInstructions}
               onChange={(event) => setEditable({ ...editable, paymentInstructions: event.target.value })}
               rows={4}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-ink"
+              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
             />
           </div>
         </fieldset>

@@ -39,17 +39,17 @@ export function LogoUpload({ logo, onLogoChange }: LogoUploadProps) {
   };
 
   return (
-    <fieldset className="mt-6 border-t border-slate-200 pt-6">
-      <legend className="text-base font-semibold text-slate-950">Logo</legend>
-      <div className="mt-4 flex items-center gap-4">
+    <fieldset className="mt-6 border-t border-border pt-6">
+      <legend className="text-base font-semibold text-ink">Logo</legend>
+      <div className="mt-4 flex flex-wrap items-center gap-4">
         {logo ? (
           // next/image needs a static import or a configured loader - this is an arbitrary,
           // client-generated data URL (lib/logoUpload.ts), which next/image can't optimize anyway.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt="Business logo preview" className="h-12 w-auto rounded border border-slate-200 object-contain" />
+          <img src={logo} alt="Business logo preview" className="h-12 w-auto rounded border border-border object-contain" />
         ) : null}
         <div className="flex flex-col gap-1">
-          <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={inputId} className="text-sm font-medium text-ink">
             {logo ? "Replace logo" : "Upload logo"}
           </label>
           <input
@@ -57,22 +57,22 @@ export function LogoUpload({ logo, onLogoChange }: LogoUploadProps) {
             type="file"
             accept={ACCEPTED_LOGO_TYPES.join(",")}
             onChange={handleFileChange}
-            className="text-sm text-slate-700"
+            className="text-sm text-ink"
           />
         </div>
         {logo ? (
           <button
             type="button"
             onClick={handleRemove}
-            className="rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700"
+            className="rounded-full border border-border px-3 py-1 text-sm font-semibold text-ink"
           >
             Remove logo
           </button>
         ) : null}
       </div>
-      {uploading ? <p className="mt-2 text-sm text-slate-500">Processing…</p> : null}
+      {uploading ? <p className="mt-2 text-sm text-muted">Processing…</p> : null}
       {error ? (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm text-status-overdue-fg">
           {error}
         </p>
       ) : null}
