@@ -4,7 +4,7 @@ import { WorkspaceHeading } from "../../../components/ui/WorkspaceCollection";
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../lib/fields";
 import {
   addDaysIso,
@@ -59,6 +59,8 @@ import { InvoicePreview } from "./InvoicePreview";
 import { InvoiceTotalsSection } from "./InvoiceTotalsSection";
 import { LineItemsSection } from "./LineItemsSection";
 import { LogoUpload } from "./LogoUpload";
+import { ItemPicker } from "./ItemPicker";
+import styles from "./InvoiceCreation.module.css";
 import { SupportingContentSection } from "./SupportingContentSection";
 import { TemplateCustomizationPanel } from "./TemplateCustomizationPanel";
 import { TemplateSelector } from "./TemplateSelector";
@@ -114,7 +116,11 @@ export function CreateInvoiceEditor() {
   // IG-58: this account's saved catalogue items, fetched once authenticated, for each line item's
   // search picker - same fetch-once-and-filter-client-side pattern as IG-56's customers.
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
-  const selectedTemplateCode = templates.find((template) => template.id === draft.templateId)?.templateCode ?? "";
+  const selectedTemplate = templates.find((template) => template.id === draft.templateId);
+  const selectedTemplateCode = selectedTemplate?.templateCode ?? "";
+  const savedItemPickerId = useId();
+  const appearanceId = useId();
+  const [focusItemId, setFocusItemId] = useState<string>();
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
   // supportingContent have no post-mount default-filling, so their very first render's value is
@@ -568,11 +574,13 @@ export function CreateInvoiceEditor() {
     setLineItemErrors(validateLineItems(lineItems));
   };
 
-  // IG-58: fills Description/Unit/Unit Price/Tax Rate on one line from a picked catalogue item
-  // (FSD section 25) - a single replace of that line, not a sequence of per-field onFieldChange
-  // calls, so it's one state update and one validation pass instead of several.
-  const handleSelectCatalogItem = (id: string, catalogItem: CatalogItem) => {
-    const nextItems = lineItems.map((item) => (item.id === id ? applyCatalogItemToLineItem(item, catalogItem) : item));
+  // A single catalogue search adds lines without overwriting manual work. Reuse an empty
+  // placeholder if present; in particular, keep any quantity the user entered first.
+  const handleAddCatalogItem = (catalogItem: CatalogItem) => {
+    const placeholder = lineItems.find((item) => !item.description.trim() && !item.unitPrice.trim() && !item.unit);
+    const nextItems = placeholder
+      ? lineItems.map((item) => item.id === placeholder.id ? applyCatalogItemToLineItem(item, catalogItem) : item)
+      : [...lineItems, applyCatalogItemToLineItem(createEmptyLineItem(), catalogItem)];
     setLineItems(nextItems);
     if (hasAnyLineItemError(lineItemErrors)) {
       setLineItemErrors(validateLineItems(nextItems));
@@ -580,7 +588,9 @@ export function CreateInvoiceEditor() {
   };
 
   const handleAddLineItem = () => {
-    setLineItems((current) => [...current, createEmptyLineItem()]);
+    const newItem = createEmptyLineItem();
+    setFocusItemId(newItem.id);
+    setLineItems((current) => [...current, newItem]);
   };
 
   const handleRemoveLineItem = (id: string) => {
@@ -991,16 +1001,17 @@ export function CreateInvoiceEditor() {
     <InvoiceEditorLayout
       backHref={isAuthenticated ? "/dashboard" : "/"}
       backLabel={isAuthenticated ? "Back to Dashboard" : "Back to Home"}
-      workspaceHeading={isAuthenticated ? (
-        <WorkspaceHeading area="invoice" eyebrow="Workspace / Billing" title="New invoice"
-          description="Add your details and check the preview before you save."
-          back={{ href: "/dashboard", label: "Back to Dashboard" }} />
-      ) : undefined}
+      workspaceHeading={
+        <WorkspaceHeading area="invoice" eyebrow={isAuthenticated ? "Workspace / Billing" : "Free invoice maker"} title="New invoice"
+          description="Enter who you’re billing and what they owe. Your invoice updates as you type."
+          back={isAuthenticated ? { href: "/dashboard", label: "Back to Dashboard" } : { href: "/", label: "Back to Home" }} />
+      }
       editor={
-        <div className={isAuthenticated ? "invoice-edit-panel invoice-create-panel text-ink" : "rounded-2xl border border-border bg-paper p-6 text-ink"}>
-          <div className={isAuthenticated ? "invoice-create-toolbar" : "sticky top-0 z-30 -mx-6 -mt-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-border bg-paper px-6 py-4"}>
+        <div className={styles.editor}>
+          <div className={styles.toolbar}>
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
-            <div className="flex flex-wrap gap-3">
+            <a href={`#${appearanceId}`} className="text-sm font-semibold text-ink underline underline-offset-4">Change template</a>
+            <div className={styles.actions}>
               <button
                 type="button"
                 onClick={handleReviewInvoice}
@@ -1019,7 +1030,7 @@ export function CreateInvoiceEditor() {
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={pdfDownloading}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas disabled:opacity-50"
+                className={isAuthenticated ? "workspace-button-secondary disabled:opacity-50" : "workspace-button-primary disabled:opacity-50"}
               >
                 {pdfDownloading ? "Generating…" : "Download PDF"}
               </button>
@@ -1035,6 +1046,7 @@ export function CreateInvoiceEditor() {
               ) : null}
             </div>
           </div>
+          <div className={styles.body}>
           {isAuthenticated && saveStatus !== "idle" ? (
             saveStatus === "error" ? (
               <p role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
@@ -1081,16 +1093,22 @@ export function CreateInvoiceEditor() {
               </p>
             )
           ) : null}
-          <TemplateSelector
-            templates={templates}
-            selectedTemplateId={draft.templateId}
-            loading={templatesLoading}
-            error={templatesError}
-            onSelect={handleTemplateSelect}
-          />
-          <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
-          <LogoUpload logo={draft.logo} onLogoChange={handleLogoChange} />
-          <div className="mt-6 border-t border-border pt-6">
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Who’s on this invoice?</h2>
+            <div className={styles.parties}>
+              <div className={styles.party}>
+                <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={3} onChange={handleSellerChange} onBlur={handleSellerBlur} />
+              </div>
+              <div className={styles.party}>
+                {isAuthenticated ? <CustomerPicker customers={customers} onSelect={handleSelectCustomer} /> : null}
+                <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={3} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
+              </div>
+              <div className={`${styles.party} ${styles.shipping}`} hidden={!advancedVisible}>
+                <TextAreaField field={SHIP_TO_FIELD} value={draft.shipTo} error={shipToError} rows={3} onChange={handleShipToChange} onBlur={handleShipToBlur} />
+              </div>
+            </div>
+          </div>
+          <div className={styles.details}>
             <InvoiceHeaderSection
               values={draft.header}
               currency={draft.currency}
@@ -1101,22 +1119,18 @@ export function CreateInvoiceEditor() {
               onCurrencyChange={handleCurrencyChange}
             />
           </div>
-          <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6">
-            <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={4} onChange={handleSellerChange} onBlur={handleSellerBlur} />
-            {isAuthenticated ? <CustomerPicker customers={customers} onSelect={handleSelectCustomer} /> : null}
-            <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={4} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
-            <div hidden={!advancedVisible}>
-              <TextAreaField field={SHIP_TO_FIELD} value={draft.shipTo} error={shipToError} rows={4} onChange={handleShipToChange} onBlur={handleShipToBlur} />
-            </div>
-          </div>
           <LineItemsSection
+            compact
+            focusDescriptionId={focusItemId}
+            beforeItems={isAuthenticated ? (
+              <div className={styles.catalogue}>
+                <ItemPicker id={savedItemPickerId} items={catalogItems} onSelect={handleAddCatalogItem} />
+              </div>
+            ) : null}
             items={lineItems}
             errors={lineItemErrors}
-            catalogItems={catalogItems}
-            showItemPicker={isAuthenticated}
             onFieldChange={handleLineItemFieldChange}
             onFieldBlur={handleLineItemFieldBlur}
-            onSelectCatalogItem={handleSelectCatalogItem}
             onAdd={handleAddLineItem}
             onMoveUp={handleMoveLineItemUp}
             onMoveDown={handleMoveLineItemDown}
@@ -1140,7 +1154,7 @@ export function CreateInvoiceEditor() {
                 field={TERMS_FIELD}
                 value={supportingContent.terms}
                 error={supportingContentErrors.terms}
-                rows={6}
+                rows={3}
                 onChange={handleSupportingContentChange}
                 onBlur={handleSupportingContentBlur}
               />
@@ -1156,9 +1170,27 @@ export function CreateInvoiceEditor() {
               onPaymentInstructionBlur={handlePaymentInstructionBlur}
             />
           </div>
+          <section id={appearanceId} tabIndex={-1} className={styles.design} aria-label="Invoice appearance">
+            <h2 className={styles.sectionTitle}>Invoice appearance</h2>
+            <TemplateSelector
+              templates={templates}
+              selectedTemplateId={draft.templateId}
+              loading={templatesLoading}
+              error={templatesError}
+              onSelect={handleTemplateSelect}
+            />
+            <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
+            <LogoUpload logo={draft.logo} onLogoChange={handleLogoChange} />
+          </section>
+          </div>
         </div>
       }
       preview={
+        <>
+        <div className={styles.previewLabel}>
+          <p>Live invoice preview</p>
+          {selectedTemplate ? <p className="text-sm text-muted">{selectedTemplate.name} template</p> : null}
+        </div>
         <InvoicePreview
           templateCode={selectedTemplateCode}
           header={draft.header}
@@ -1172,6 +1204,7 @@ export function CreateInvoiceEditor() {
           templateCustomization={draft.templateCustomization}
           logo={draft.logo}
         />
+        </>
       }
     />
   );

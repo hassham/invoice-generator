@@ -1,10 +1,12 @@
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { CatalogItem } from "../../../lib/items";
 import { computeLineTotals, TAX_RATE_PRESETS, UNIT_OPTIONS, type LineItem, type LineItemErrors } from "../lib/lineItems";
 import { ItemPicker } from "./ItemPicker";
 
 interface LineItemRowProps {
   item: LineItem;
+  compact?: boolean;
+  focusDescription?: boolean;
   index: number;
   itemCount: number;
   errors: LineItemErrors;
@@ -30,6 +32,8 @@ function formatCurrency(amount: number): string {
  */
 export function LineItemRow({
   item,
+  compact = false,
+  focusDescription = false,
   index,
   itemCount,
   errors,
@@ -52,6 +56,11 @@ export function LineItemRow({
   const customTaxRateId = useId();
   const discountId = useId();
 
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (focusDescription) descriptionRef.current?.focus();
+  }, [focusDescription]);
+
   const position = index + 1;
   const isOnlyItem = itemCount === 1;
   const totals = computeLineTotals(item);
@@ -60,10 +69,10 @@ export function LineItemRow({
     onFieldChange(item.id, field, event.target.value);
 
   return (
-    <div className="rounded-xl border border-border bg-paper p-4">
-      <div className="flex items-center justify-between">
+    <div className={compact ? "min-w-0 rounded-xl border border-border bg-canvas p-2.5 sm:p-3" : "rounded-xl border border-border bg-paper p-4"}>
+      <div className="flex flex-wrap items-center justify-between gap-1.5">
         <p className="whitespace-nowrap text-sm font-semibold text-ink">Item {position}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
             onClick={() => onMoveUp(item.id)}
@@ -113,10 +122,11 @@ export function LineItemRow({
         </label>
         <textarea
           id={descriptionId}
+          ref={descriptionRef}
           value={item.description}
           onChange={change("description")}
           onBlur={() => onFieldBlur(item.id)}
-          rows={2}
+          rows={compact ? 1 : 2}
           maxLength={500}
           required
           aria-required="true"
@@ -134,7 +144,7 @@ export function LineItemRow({
         ) : null}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className={compact ? "mt-2 grid min-w-0 grid-cols-2 gap-2 [&>*]:min-w-0 sm:grid-cols-3" : "mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"}>
         <div className="flex flex-col gap-1">
           <label htmlFor={quantityId} className="text-sm font-semibold text-ink">
             Quantity<span aria-hidden="true"> *</span>

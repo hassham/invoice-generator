@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CatalogItem } from "../../../lib/items";
 import { filterCatalogItems, MIN_SEARCH_LENGTH } from "../lib/itemPicker";
 
@@ -17,6 +17,7 @@ interface ItemPickerProps {
  * client-side, same reasonable-at-this-scale choice CustomerPicker already made for IG-56.
  */
 export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const matches = filterCatalogItems(items, query);
@@ -24,6 +25,7 @@ export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
 
   const handleSelect = (item: CatalogItem) => {
     onSelect(item);
+    inputRef.current?.focus();
     setQuery("");
     setIsOpen(false);
   };
@@ -47,6 +49,7 @@ export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
       </label>
       <input
         id={id}
+        ref={inputRef}
         type="text"
         value={query}
         onChange={(event) => {
@@ -58,7 +61,7 @@ export function ItemPicker({ id, items, onSelect }: ItemPickerProps) {
         className="workspace-field mt-1 w-full rounded-md border border-border px-3 py-2 text-sm text-ink"
       />
       {showDropdown ? (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-paper shadow-lg">
+        <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-paper shadow-lg">
           {matches.length === 0 ? (
             <p className="px-3 py-2 text-sm text-muted">No matching items.</p>
           ) : (

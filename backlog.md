@@ -8,6 +8,13 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Create Invoice workflow follow-up (2026-11-28, Sydney)
+
+- User-requested follow-up to IG-338 (Done, subtask of IG-329 In Progress). Jira was read, not changed.
+- Based on Invoice Home’s public first-invoice and saved-items guides, the create editor now starts with From and Bill To, keeps Basic/Advanced and entered values, and puts template, colour and logo controls in a separate appearance section with a direct jump link. Wide screens show the live preview alongside the form; narrower screens retain Edit/Preview tabs.
+- Compact line cards keep all existing fields. Add Item focuses its new description. One separate saved-item search uses an available blank line or appends without overwriting manual descriptions and prices. The shared saved-invoice editor keeps its current layout.
+- TypeScript, targeted lint, and all 167 invoice editor component tests passed. The local editor returned 200 and served the billing-first form and new CSS; the API database check was healthy. Next: smoke-test the signed-in flow and browser printing on a phone. No backend, PDF rendering, production deployment or database changes.
+
 ## Invoice template collection (2026-11-28, Sydney)
 
 - [IG-330](https://appitometechnologies.atlassian.net/browse/IG-330), standalone Story, To Do when read. No Jira changes. Studio adds a serif editorial panel, Ledger adds a compact ruled document, and Horizon adds a split header and full-width total. Existing template codes, identifiers and defaults stay in place.

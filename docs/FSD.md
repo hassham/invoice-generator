@@ -729,7 +729,7 @@ Clear fields rather than remove row.
 
 For registered users:
 
-Typing into item description searches saved products/services.
+On the Create Invoice screen, one saved-item search above the line items looks up products and services. Selecting a match fills an available blank line or appends a new one without replacing a manually entered description or price.
 
 Display:
 

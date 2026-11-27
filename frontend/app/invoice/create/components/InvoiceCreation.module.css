@@ -1,0 +1,84 @@
+.editor {
+  --editor-radius: .85rem;
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--color-ink);
+  border-radius: var(--editor-radius);
+  background: var(--color-paper);
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .65rem;
+  padding: .7rem clamp(.8rem, 2vw, 1.25rem);
+  border-bottom: 1px solid var(--color-ink);
+  border-radius: var(--editor-radius) var(--editor-radius) 0 0;
+  background: var(--color-paper);
+}
+
+.body { padding: clamp(.85rem, 2vw, 1.25rem); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.actions button { min-height: 2.5rem; }
+.section { min-width: 0; margin-block: 0 1rem; }
+.sectionTitle {
+  margin-bottom: .75rem;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.parties {
+  display: grid;
+  gap: .65rem;
+}
+.party {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: .7rem;
+  background: var(--color-canvas);
+  padding: .7rem;
+}
+.party textarea { width: 100%; }
+.details {
+  border: 1px solid var(--color-border);
+  border-radius: .7rem;
+  padding: .7rem;
+}
+.design {
+  border-top: 1px solid var(--color-border);
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  scroll-margin-top: 7rem;
+}
+.design:focus { outline: 2px solid var(--color-ink); outline-offset: 3px; }
+.previewLabel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .4rem;
+  border: 1px solid var(--color-border);
+  border-radius: .7rem;
+  padding: .65rem .8rem;
+  margin-bottom: .5rem;
+  background: var(--color-lavender);
+}
+.previewLabel p:first-child { font-weight: 700; }
+.catalogue { margin: .3rem 0 .75rem; }
+@media (min-width: 36rem) {
+  .parties { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shipping { grid-column: 1 / -1; }
+}
+@media (max-width: 35.99rem) {
+  .toolbar { position: static; }
+  .actions { width: 100%; }
+}
+@media print {
+  .previewLabel { display: none; }
+}

@@ -273,6 +273,27 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.getByLabelText("Currency")).toHaveValue("AUD");
   });
 
+  it("puts billing and item entry before appearance, and links directly to appearance", () => {
+    render(<CreateInvoiceEditor />);
+    const edit = screen.getByRole("tabpanel", { name: "Edit" });
+    const sender = within(edit).getByLabelText(/From/);
+    const description = within(edit).getByLabelText(/Description/);
+    const appearance = within(edit).getByRole("region", { name: "Invoice appearance" });
+    expect(sender.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(description.compareDocumentPosition(appearance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(edit).getByRole("link", { name: "Change template" })).toHaveAttribute("href", "#" + appearance.id);
+    expect(within(screen.getByRole("tabpanel", { name: "Preview" })).getByText("Live invoice preview")).toBeInTheDocument();
+  });
+
+  it("focuses the new description when adding an invoice line", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+    await user.click(screen.getByRole("button", { name: "Add Item" }));
+    const descriptions = screen.getAllByLabelText(/Description/);
+    expect(descriptions).toHaveLength(2);
+    expect(descriptions[1]).toHaveFocus();
+  });
+
   it("starts in Basic mode, hiding Due Date, Reference, Ship To, Notes and Payment Instructions", () => {
     render(<CreateInvoiceEditor />);
 
@@ -1391,6 +1412,25 @@ describe("CreateInvoiceEditor", () => {
       await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
 
       expect(screen.getByLabelText(/Quantity/)).toHaveValue(4);
+    });
+
+    it("uses one shared search and appends a saved item without overwriting a manual line", async () => {
+      mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
+      mockedListItems.mockResolvedValue([SAMPLE_ITEM]);
+      const user = userEvent.setup();
+      render(<CreateInvoiceEditor />);
+      const search = await screen.findByLabelText("Search saved items");
+      const description = screen.getByLabelText(/Description/);
+      await user.type(description, "Manual work");
+      await user.type(search, "Consult");
+      await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
+
+      expect(screen.getAllByLabelText("Search saved items")).toHaveLength(1);
+      const descriptions = screen.getAllByLabelText(/Description/);
+      expect(descriptions).toHaveLength(2);
+      expect(descriptions[0]).toHaveValue("Manual work");
+      expect(descriptions[1]).toHaveValue("One hour of consulting");
+      expect(search).toHaveFocus();
     });
 
     it("shows no matches message when the search text does not match any saved item", async () => {
