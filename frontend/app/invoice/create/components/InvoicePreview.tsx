@@ -1,3 +1,6 @@
+import type { CSSProperties } from "react";
+import { getDocumentLayout } from "../lib/documentLayouts";
+import styles from "./InvoicePreview.module.css";
 import type { FieldValues } from "../lib/invoiceDraft";
 import type { InvoiceTotalsResult } from "../lib/invoiceTotals";
 import { computeLineTotals, type LineItem } from "../lib/lineItems";
@@ -5,6 +8,7 @@ import { hasAnyPaymentInstructionContent, PAYMENT_INSTRUCTION_FIELDS, type Suppo
 import type { TemplateCustomization } from "../lib/templateCustomization";
 
 interface InvoicePreviewProps {
+  templateCode?: string;
   header: FieldValues;
   currency: string;
   seller: string;
@@ -44,6 +48,7 @@ function formatCurrency(amount: number): string {
  * PDF/print rendering of it is N/A until IG-43/44 exist.
  */
 export function InvoicePreview({
+  templateCode,
   header,
   currency,
   seller,
@@ -59,36 +64,40 @@ export function InvoicePreview({
     (item) => item.description.trim().length > 0 || item.unitPrice.trim().length > 0,
   );
   const { primaryColor, accentColor, font, headerStyle } = templateCustomization;
+  const layout = getDocumentLayout(templateCode);
+  const hasLayout = layout !== "legacy";
+  const appearance = { fontFamily: font, "--document-primary": primaryColor, "--document-accent": accentColor } as CSSProperties;
   return (
-    <div className="overflow-hidden rounded-lg border border-border" style={{ fontFamily: font }}>
+    <div data-document-layout={layout} className={`overflow-hidden rounded-lg border border-border ${styles.document}`} style={appearance}>
       {headerStyle === "Banner" ? <div className="h-3" style={{ backgroundColor: primaryColor }} /> : null}
       <div className="p-4 sm:p-6">
       <div
-        className={headerStyle === "Bordered" ? "flex items-start justify-between border-b-4 pb-4" : "flex items-start justify-between"}
+        className={`${styles.heading} flex items-start justify-between gap-3 ${headerStyle === "Bordered" ? "border-b-4 pb-4" : ""}`}
         style={headerStyle === "Bordered" ? { borderColor: accentColor } : undefined}
       >
-        <div className="flex items-start gap-3">
+        <div className={`${styles.sender} flex min-w-0 items-start gap-3`}>
           {logo ? (
             // next/image needs a static import or a configured loader - this is an arbitrary,
             // client-generated data URL (lib/logoUpload.ts), which next/image can't optimize anyway.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="Business logo" className="h-12 w-auto object-contain" />
+            <img src={logo} alt="Business logo" className="h-12 max-w-[38%] w-auto object-contain" />
           ) : null}
           <div>
             <p className="text-sm font-semibold text-ink">From</p>
             <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{seller.trim() || "Your business details"}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="font-mono text-lg font-bold text-ink" style={{ color: accentColor }}>
-            {header.invoiceNumber.trim() || "Invoice"}
+        <div className={`${styles.identity} min-w-0 text-right`}>
+          {hasLayout && <p className={styles.documentTitle}>Invoice</p>}
+          <p className="font-mono text-lg font-bold text-ink" style={hasLayout ? undefined : { color: accentColor }}>
+            {header.invoiceNumber.trim() || (hasLayout ? "Draft" : "Invoice")}
           </p>
           <p className="text-sm text-muted">{currency}</p>
           {headerStyle === "Plain" ? <span aria-hidden="true" className="ml-auto mt-1 block h-0.5 w-7" style={{ backgroundColor: accentColor }} /> : null}
         </div>
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+      <dl className={`${styles.dates} mt-6 grid grid-cols-2 gap-x-4 gap-y-1 text-sm`}>
         <dt className="text-muted">Issue date</dt>
         <dd className="text-ink">{header.issueDate || "—"}</dd>
         <dt className="text-muted">Due date</dt>
@@ -117,7 +126,7 @@ export function InvoicePreview({
         {itemsWithContent.length === 0 ? (
           <p className="text-sm text-muted">Items will appear here.</p>
         ) : (
-          <table className="w-full text-xs sm:text-sm">
+          <table className={`${styles.lineTable} w-full text-xs sm:text-sm`}>
             <thead>
               <tr className="bg-canvas text-left text-ink">
                 <th className="px-1 py-2 font-semibold sm:px-2">Description</th>
@@ -138,7 +147,7 @@ export function InvoicePreview({
             </tbody>
           </table>
         )}
-        <dl className="ml-auto mt-4 grid max-w-xs grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-md bg-canvas p-2 text-sm sm:p-3">
+        <dl className={`${styles.totals} ml-auto mt-4 grid max-w-xs grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-md bg-canvas p-2 text-sm sm:p-3`}>
           <dt className="text-muted">Subtotal</dt>
           <dd className="text-right text-ink">
             {currency} {formatCurrency(totals.subtotal)}

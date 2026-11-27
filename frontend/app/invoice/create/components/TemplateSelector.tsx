@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DocumentThumbnail } from "./DocumentThumbnail";
 import type { Template } from "../lib/templates";
 
 interface TemplateSelectorProps {
@@ -11,9 +12,7 @@ interface TemplateSelectorProps {
 
 /**
  * FSD section 33 (Template Selection). Presentational only - CreateInvoiceEditor.tsx owns the
- * fetch, consistent with every other section keeping its data at the top level. Card visuals reuse
- * the same 3-variant mockup look already proven on the marketing page
- * (app/components/landing/TemplatePreviewSection.tsx), not a new design.
+ * fetch, consistent with every other section keeping its data at the top level.
  *
  * FSD section 79 ("If Free user clicks Pro feature: Display upgrade modal"): no subscription
  * system exists yet (section 77 is explicitly "Future MVP+") and none of the launch templates are
@@ -58,7 +57,7 @@ export function TemplateSelector({ templates, selectedTemplateId, loading, error
                   : "rounded-xl border border-border bg-paper p-2 text-left hover:border-ink"
               }
             >
-              <TemplateMockup templateCode={template.templateCode} />
+              <DocumentThumbnail templateCode={template.templateCode} />
               <p className="mt-2 flex items-center gap-1 text-sm font-medium text-slate-950">
                 {template.name}
                 {template.isPremium ? (
@@ -75,24 +74,5 @@ export function TemplateSelector({ templates, selectedTemplateId, loading, error
         </p>
       ) : null}
     </fieldset>
-  );
-}
-
-function TemplateMockup({ templateCode }: { templateCode: string }) {
-  const headerClass =
-    templateCode === "modern"
-      ? "bg-accent"
-      : templateCode === "minimal"
-        ? "bg-paper border-b border-border"
-        : "bg-ink";
-
-  return (
-    <div aria-hidden="true" className="overflow-hidden rounded-md border border-slate-200 bg-white">
-      <div className={`h-4 ${headerClass}`} />
-      <div className="space-y-1 p-2">
-        <div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
-        <div className="h-1.5 w-1/2 rounded-full bg-slate-200" />
-      </div>
-    </div>
   );
 }

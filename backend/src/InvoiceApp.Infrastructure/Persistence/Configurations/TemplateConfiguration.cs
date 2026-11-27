@@ -52,6 +52,33 @@ public sealed class TemplateConfiguration : IEntityTypeConfiguration<Template>
                 IsPremium = false,
                 IsActive = true,
                 SortOrder = 3,
+            },
+            new Template
+            {
+                Id = Guid.Parse("8f6a1f2e-3b6f-4b8f-8f0a-000000000004"),
+                Name = "Studio",
+                TemplateCode = "studio",
+                IsPremium = false,
+                IsActive = true,
+                SortOrder = 4,
+            },
+            new Template
+            {
+                Id = Guid.Parse("8f6a1f2e-3b6f-4b8f-8f0a-000000000005"),
+                Name = "Ledger",
+                TemplateCode = "ledger",
+                IsPremium = false,
+                IsActive = true,
+                SortOrder = 5,
+            },
+            new Template
+            {
+                Id = Guid.Parse("8f6a1f2e-3b6f-4b8f-8f0a-000000000006"),
+                Name = "Horizon",
+                TemplateCode = "horizon",
+                IsPremium = false,
+                IsActive = true,
+                SortOrder = 6,
             });
     }
 }

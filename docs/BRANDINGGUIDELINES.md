@@ -476,6 +476,12 @@ Ensure invoice templates support accurate PDF rendering, printing and relevant j
 
 Do not make invoices unnecessarily playful or decorative.
 
+The original Classic, Modern and Minimal templates remain available for existing designs.
+New invoices can also use Studio (editorial panel and serif default), Ledger (compact ruled table),
+or Horizon (split header and full-width total). These are original BEVORLY layouts; the editor,
+print preview and PDF use the same layout choice. Keep custom document colours subordinate to
+legibility and avoid adding BEVORLY branding to the sender's document.
+
 ## 20. Accessibility
 
 Maintain WCAG 2.2 AA as the design target.

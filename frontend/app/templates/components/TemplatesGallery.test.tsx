@@ -58,6 +58,17 @@ describe("TemplatesGallery", () => {
     );
   });
 
+  it.each(["studio", "ledger", "horizon"])("offers the %s layout in both the gallery and full preview", async (templateCode) => {
+    const name = templateCode[0].toUpperCase() + templateCode.slice(1);
+    mockedFetchTemplates.mockResolvedValue([{ id: templateCode, name, templateCode, previewImage: null, isPremium: false, sortOrder: 4 }]);
+    const user = userEvent.setup();
+    render(<TemplatesGallery />);
+    expect(await screen.findByRole("link", { name: "Use Template" })).toHaveAttribute("href", `/invoice/create?template=${templateCode}`);
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+    const dialog = await screen.findByRole("dialog", { name });
+    expect(dialog.querySelector("[data-document-layout]")).toHaveAttribute("data-document-layout", templateCode);
+  });
+
   it("blocks Use Template on a premium template and shows an upgrade message instead of a link", async () => {
     mockedFetchTemplates.mockResolvedValue(TEMPLATES);
     const user = userEvent.setup();

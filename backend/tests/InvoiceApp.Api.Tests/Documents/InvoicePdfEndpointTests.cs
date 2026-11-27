@@ -115,6 +115,37 @@ public class InvoicePdfEndpointTests
         Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
     }
 
+    [Theory]
+    [InlineData("studio")]
+    [InlineData("ledger")]
+    [InlineData("horizon")]
+    public async Task New_layout_renders_multipage_invoices_with_brand_colours_and_a_logo(string code)
+    {
+        using var factory = new AuthenticatedRouteTestFactory();
+        using var client = factory.CreateClient();
+        var request = ValidRequest() with
+        {
+            TemplateCode = code,
+            TemplateCustomization = new InvoiceTemplateCustomization("#090909", "#213E69", "Arial, Helvetica, sans-serif", "Bordered"),
+            Items = Enumerable.Range(1, 95)
+                .Select(i => new InvoicePdfLineItem($"Product design engagement, batch {i}", 2, null, 50, 10, 0))
+                .ToList(),
+            Reference = "PO-112",
+            ShipTo = "Customer receiving location",
+            Terms = "Net 14",
+            Notes = "Thank you for your business.",
+            CustomInstructions = "Use the invoice number as reference.",
+            Logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/WZkAAAAASUVORK5CYII=",
+        };
+
+        var response = await client.PostAsJsonAsync(PdfEndpoint, request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF"u8.ToArray(), bytes[..4]);
+        var pdfStructure = Encoding.ASCII.GetString(bytes);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(pdfStructure, @"/Type /Page\b").Count > 1);
+    }
+
     [Fact]
     public async Task Rejects_a_request_with_no_line_items_with_a_client_safe_message()
     {

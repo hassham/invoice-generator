@@ -1160,6 +1160,7 @@ export function CreateInvoiceEditor() {
       }
       preview={
         <InvoicePreview
+          templateCode={selectedTemplateCode}
           header={draft.header}
           currency={draft.currency}
           seller={draft.seller}

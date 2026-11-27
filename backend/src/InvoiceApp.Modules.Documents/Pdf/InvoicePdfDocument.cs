@@ -33,11 +33,62 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
         const string ink = "#171717";
         const string rule = "#DED6CC";
         const string totalsSurface = "#F8F2EA";
+        var layout = request.TemplateCode is "studio" or "ledger" or "horizon" ? request.TemplateCode : "legacy";
+        var (defaultPrimary, defaultAccent, defaultHeader) = layout switch
+        {
+            "studio" => ("#CFE9E0", "#1C584A", "Plain"),
+            "ledger" => ("#F1F2F3", "#303640", "Plain"),
+            "horizon" => ("#DDE8F8", "#213E69", "Bordered"),
+            _ => ("#0f172a", "#0f172a", "Banner"),
+        };
         var customization = request.TemplateCustomization;
-        var primaryColor = customization?.PrimaryColor ?? "#0f172a";
-        var accentColor = customization?.AccentColor ?? "#0f172a";
-        var headerStyle = customization?.HeaderStyle ?? "Banner";
-        var fontFamily = MapFontFamily(customization?.Font);
+        var primaryColor = SafeColor(customization?.PrimaryColor, defaultPrimary);
+        var accentColor = SafeColor(customization?.AccentColor, defaultAccent);
+        var headerStyle = customization?.HeaderStyle is "Banner" or "Bordered" or "Plain"
+            ? customization.HeaderStyle
+            : defaultHeader;
+        var fontFamily = MapFontFamily(customization?.Font ?? (layout == "studio" ? "Georgia, 'Times New Roman', serif" : null));
+        var title = request.DocumentTypeLabel.ToUpperInvariant();
+        var number = string.IsNullOrWhiteSpace(request.InvoiceNumber) ? request.DocumentTypeLabel : request.InvoiceNumber;
+
+        void ComposeSender(IContainer content, bool alignRight = false)
+        {
+            content.Column(sender =>
+            {
+                if (!string.IsNullOrWhiteSpace(request.Logo) && TryDecodeLogo(request.Logo, out var logoBytes))
+                {
+                    if (layout == "legacy")
+                    {
+                        sender.Item().Height(40).AlignLeft().Image(logoBytes).FitHeight();
+                    }
+                    else
+                    {
+                        var logo = sender.Item().Height(40);
+                        (alignRight ? logo.AlignRight() : logo.AlignLeft()).MaxWidth(145).Image(logoBytes).FitArea();
+                    }
+                }
+
+                IContainer Align(IContainer item) => alignRight ? item.AlignRight() : item;
+                Align(sender.Item()).Text("From").SemiBold();
+                Align(sender.Item()).Text(request.Seller);
+            });
+        }
+
+        void ComposeIdentity(IContainer content, bool alignRight)
+        {
+            content.Column(identity =>
+            {
+                IContainer Align(IContainer item) => alignRight ? item.AlignRight() : item;
+                Align(identity.Item()).Text(title).SemiBold().FontSize(layout == "legacy" ? 10 : 26);
+                Align(identity.Item()).Text(number).SemiBold().FontSize(layout == "legacy" ? 22 : 13)
+                    .FontColor(layout == "legacy" ? accentColor : ink);
+                Align(identity.Item()).Text(request.Currency);
+                if (headerStyle == "Plain")
+                {
+                    Align(identity.Item()).PaddingTop(4).Width(28).Height(2).Background(accentColor);
+                }
+            });
+        }
 
         container.Page(page =>
         {
@@ -54,33 +105,41 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
             {
                 column.Spacing(4);
 
-                column.Item().Row(row =>
+                var heading = column.Item();
+                if (layout == "studio")
                 {
-                    row.RelativeItem().Column(fromColumn =>
+                    heading.Background(Tint(primaryColor, 25)).Padding(13).Column(studio =>
                     {
-                        if (!string.IsNullOrWhiteSpace(request.Logo) && TryDecodeLogo(request.Logo, out var logoBytes))
-                        {
-                            fromColumn.Item().Height(40).AlignLeft().Image(logoBytes).FitHeight();
-                        }
-                        fromColumn.Item().Text("From").SemiBold();
-                        fromColumn.Item().Text(request.Seller);
+                        studio.Spacing(10);
+                        ComposeIdentity(studio.Item(), alignRight: false);
+                        ComposeSender(studio.Item());
                     });
-                    row.ConstantItem(180).Column(invoiceColumn =>
+                }
+                else
+                {
+                    if (layout == "ledger")
                     {
-                        // IG-220 AC: "visually distinguishable... labelling on screen and PDF" -
-                        // always shown, not just as a fallback for a blank number, so an Estimate
-                        // and an Invoice are never confusable at a glance.
-                        invoiceColumn.Item().AlignRight().Text(request.DocumentTypeLabel.ToUpperInvariant())
-                            .SemiBold().FontSize(10);
-                        invoiceColumn.Item().AlignRight().Text(string.IsNullOrWhiteSpace(request.InvoiceNumber) ? request.DocumentTypeLabel : request.InvoiceNumber)
-                            .FontColor(accentColor).SemiBold().FontSize(22);
-                        invoiceColumn.Item().AlignRight().Text(request.Currency);
-                        if (headerStyle == "Plain")
+                        heading = heading.BorderTop(2).BorderColor(accentColor).PaddingTop(8);
+                    }
+
+                    heading.Row(row =>
+                    {
+                        if (layout != "legacy")
                         {
-                            invoiceColumn.Item().AlignRight().PaddingTop(4).Width(28).Height(2).Background(accentColor);
+                            row.Spacing(12);
+                        }
+                        if (layout == "horizon")
+                        {
+                            ComposeIdentity(row.RelativeItem(), alignRight: false);
+                            ComposeSender(row.RelativeItem(), alignRight: true);
+                        }
+                        else
+                        {
+                            ComposeSender(row.RelativeItem());
+                            ComposeIdentity(row.ConstantItem(180), alignRight: true);
                         }
                     });
-                });
+                }
 
                 if (headerStyle == "Bordered")
                 {
@@ -141,22 +200,73 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
                     }
                 });
 
-                IContainer TableHeaderCell(IContainer cell) =>
-                    cell.Background(totalsSurface).PaddingHorizontal(6).PaddingVertical(7);
-                IContainer TableBodyCell(IContainer cell) =>
-                    cell.BorderBottom(1).BorderColor(rule).PaddingHorizontal(6).PaddingVertical(5);
+                IContainer TableHeaderCell(IContainer cell)
+                {
+                    cell = layout switch
+                    {
+                        "studio" => cell.Background(Tint(primaryColor, 22)),
+                        "ledger" => cell.BorderTop(1).BorderBottom(1).BorderColor(accentColor).Background(Tint(primaryColor, 7)),
+                        "horizon" => cell.Background(Tint(primaryColor, 14)),
+                        _ => cell.Background(totalsSurface),
+                    };
+                    return cell.PaddingHorizontal(6).PaddingVertical(layout == "ledger" ? 4 : 7);
+                }
 
-                column.Item().PaddingTop(12).AlignRight().MaxWidth(230).Background(totalsSurface).Padding(10).Column(totalsColumn =>
+                IContainer TableBodyCell(IContainer cell) =>
+                    cell.BorderBottom(1).BorderColor(rule).PaddingHorizontal(6).PaddingVertical(layout == "ledger" ? 3 : 5);
+
+                var totalsBox = column.Item().PaddingTop(12);
+                totalsBox = layout == "horizon"
+                    ? totalsBox.BorderLeft(4).BorderColor(accentColor).Background(Tint(primaryColor, 24))
+                    : totalsBox.AlignRight().MaxWidth(230);
+                totalsBox = layout switch
+                {
+                    "ledger" => totalsBox.Border(1).BorderColor(accentColor),
+                    "studio" => totalsBox.Background(Tint(primaryColor, 14)),
+                    "legacy" => totalsBox.Background(totalsSurface),
+                    _ => totalsBox,
+                };
+                totalsBox.Padding(10).Column(totalsColumn =>
                 {
                     totalsColumn.Spacing(3);
-                    totalsColumn.Item().Text($"Subtotal: {request.Currency} {totals.Subtotal:0.00}");
+                    void TotalRow(string label, string value, bool emphasis = false)
+                    {
+                        var item = totalsColumn.Item();
+                        if (emphasis)
+                        {
+                            item = item.BorderTop(1).BorderColor(rule).PaddingTop(5);
+                        }
+
+                        if (layout == "legacy")
+                        {
+                            var line = item.Text($"{label}: {value}");
+                            if (emphasis)
+                            {
+                                line.SemiBold().FontSize(13);
+                            }
+                            return;
+                        }
+
+                        item.Row(row =>
+                        {
+                            row.Spacing(8);
+                            var left = row.RelativeItem().Text(label);
+                            var right = row.RelativeItem(2).AlignRight().Text(value);
+                            if (emphasis)
+                            {
+                                left.SemiBold().FontSize(13);
+                                right.SemiBold().FontSize(13);
+                            }
+                        });
+                    }
+
+                    TotalRow("Subtotal", $"{request.Currency} {totals.Subtotal:0.00}");
                     if (totals.DiscountAmount > 0)
                     {
-                        totalsColumn.Item().Text($"Discount: -{request.Currency} {totals.DiscountAmount:0.00}");
+                        TotalRow("Discount", $"-{request.Currency} {totals.DiscountAmount:0.00}");
                     }
-                    totalsColumn.Item().Text($"Tax: {request.Currency} {totals.TaxAmount:0.00}");
-                    totalsColumn.Item().BorderTop(1).BorderColor(rule).PaddingTop(5)
-                        .Text($"Total: {request.Currency} {totals.TotalAmount:0.00}").SemiBold().FontSize(13);
+                    TotalRow("Tax", $"{request.Currency} {totals.TaxAmount:0.00}");
+                    TotalRow("Total", $"{request.Currency} {totals.TotalAmount:0.00}", emphasis: true);
                 });
 
                 // FSD/IG-122: optional sections only render when they have content.
@@ -187,6 +297,17 @@ public sealed class InvoicePdfDocument(InvoicePdfRequest request) : IDocument
                 }
             });
         });
+    }
+
+    private static string SafeColor(string? value, string fallback) =>
+        value is { Length: 7 } && value[0] == '#' && value.Skip(1).All(Uri.IsHexDigit) ? value : fallback;
+
+    // Blend towards white, so customised colours never obscure text on a panel.
+    private static string Tint(string color, int strength)
+    {
+        int Channel(int start) => (int.Parse(color.AsSpan(start, 2), System.Globalization.NumberStyles.HexNumber)
+            * strength + 255 * (100 - strength) + 50) / 100;
+        return $"#{Channel(1):X2}{Channel(3):X2}{Channel(5):X2}";
     }
 
     private static List<string> GetPaymentInstructionLines(InvoicePdfPaymentInstructions? instructions)

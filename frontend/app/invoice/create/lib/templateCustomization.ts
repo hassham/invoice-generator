@@ -17,16 +17,19 @@ export const FONT_OPTIONS = [
 export const HEADER_STYLE_OPTIONS: HeaderStyle[] = ["Banner", "Bordered", "Plain"];
 
 /** IG-39's 3-variant palette (lib/templateStyles.ts), re-expressed as hex values so it can drive inline styles instead of static Tailwind classes. */
-const TEMPLATE_DEFAULT_COLORS: Record<string, { primaryColor: string; accentColor: string }> = {
+const TEMPLATE_DEFAULT_COLORS: Record<string, Pick<TemplateCustomization, "primaryColor" | "accentColor"> & Partial<Pick<TemplateCustomization, "font" | "headerStyle">>> = {
   classic: { primaryColor: "#0f172a", accentColor: "#0f172a" },
   modern: { primaryColor: "#2563eb", accentColor: "#1d4ed8" },
   minimal: { primaryColor: "#ffffff", accentColor: "#0f172a" },
+  studio: { primaryColor: "#CFE9E0", accentColor: "#1C584A", font: FONT_OPTIONS[1].value, headerStyle: "Plain" },
+  ledger: { primaryColor: "#F1F2F3", accentColor: "#303640", headerStyle: "Plain" },
+  horizon: { primaryColor: "#DDE8F8", accentColor: "#213E69", headerStyle: "Bordered" },
 };
 
 /** Falls back to Classic's colors for an empty or unrecognized template code, same convention as IG-39's getTemplateStyle. */
 export function getDefaultCustomization(templateCode: string): TemplateCustomization {
   const colors = TEMPLATE_DEFAULT_COLORS[templateCode] ?? TEMPLATE_DEFAULT_COLORS.classic;
-  return { ...colors, font: FONT_OPTIONS[0].value, headerStyle: "Banner" };
+  return { font: FONT_OPTIONS[0].value, headerStyle: "Banner", ...colors };
 }
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;

@@ -8,6 +8,13 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Invoice template collection (2026-11-28, Sydney)
+
+- [IG-330](https://appitometechnologies.atlassian.net/browse/IG-330), standalone Story, To Do when read. No Jira changes. Studio adds a serif editorial panel, Ledger adds a compact ruled document, and Horizon adds a split header and full-width total. Existing template codes, identifiers and defaults stay in place.
+- Template cards, editor and print preview, and the PDF renderer now support the three layouts. The additive template-catalogue migration seeds free catalogue entries with stable IDs. No change to invoice calculations, account gating, numbering, or the existing saved-logo limitation.
+- Verified the template migration on the local PostgreSQL database, checked the gallery and editor routes, and visually reviewed the three PDFs produced by the local API.
+- Follow-up: smoke-test template selection and printing on a physical phone. Production has not been deployed; apply the additive migration as part of the next approved deployment.
+
 ## Dashboard-style invoices, customers and items (2026-11-28, Sydney)
 
 - Scope: IG-329, invoice portions of IG-339 and customer/item portions of IG-340. User approved the dashboard as the visual reference, then requested a shorter invoice filter bar and a deeper redesign of both create forms. Jira was read but not changed.

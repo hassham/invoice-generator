@@ -3,38 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchTemplates, type Template } from "../../invoice/create/lib/templates";
+import { DocumentThumbnail } from "../../invoice/create/components/DocumentThumbnail";
+import { describeDocumentLayout } from "../../invoice/create/lib/documentLayouts";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
-
-/** IG-204: same 3-variant mockup look already proven on the marketing page
- * (app/components/landing/TemplatePreviewSection.tsx) and the inline TemplateSelector
- * (app/invoice/create/components/TemplateSelector.tsx) - a larger variant of both, not a new
- * design, since this gallery's cards have more room than either of those. */
-function TemplateMockup({ templateCode }: { templateCode: string }) {
-  const headerClass =
-    templateCode === "modern"
-      ? "bg-blue-600"
-      : templateCode === "minimal"
-        ? "bg-paper border-b border-border"
-        : "bg-slate-900";
-  const headerBarClass = templateCode === "minimal" ? "bg-slate-300" : "bg-paper/70";
-
-  return (
-    <div aria-hidden="true" className="overflow-hidden rounded-xl border border-border bg-paper shadow-sm">
-      <div className={`h-12 ${headerClass} flex items-center px-4`}>
-        <div className={`h-2 w-16 rounded-full ${headerBarClass}`} />
-      </div>
-      <div className="space-y-2 p-4">
-        <div className="h-2 w-3/4 rounded-full bg-status-draft-bg" />
-        <div className="h-2 w-1/2 rounded-full bg-status-draft-bg" />
-        <div className="mt-4 space-y-1.5">
-          <div className="h-1.5 w-full rounded-full bg-status-draft-bg" />
-          <div className="h-1.5 w-full rounded-full bg-status-draft-bg" />
-          <div className="h-1.5 w-2/3 rounded-full bg-status-draft-bg" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * FSD section 73 (Templates Page): a standalone route for browsing templates - "Display card
@@ -92,7 +63,7 @@ export function TemplatesGallery() {
       <ul className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((template) => (
           <li key={template.id}>
-            <TemplateMockup templateCode={template.templateCode} />
+            <DocumentThumbnail templateCode={template.templateCode} />
             <div className="mt-4 flex items-center gap-2">
               <h2 className="text-base font-semibold text-ink">{template.name}</h2>
               <span
@@ -106,6 +77,9 @@ export function TemplatesGallery() {
               </span>
             </div>
 
+            {describeDocumentLayout(template.templateCode) && (
+              <p className="mt-1 text-sm text-muted">{describeDocumentLayout(template.templateCode)}</p>
+            )}
             <div className="mt-3 flex flex-wrap gap-3">
               <button
                 type="button"

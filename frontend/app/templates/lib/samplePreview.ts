@@ -5,6 +5,7 @@ import { createEmptySupportingContent, type SupportingContentValues } from "../.
 import { getDefaultCustomization, type TemplateCustomization } from "../../invoice/create/lib/templateCustomization";
 
 export interface SamplePreviewProps {
+  templateCode: string;
   header: FieldValues;
   currency: string;
   seller: string;
@@ -34,6 +35,7 @@ export function buildSamplePreviewProps(templateCode: string): SamplePreviewProp
   const lineItems = sampleLineItems();
 
   return {
+    templateCode,
     header: {
       invoiceNumber: "INV-000123",
       issueDate,

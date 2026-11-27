@@ -675,6 +675,33 @@ namespace InvoiceApp.Infrastructure.Persistence.Migrations
                             Name = "Minimal",
                             SortOrder = 3,
                             TemplateCode = "minimal"
+                        },
+                        new
+                        {
+                            Id = new Guid("8f6a1f2e-3b6f-4b8f-8f0a-000000000004"),
+                            IsActive = true,
+                            IsPremium = false,
+                            Name = "Studio",
+                            SortOrder = 4,
+                            TemplateCode = "studio"
+                        },
+                        new
+                        {
+                            Id = new Guid("8f6a1f2e-3b6f-4b8f-8f0a-000000000005"),
+                            IsActive = true,
+                            IsPremium = false,
+                            Name = "Ledger",
+                            SortOrder = 5,
+                            TemplateCode = "ledger"
+                        },
+                        new
+                        {
+                            Id = new Guid("8f6a1f2e-3b6f-4b8f-8f0a-000000000006"),
+                            IsActive = true,
+                            IsPremium = false,
+                            Name = "Horizon",
+                            SortOrder = 6,
+                            TemplateCode = "horizon"
                         });
                 });
 
