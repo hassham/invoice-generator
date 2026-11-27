@@ -1002,38 +1002,15 @@ export function CreateInvoiceEditor() {
       backHref={isAuthenticated ? "/dashboard" : "/"}
       backLabel={isAuthenticated ? "Back to Dashboard" : "Back to Home"}
       workspaceHeading={
-        <div className={styles.masthead}>
-          <WorkspaceHeading area="invoice" eyebrow={isAuthenticated ? "Workspace / Billing" : "Free invoice maker"} title="New invoice"
-            description="Enter who you’re billing and what they owe. Your invoice updates as you type."
-            back={isAuthenticated ? { href: "/dashboard", label: "Back to Dashboard" } : { href: "/", label: "Back to Home" }}
-            actions={
-              <span className={styles.mastheadMark} aria-hidden="true">
-                <svg viewBox="0 0 40 40" fill="none">
-                  <path d="M10 6h13l7 7v21H10V6Zm12 1v7h7M15 20h10m-10 5h7" />
-                  <path d="M31 5v6m-3-3h6" />
-                </svg>
-              </span>
-            } />
-        </div>
+        <WorkspaceHeading area="invoice" eyebrow={isAuthenticated ? "Workspace / Billing" : "Free invoice maker"} title="New invoice"
+          description="Enter who you’re billing and what they owe. Your invoice updates as you type."
+          back={isAuthenticated ? { href: "/dashboard", label: "Back to Dashboard" } : { href: "/", label: "Back to Home" }} />
       }
       editor={
         <div className={styles.editor}>
           <div className={styles.toolbar}>
-            <div className={styles.mode}>
-              <span className={styles.controlLabel} aria-hidden="true">Form mode</span>
-              <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
-            </div>
-            <a href={`#${appearanceId}`} className={styles.templateShortcut} aria-label="Change template" aria-describedby={appearanceId + "-current"}>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
-                <path d="M4 9h16M10 9v10" />
-              </svg>
-              <span>
-                <span className={styles.controlLabel}>Change template</span>
-                <span className={styles.templateName} id={appearanceId + "-current"}>{selectedTemplate?.name ?? "Choose a layout"}</span>
-              </span>
-              <span aria-hidden="true" className={styles.templateArrow}>↘</span>
-            </a>
+            <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
+            <a href={`#${appearanceId}`} className="text-sm font-semibold text-ink underline underline-offset-4">Change template</a>
           </div>
           <div className={styles.body}>
           {pendingGateAction ? <AccountGateModal action={pendingGateAction} onClose={handleCloseAccountGate} /> : null}

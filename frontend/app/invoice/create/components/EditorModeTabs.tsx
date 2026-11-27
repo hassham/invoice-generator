@@ -1,5 +1,3 @@
-import styles from "./InvoiceCreation.module.css";
-
 interface EditorModeTabsProps {
   advancedVisible: boolean;
   onChange: (advancedVisible: boolean) => void;
@@ -14,12 +12,16 @@ interface EditorModeTabsProps {
  */
 export function EditorModeTabs({ advancedVisible, onChange }: EditorModeTabsProps) {
   return (
-    <div role="group" aria-label="Invoice form detail level" className={styles.modeSwitch}>
+    <div role="group" aria-label="Invoice form detail level" className="flex gap-2">
       <button
         type="button"
         aria-pressed={!advancedVisible}
         onClick={() => onChange(false)}
-        className={styles.modeButton}
+        className={
+          !advancedVisible
+            ? "rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink"
+            : "rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
+        }
       >
         Basic
       </button>
@@ -27,7 +29,11 @@ export function EditorModeTabs({ advancedVisible, onChange }: EditorModeTabsProp
         type="button"
         aria-pressed={advancedVisible}
         onClick={() => onChange(true)}
-        className={styles.modeButton}
+        className={
+          advancedVisible
+            ? "rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink"
+            : "rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
+        }
       >
         Advanced
       </button>

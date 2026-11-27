@@ -293,15 +293,6 @@ describe("CreateInvoiceEditor", () => {
     expect(within(edit).getByLabelText(/^Unit Price/)).toHaveValue(125);
   });
 
-  it("shows the active template in the header shortcut and updates it on selection", async () => {
-    const user = userEvent.setup();
-    render(<CreateInvoiceEditor />);
-    const shortcut = screen.getByRole("link", { name: "Change template" });
-    await waitFor(() => expect(shortcut).toHaveAccessibleDescription("Classic"));
-    await user.click(screen.getByRole("button", { name: "Modern" }));
-    expect(shortcut).toHaveAccessibleDescription("Modern");
-  });
-
   it("puts billing and item entry before appearance, and links directly to appearance", () => {
     render(<CreateInvoiceEditor />);
     const edit = screen.getByRole("tabpanel", { name: "Edit" });
