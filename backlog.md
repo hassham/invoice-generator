@@ -8,6 +8,13 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Signed-in dashboard brand pass (2026-11-28, Sydney)
+
+- IG-329 dashboard only. Reapplied the approved lavender/mint/yellow/pink summary tiles and large Space Mono figures. The four cards label period activity separately from the current balances. Added a lime primary action, paper Recent Invoices section, distinct focusable row links, responsive labelled rows, and branded loading, first-invoice, and retry states.
+- Retained all eight recent-invoice columns, per-invoice currency, API calculations, period presets, and routes. Prevented requests for reversed custom dates without relabelling the last valid totals. No backend, other workspace route, data, production or Jira changes.
+- Dashboard regressions (19), targeted ESLint, and the production build passed; verified that the dashboard stylesheet and its phone layout rules are included in the generated route. User requested both Windows web servers stopped for this pass. Verify the signed-in desktop and phone layouts during the next smoke test after explicitly restarting the app.
+
+
 ## Interior workspace theme pass (2026-11-27)
 
 - Scope: IG-329 with its interior subtasks IG-339 to IG-342. Read Jira; did not change it. Customer-facing token links under IG-343 and the separate app-name sweep under IG-344 are not covered by this pass.
