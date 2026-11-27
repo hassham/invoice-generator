@@ -75,8 +75,8 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-paper">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-ink">
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-6 py-4 ${account ? "xl:gap-6" : ""}`}>
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-display text-xl font-bold tracking-tight text-ink">
           <Image src="/brand/bevorly-mark.svg" alt="" width={28} height={28} unoptimized />
           bevorly.
         </Link>
@@ -86,7 +86,7 @@ export function SiteHeader() {
             breakpoints aren't wide enough and caused real page-level horizontal overflow on
             every authenticated page at tablet width. xl (1280px) is the first breakpoint with
             enough room; the hamburger/mobile-nav pattern below now covers tablet too. */}
-        <nav aria-label="Primary" className="hidden items-center gap-5 xl:flex">
+        <nav aria-label="Primary" className="hidden shrink-0 items-center gap-5 xl:flex">
           {/* IG-202: public/marketing links (landing-page anchors + the anonymous Invoice
               Generator entry point) only make sense when signed out - once authenticated, the
               app-specific links below cover the same ground and these anchors don't even resolve
@@ -135,11 +135,11 @@ export function SiteHeader() {
           ) : null}
         </nav>
 
-        <div className="hidden items-center gap-4 xl:flex">
+        <div className="hidden min-w-0 items-center gap-4 xl:flex">
           {account ? (
             <>
               <BusinessSwitcher />
-              <span className="text-sm font-medium text-muted">{account.name ?? account.email}</span>
+              <span className="min-w-0 max-w-32 truncate text-sm font-medium text-muted" title={account.name ?? account.email}>{account.name ?? account.email}</span>
               <button type="button" onClick={handleLogout} className={secondaryCta}>
                 Log out
               </button>
@@ -212,7 +212,8 @@ export function SiteHeader() {
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-4">
               {account ? (
                 <>
-                  <span className="px-2 py-2 text-sm font-medium text-muted">{account.name ?? account.email}</span>
+                  <BusinessSwitcher mobile onNavigate={() => setIsMenuOpen(false)} />
+                  <span className="break-all px-2 py-2 text-sm font-medium text-muted">{account.name ?? account.email}</span>
                   <button type="button" onClick={handleLogout} className={secondaryCta}>
                     Log out
                   </button>

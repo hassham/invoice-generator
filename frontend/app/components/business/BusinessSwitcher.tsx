@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { listBusinesses, readSelectedBusinessId, setSelectedBusinessId, type BusinessProfile } from "../../lib/business";
 
 /**
@@ -9,7 +9,8 @@ import { listBusinesses, readSelectedBusinessId, setSelectedBusinessId, type Bus
  * app works on. The change reloads the page so every screen fetches for the newly chosen business.
  * Renders nothing when the list can't be loaded, so the header never breaks because of it.
  */
-export function BusinessSwitcher() {
+export function BusinessSwitcher({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void } = {}) {
+  const selectId = useId();
   const [businesses, setBusinesses] = useState<BusinessProfile[]>([]);
 
   useEffect(() => {
@@ -46,15 +47,15 @@ export function BusinessSwitcher() {
   };
 
   return (
-    <div className="ml-4 flex items-center gap-2">
-      <label htmlFor="business-switcher" className="sr-only">
+    <div className={`flex min-w-0 items-center gap-2 ${mobile ? "px-2" : ""}`}>
+      <label htmlFor={selectId} className={mobile ? "shrink-0 text-sm font-medium text-ink" : "sr-only"}>
         Business
       </label>
       <select
-        id="business-switcher"
+        id={selectId}
         value={effectiveId}
         onChange={(event) => handleChange(event.target.value)}
-        className="max-w-[12rem] truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700"
+        className={`workspace-field min-h-10 truncate rounded-lg border border-border px-2 py-1.5 text-sm text-ink ${mobile ? "flex-1" : "w-40"}`}
       >
         {businesses.map((business) => (
           <option key={business.id} value={business.id}>
@@ -62,7 +63,7 @@ export function BusinessSwitcher() {
           </option>
         ))}
       </select>
-      <Link href="/businesses" className="whitespace-nowrap text-sm font-medium text-indigo-700 hover:text-indigo-900">
+      <Link href="/businesses" onClick={onNavigate} className="shrink-0 rounded-sm text-sm font-semibold text-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
         Manage
       </Link>
     </div>

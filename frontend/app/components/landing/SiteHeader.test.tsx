@@ -249,6 +249,26 @@ describe("SiteHeader", () => {
     expect(within(mobile).getByRole("link", { name: "Reports" })).toHaveAttribute("href", "/reports");
   });
 
+  it("shows a labelled business switcher and Manage link inside the mobile account menu", async () => {
+    const account = { userId: "u1", email: "jane@example.com", name: "Jane" };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => url.endsWith("/businesses") ? [{ id: "b1", businessName: "Design Studio" }] : account,
+    })));
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await screen.findByRole("combobox", { name: "Business" });
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const menu = within(screen.getByRole("navigation", { name: "Mobile primary" }));
+    const switcher = await menu.findByRole("combobox", { name: "Business" });
+    expect(switcher).toHaveDisplayValue("Design Studio");
+    expect(new Set(screen.getAllByRole("combobox", { name: "Business" }).map((field) => field.id)).size).toBe(2);
+    const manage = menu.getByRole("link", { name: "Manage" });
+    expect(manage).toHaveAttribute("href", "/businesses");
+    await user.click(manage);
+    expect(screen.queryByRole("navigation", { name: "Mobile primary" })).not.toBeInTheDocument();
+  });
+
   it("falls back to the email when the account has no name", async () => {
     stubSession({ userId: "u1", email: "jane@example.com", name: null });
     render(<SiteHeader />);
