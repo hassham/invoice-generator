@@ -117,6 +117,22 @@ describe("BusinessProfileSettings", () => {
     expect(screen.getByLabelText("Email")).toHaveValue("billing@acme.example");
   });
 
+  it("links to the settings pages and to every section of the business profile", async () => {
+    mockedGetBusinessProfile.mockResolvedValue(sampleProfile);
+    mockedFetchTemplates.mockResolvedValue([]);
+    render(<BusinessProfileSettings />);
+    expect(await screen.findByRole("heading", { name: "Business Profile" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Business Profile", current: "page" })).toHaveAttribute("href", "/settings/business");
+    expect(screen.getByRole("link", { name: "Team" })).toHaveAttribute("href", "/settings/team");
+    const shortcuts = await screen.findByRole("navigation", { name: "Business Profile sections" });
+    for (const link of Array.from(shortcuts.querySelectorAll("a"))) {
+      const target = document.getElementById(link.hash.slice(1));
+      expect(target).toBeVisible();
+      expect(target?.tagName).toBe("SECTION");
+    }
+    expect(screen.getByRole("region", { name: "Invoice Defaults" })).toContainElement(screen.getByLabelText("Default Currency"));
+  });
+
   it("saves changes and shows a saved confirmation", async () => {
     mockedGetBusinessProfile.mockResolvedValue(sampleProfile);
     mockedFetchTemplates.mockResolvedValue([]);
@@ -156,7 +172,7 @@ describe("BusinessProfileSettings", () => {
 
       render(<BusinessProfileSettings />);
 
-      expect(await screen.findByRole("status")).toHaveTextContent("Stripe account connected.");
+      expect(await screen.findByText("Stripe account connected.")).toHaveAttribute("role", "status");
       expect(replaceMock).toHaveBeenCalledWith("/settings/business");
     });
 

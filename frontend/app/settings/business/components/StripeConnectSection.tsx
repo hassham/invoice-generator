@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { disconnectStripe, stripeConnectUrl, type BusinessProfile } from "../../../lib/business";
 
+import { SettingsNotice, SettingsPanel } from "../../components/SettingsChrome";
+
 interface StripeConnectSectionProps {
   businessId: string;
   stripeAccountId: string | null;
@@ -32,29 +34,24 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
   };
 
   return (
-    <fieldset className="rounded-lg border border-border p-6">
-      <legend className="px-1 text-base font-semibold text-ink">Payments</legend>
+    <SettingsPanel id="business-payments" title="Payments" tone="mint">
       <p className="mt-1 text-sm text-muted">
         Connect your own Stripe account so customers can pay a hosted invoice online, straight into your own bank
         account - this app never handles or stores card details directly.
       </p>
 
-      {error ? (
-        <p role="alert" className="mt-4 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {error}
-        </p>
-      ) : null}
+      {error ? <SettingsNotice kind="error">{error}</SettingsNotice> : null}
 
       <div className="mt-4">
         {stripeAccountId ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-status-paid-bg px-3 py-1 text-xs font-semibold text-status-paid-fg">Connected</span>
-            <span className="text-sm text-muted">{stripeAccountId}</span>
+            <span className="break-all font-mono text-sm text-muted">{stripeAccountId}</span>
             <button
               type="button"
               onClick={() => void handleDisconnect()}
               disabled={disconnecting}
-              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
+              className="workspace-button-secondary disabled:opacity-50"
             >
               {disconnecting ? "Disconnecting…" : "Disconnect"}
             </button>
@@ -62,12 +59,12 @@ export function StripeConnectSection({ businessId, stripeAccountId, onChange }: 
         ) : (
           <a
             href={stripeConnectUrl(businessId)}
-            className="workspace-button-primary inline-block"
+            className="workspace-button-secondary"
           >
             Connect with Stripe
           </a>
         )}
       </div>
-    </fieldset>
+    </SettingsPanel>
   );
 }

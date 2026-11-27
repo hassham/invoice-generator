@@ -13,7 +13,7 @@ export default function BusinessProfilePage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-5 py-9 sm:px-8 sm:py-12">
+      <main className="workspace-main max-w-4xl">
         {/* IG-219: BusinessProfileSettings reads ?stripeConnected=/?stripeConnectError= via
             useSearchParams (next/navigation) - the App Router requires a Suspense boundary around
             any such client component on a statically-rendered route, or `next build` fails with a

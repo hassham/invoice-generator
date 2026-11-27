@@ -8,6 +8,12 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Settings form branding (2026-11-28, Sydney)
+
+- User-requested Settings-only pass on IG-341 (To Do under IG-329, In Progress, checked 2026-11-28 Sydney). No Jira changes. Onboarding and business management routes are not part of this pass.
+- Business Profile and Team now share branded sections, active-page links and notices. Business Profile adds direct section links, a clearer number preview and Save feedback next to the action. Fields, logo upload, invoice defaults, Stripe and team permissions use the existing APIs and rules.
+- Settings and logo regressions (35), TypeScript and targeted lint passed. Both local settings routes served the new styles, and the API and local database were healthy. Next: signed-in visual smoke test on desktop and at 390px. Nothing deployed to production.
+
 ## Create Invoice workflow follow-up (2026-11-28, Sydney)
 
 - Direct user follow-up to IG-338 (Done, under IG-329 In Progress). Jira read on 2026-11-28 Sydney; no Jira changes. Use the Invoice Home reference for a short billing workflow without redesigning the restored page heading.

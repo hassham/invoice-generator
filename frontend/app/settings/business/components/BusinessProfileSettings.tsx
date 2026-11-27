@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BusinessLogoUpload } from "../../../components/business/BusinessLogoUpload";
 import {
   getBusinessProfile,
@@ -14,6 +14,9 @@ import {
 import { useSelectedBusiness } from "../../../lib/BusinessContext";
 import { BusinessProfileForm, type BusinessProfileFormValues } from "./BusinessProfileForm";
 import { StripeConnectSection } from "./StripeConnectSection";
+
+import { SettingsHeading, SettingsNotice, SettingsPanel } from "../../components/SettingsChrome";
+import styles from "../../components/SettingsChrome.module.css";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -133,52 +136,46 @@ export function BusinessProfileSettings() {
     }
   };
 
+  const initialValues = useMemo(() => profile ? toFormValues(profile) : null, [profile]);
+  const heading = (
+    <SettingsHeading page="business" title="Business Profile" description="Manage your business details and the defaults used on your invoices." />
+  );
   if (state === "loading") {
-    return <p className="text-sm text-muted">Loading your business profile…</p>;
+    return <>{heading}<SettingsNotice kind="info">Loading your business profile…</SettingsNotice></>;
+  }
+  if (state === "error" || !profile || !initialValues) {
+    return <>{heading}<SettingsNotice kind="error">{loadError}</SettingsNotice></>;
   }
 
-  if (state === "error" || !profile) {
-    return (
-      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-        {loadError}
-      </p>
-    );
-  }
-
+  const sections = [
+    { id: "business-identity", text: "Identity" },
+    { id: "business-address", text: "Address" },
+    { id: "invoice-defaults", text: "Invoice defaults" },
+    { id: "invoice-numbering", text: "Numbering" },
+    { id: "bank-details", text: "Bank details" },
+    { id: "business-logo", text: "Logo" },
+    { id: "business-payments", text: "Payments" },
+  ];
   return (
-    <div>
-      <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-muted">Workspace / Settings</p>
-      <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Business Profile</h1>
-      <p className="mt-1 text-sm text-muted">Configure once and reuse on all your invoices.</p>
-
-      {stripeConnectResult === "connected" ? (
-        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
-          Stripe account connected.
-        </p>
-      ) : null}
-      {stripeConnectResult === "error" ? (
-        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          Failed to connect your Stripe account. Please try again.
-        </p>
-      ) : null}
-
-      {savedAt ? (
-        <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
-          Changes saved.
-        </p>
-      ) : null}
-
-      <div className="mt-6">
-        <BusinessLogoUpload businessId={profile.id} logoUrl={profile.logoUrl} onChange={setProfile} />
-      </div>
-
-      <div className="mt-6">
-        <BusinessProfileForm initialValues={toFormValues(profile)} submitting={submitting} error={submitError} onSubmit={handleSubmit} />
-      </div>
-
-      <div className="mt-6">
+    <>
+      {heading}
+      <div className={styles.stack}>
+        <nav className={styles.shortcuts} aria-label="Business Profile sections">
+          {sections.map(({ id, text }) => <a key={id} href={"#" + id}>{text}</a>)}
+        </nav>
+        {stripeConnectResult === "connected" ? (
+          <SettingsNotice kind="success">Stripe account connected.</SettingsNotice>
+        ) : stripeConnectResult === "error" ? (
+          <SettingsNotice kind="error">Failed to connect your Stripe account. Please try again.</SettingsNotice>
+        ) : null}
+        <BusinessProfileForm initialValues={initialValues} submitting={submitting} saved={savedAt !== null} error={submitError} onSubmit={handleSubmit} />
+        <SettingsPanel id="business-logo" title="Business logo" tone="lavender" description="Add your logo to the invoices you create.">
+          <div className={styles.logoUpload}>
+            <BusinessLogoUpload businessId={profile.id} logoUrl={profile.logoUrl} onChange={setProfile} />
+          </div>
+        </SettingsPanel>
         <StripeConnectSection businessId={profile.id} stripeAccountId={profile.stripeAccountId} onChange={setProfile} />
       </div>
-    </div>
+    </>
   );
 }

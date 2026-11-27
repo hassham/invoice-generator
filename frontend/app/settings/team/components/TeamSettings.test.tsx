@@ -52,6 +52,9 @@ describe("TeamSettings (IG-239 / IG-297 / IG-298 / IG-240)", () => {
     render(<TeamSettings />);
 
     expect(await screen.findByText("pending@example.com")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Team", current: "page" })).toHaveAttribute("href", "/settings/team");
+    const invitePanel = screen.getByRole("region", { name: "Send invitation" });
+    expect(within(invitePanel).getByLabelText("Email address")).toBeVisible();
     expect(screen.getByText("member@example.com")).toBeInTheDocument();
     expect(screen.getAllByText(/Restricted \(no payment settings\)/).length).toBeGreaterThan(0);
   });

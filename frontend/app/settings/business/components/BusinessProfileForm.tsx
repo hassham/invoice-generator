@@ -13,6 +13,9 @@ import {
   type PaymentTermsOption,
 } from "../../../lib/business";
 
+import { SettingsNotice, SettingsPanel } from "../../components/SettingsChrome";
+import styles from "../../components/SettingsChrome.module.css";
+
 export interface BusinessProfileFormValues {
   businessName: string;
   legalName: string;
@@ -92,6 +95,7 @@ function toRequest(values: BusinessProfileFormValues): BusinessProfileRequest {
 interface BusinessProfileFormProps {
   initialValues: BusinessProfileFormValues;
   submitting: boolean;
+  saved?: boolean;
   error: string | null;
   onSubmit: (request: BusinessProfileRequest) => void;
 }
@@ -101,7 +105,7 @@ interface BusinessProfileFormProps {
  * Logo is deliberately not here - see IG-53's Jira comment for why (no server-side file storage
  * exists anywhere in this app).
  */
-export function BusinessProfileForm({ initialValues, submitting, error, onSubmit }: BusinessProfileFormProps) {
+export function BusinessProfileForm({ initialValues, submitting, saved = false, error, onSubmit }: BusinessProfileFormProps) {
   const [values, setValues] = useState<BusinessProfileFormValues>(initialValues);
   const [nameError, setNameError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -147,6 +151,8 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
 
     if (values.businessName.trim() === "") {
       setNameError("Business name is required.");
+      const nameField = event.currentTarget.elements.namedItem("business-name");
+      if (nameField instanceof HTMLInputElement) nameField.focus();
       return;
     }
     setNameError(null);
@@ -155,22 +161,10 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {error ? (
-        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {error}
-        </p>
-      ) : null}
-      {nameError ? (
-        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {nameError}
-        </p>
-      ) : null}
-
-      <fieldset>
-        <legend className="text-base font-semibold text-ink">Business Identity</legend>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <TextField id="business-name" label="Business Name" value={values.businessName} onChange={setField("businessName")} />
+    <form onSubmit={handleSubmit} className={styles.stack}>
+      <SettingsPanel id="business-identity" tone="lavender" title="Business Identity" description="Name, contact details and registration information.">
+        <div className={styles.grid}>
+          <TextField id="business-name" error={nameError} label="Business Name" value={values.businessName} onChange={setField("businessName")} />
           <TextField id="business-legal-name" label="Legal Name" value={values.legalName} onChange={setField("legalName")} />
           <TextField id="business-email" label="Email" type="email" value={values.email} onChange={setField("email")} />
           <TextField id="business-phone" label="Phone" value={values.phone} onChange={setField("phone")} />
@@ -178,22 +172,10 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
           <TextField id="business-registration-number" label="Registration Number" value={values.registrationNumber} onChange={setField("registrationNumber")} />
           <TextField id="business-tax-number" label="Tax Number" value={values.taxNumber} onChange={setField("taxNumber")} />
         </div>
-      </fieldset>
+      </SettingsPanel>
 
-      <fieldset>
-        <legend className="text-base font-semibold text-ink">Bank Details</legend>
-        <p className="mt-1 text-sm text-muted">Shown on this business&apos;s invoices so customers know where to pay.</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <TextField id="business-bank-name" label="Bank Name" value={values.bankName} onChange={setField("bankName")} />
-          <TextField id="business-bank-account-name" label="Account Name" value={values.bankAccountName} onChange={setField("bankAccountName")} />
-          <TextField id="business-bank-account-number" label="Account Number" value={values.bankAccountNumber} onChange={setField("bankAccountNumber")} />
-          <TextField id="business-bank-routing" label="BSB / Routing Number" value={values.bankRoutingCode} onChange={setField("bankRoutingCode")} />
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend className="text-base font-semibold text-ink">Address</legend>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <SettingsPanel id="business-address" tone="lavender" title="Address" description="The address to show on your invoices.">
+        <div className={styles.grid}>
           <TextField id="business-address-1" label="Address Line 1" value={values.addressLine1} onChange={setField("addressLine1")} />
           <TextField id="business-address-2" label="Address Line 2" value={values.addressLine2} onChange={setField("addressLine2")} />
           <TextField id="business-city" label="City" value={values.city} onChange={setField("city")} />
@@ -201,11 +183,10 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
           <TextField id="business-postal-code" label="Postal Code" value={values.postalCode} onChange={setField("postalCode")} />
           <TextField id="business-country" label="Country" value={values.country} onChange={setField("country")} maxLength={2} />
         </div>
-      </fieldset>
+      </SettingsPanel>
 
-      <fieldset>
-        <legend className="text-base font-semibold text-ink">Invoice Defaults</legend>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <SettingsPanel id="invoice-defaults" tone="yellow" title="Invoice Defaults" description="Set the currency, tax and payment terms used on new invoices.">
+        <div className={styles.grid}>
           <div className="flex flex-col gap-1">
             <label htmlFor="business-default-currency" className="text-sm font-medium text-ink">
               Default Currency
@@ -214,7 +195,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
               id="business-default-currency"
               value={values.defaultCurrency}
               onChange={setField("defaultCurrency")}
-              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+              className={styles.control}
             >
               {CURRENCY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -234,7 +215,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
               id="business-tax-calculation-method"
               value={values.taxCalculationMethod}
               onChange={setField("taxCalculationMethod")}
-              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+              className={styles.control}
             >
               <option value="Exclusive">Tax Exclusive</option>
               <option value="Inclusive">Tax Inclusive</option>
@@ -249,7 +230,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
               id="business-default-payment-terms"
               value={values.defaultPaymentTerms}
               onChange={setField("defaultPaymentTerms")}
-              className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+              className={styles.control}
             >
               {PAYMENT_TERMS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -279,18 +260,18 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             value={values.defaultInvoiceNotes}
             onChange={setField("defaultInvoiceNotes")}
             rows={3}
-            className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+            className={styles.control}
           />
         </div>
 
         {/* IG-320: per-business switch for the open-tracking image in invoice emails. On by default. */}
-        <div className="mt-4 flex items-start gap-2">
+        <div className="mt-4 flex items-start gap-3 rounded-lg border border-border bg-canvas p-3">
           <input
             id="business-open-tracking"
             type="checkbox"
             checked={values.openTrackingEnabled ?? true}
             onChange={(event) => setValues((current) => ({ ...current, openTrackingEnabled: event.target.checked }))}
-            className="workspace-field mt-1 h-4 w-4 rounded border-border"
+            className={`${styles.control} mt-0.5 h-5 w-5 shrink-0 accent-ink`}
           />
           <label htmlFor="business-open-tracking" className="flex flex-col gap-1 text-sm text-ink">
             <span className="font-medium">Track when invoice emails are opened</span>
@@ -309,7 +290,7 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             value={values.defaultTermsAndConditions}
             onChange={setField("defaultTermsAndConditions")}
             rows={3}
-            className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+            className={styles.control}
           />
         </div>
 
@@ -322,30 +303,38 @@ export function BusinessProfileForm({ initialValues, submitting, error, onSubmit
             onSelect={(templateId) => setValues((current) => ({ ...current, defaultTemplateId: templateId }))}
           />
         </div>
-      </fieldset>
+      </SettingsPanel>
 
-      <fieldset>
-        <legend className="text-base font-semibold text-ink">Invoice Numbering</legend>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <SettingsPanel id="invoice-numbering" tone="yellow" title="Invoice Numbering" description="Choose the format for your next invoice number.">
+        <div className={`${styles.grid} ${styles.numberGrid}`}>
           <TextField id="business-invoice-prefix" label="Prefix" value={values.invoicePrefix} onChange={setField("invoicePrefix")} maxLength={20} />
           <TextField id="business-next-invoice-number" label="Next Number" type="number" value={values.nextInvoiceNumber} onChange={setField("nextInvoiceNumber")} />
           <TextField id="business-invoice-number-padding" label="Number Padding" type="number" value={values.invoiceNumberPadding} onChange={setField("invoiceNumberPadding")} />
         </div>
-        <p className="mt-2 text-sm text-muted">
-          Preview:{" "}
-          <span className="font-mono font-semibold text-ink">
+        <p className={styles.numbering}>
+          Next invoice preview:
+          <span>
             {formatInvoiceNumberPreview(values.invoicePrefix, Number.parseInt(values.nextInvoiceNumber, 10), Number.parseInt(values.invoiceNumberPadding, 10))}
           </span>
         </p>
-      </fieldset>
+      </SettingsPanel>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="workspace-button-primary self-start disabled:opacity-50"
-      >
-        {submitting ? "Saving…" : "Save changes"}
-      </button>
+      <SettingsPanel id="bank-details" tone="mint" title="Bank Details" description="Shown on this business’s invoices so customers know where to pay.">
+        <div className={styles.grid}>
+          <TextField id="business-bank-name" label="Bank Name" value={values.bankName} onChange={setField("bankName")} />
+          <TextField id="business-bank-account-name" label="Account Name" value={values.bankAccountName} onChange={setField("bankAccountName")} />
+          <TextField id="business-bank-account-number" label="Account Number" value={values.bankAccountNumber} onChange={setField("bankAccountNumber")} />
+          <TextField id="business-bank-routing" label="BSB / Routing Number" value={values.bankRoutingCode} onChange={setField("bankRoutingCode")} />
+        </div>
+      </SettingsPanel>
+
+      <div className={styles.actions}>
+        <button type="submit" disabled={submitting} className="workspace-button-primary disabled:opacity-50">
+          {submitting ? "Saving…" : "Save changes"}
+        </button>
+        {saved ? <SettingsNotice kind="success">Changes saved.</SettingsNotice> : null}
+        {error ? <SettingsNotice kind="error">{error}</SettingsNotice> : null}
+      </div>
     </form>
   );
 }
@@ -356,10 +345,11 @@ interface TextFieldProps {
   value: string;
   type?: string;
   maxLength?: number;
+  error?: string | null;
   onChange: (event: { target: { value: string } }) => void;
 }
 
-function TextField({ id, label, value, type = "text", maxLength, onChange }: TextFieldProps) {
+function TextField({ id, label, value, type = "text", maxLength, error, onChange }: TextFieldProps) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium text-ink">
@@ -370,9 +360,12 @@ function TextField({ id, label, value, type = "text", maxLength, onChange }: Tex
         type={type}
         value={value}
         maxLength={maxLength}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? id + "-error" : undefined}
         onChange={onChange}
-        className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+        className={styles.control}
       />
+      {error ? <p id={id + "-error"} role="alert" className="text-sm text-status-overdue-fg">{error}</p> : null}
     </div>
   );
 }

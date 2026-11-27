@@ -13,6 +13,8 @@ import {
   type TeamSnapshot,
 } from "../../../lib/teamInvitations";
 import { t } from "../../../lib/messages";
+import { SettingsHeading, SettingsNotice, SettingsPanel } from "../../components/SettingsChrome";
+import styles from "../../components/SettingsChrome.module.css";
 
 /**
  * IG-239 / IG-297 / IG-298 / IG-240: the owner invites people by email to the selected business, picks
@@ -112,125 +114,123 @@ export function TeamSettings() {
     }
   };
 
+  const heading = <SettingsHeading page="team" title={t("team.title")} description={t("team.intro")} />;
   if (loadError) {
-    return <p role="alert" className="text-sm text-status-overdue-fg">{loadError}</p>;
+    return <>{heading}<SettingsNotice kind="error">{loadError}</SettingsNotice></>;
   }
 
   if (!team) {
-    return <p className="text-sm text-muted">{t("team.loading")}</p>;
+    return <>{heading}<SettingsNotice kind="info">{t("team.loading")}</SettingsNotice></>;
   }
 
   return (
-    <div className="space-y-10">
-      <header>
-        <h1 className="workspace-heading">{t("team.title")}</h1>
-        <p className="mt-2 text-sm text-muted">{t("team.intro")}</p>
-      </header>
+    <>
+      {heading}
+      <div className={styles.stack}>
+        <SettingsPanel tone="lavender" title={t("team.invite.submit")}>
+          {notice ? <SettingsNotice kind="success">{notice}</SettingsNotice> : null}
+          {formError ? <SettingsNotice kind="error">{formError}</SettingsNotice> : null}
+          <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <label className="min-w-0 flex-1 text-sm font-medium text-ink">
+              {t("team.invite.emailLabel")}
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className={`${styles.control} mt-1 block`}
+              />
+            </label>
+            <label className="text-sm font-medium text-ink">
+              {t("team.invite.roleLabel")}
+              <select
+                value={inviteRole}
+                onChange={(event) => setInviteRole(event.target.value as BusinessRole)}
+                className={`${styles.control} mt-1 block`}
+              >
+                <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
+                <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
+              </select>
+            </label>
+            <button
+              type="submit"
+              disabled={submitting || email.trim().length === 0}
+              className="workspace-button-primary shrink-0 justify-center disabled:opacity-50"
+            >
+              {submitting ? t("team.invite.submitting") : t("team.invite.submit")}
+            </button>
+          </form>
+        </SettingsPanel>
 
-      {notice ? <p role="status" className="text-sm text-status-paid-fg">{notice}</p> : null}
-      {formError ? <p role="alert" className="text-sm text-status-overdue-fg">{formError}</p> : null}
-
-      <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="flex-1 text-sm font-medium text-ink">
-          {t("team.invite.emailLabel")}
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="workspace-field mt-1 block w-full rounded-lg border border-border px-3 py-2 text-sm"
-          />
-        </label>
-        <label className="text-sm font-medium text-ink">
-          {t("team.invite.roleLabel")}
-          <select
-            value={inviteRole}
-            onChange={(event) => setInviteRole(event.target.value as BusinessRole)}
-            className="workspace-field mt-1 block w-full rounded-lg border border-border px-3 py-2 text-sm"
-          >
-            <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
-            <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          disabled={submitting || email.trim().length === 0}
-          className="workspace-button-primary disabled:opacity-50"
-        >
-          {submitting ? t("team.invite.submitting") : t("team.invite.submit")}
-        </button>
-      </form>
-
-      <section aria-labelledby="pending-invitations">
-        <h2 id="pending-invitations" className="text-lg font-semibold text-ink">{t("team.pending.heading")}</h2>
-        {team.pendingInvitations.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">{t("team.pending.empty")}</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-border">
-            {team.pendingInvitations.map((invitation) => (
-              <li key={invitation.id} className="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-ink">{invitation.email}</p>
-                  <p className="text-xs text-muted">
-                    {t("team.pending.detail", {
-                      role: BUSINESS_ROLE_LABELS[invitation.role],
-                      date: new Date(invitation.expiresAt).toLocaleDateString(),
-                    })}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleCancelInvitation(invitation.id)}
-                  disabled={busyId === invitation.id}
-                  className="rounded-full border border-border px-3 py-1 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
-                >
-                  {t("team.pending.cancel")}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="team-members">
-        <h2 id="team-members" className="text-lg font-semibold text-ink">{t("team.members.heading")}</h2>
-        {team.members.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">{t("team.members.empty")}</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-border">
-            {team.members.map((member) => (
-              <li key={member.id} className="flex flex-wrap items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-ink">{member.email}</p>
-                  <p className="text-xs text-muted">{t("team.members.joined", { date: new Date(member.joinedAt).toLocaleDateString() })}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm text-ink">
-                    <span className="sr-only">{t("team.members.roleFor", { email: member.email })}</span>
-                    <select
-                      value={member.role}
-                      disabled={busyId === member.id}
-                      onChange={(event) => void handleRoleChange(member.id, event.target.value as BusinessRole)}
-                      className="workspace-field rounded-lg border border-border px-2 py-1 text-sm"
-                    >
-                      <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
-                      <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
-                    </select>
-                  </label>
+        <SettingsPanel tone="yellow" title={t("team.pending.heading")}>
+          {team.pendingInvitations.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">{t("team.pending.empty")}</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-border">
+              {team.pendingInvitations.map((invitation) => (
+                <li key={invitation.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div>
+                    <p className="break-all text-sm font-medium text-ink">{invitation.email}</p>
+                    <p className="text-xs text-muted">
+                      {t("team.pending.detail", {
+                        role: BUSINESS_ROLE_LABELS[invitation.role],
+                        date: new Date(invitation.expiresAt).toLocaleDateString(),
+                      })}
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => void handleRemoveMember(member.id)}
-                    disabled={busyId === member.id}
-                    className="rounded-full border border-status-overdue-fg/25 px-3 py-1 text-sm font-semibold text-status-overdue-fg hover:bg-status-overdue-bg/55 disabled:opacity-50"
+                    onClick={() => void handleCancelInvitation(invitation.id)}
+                    disabled={busyId === invitation.id}
+                    className="workspace-button-secondary disabled:opacity-50"
                   >
-                    {t("team.members.remove")}
+                    {t("team.pending.cancel")}
                   </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SettingsPanel>
+
+        <SettingsPanel tone="mint" title={t("team.members.heading")}>
+          {team.members.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">{t("team.members.empty")}</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-border">
+              {team.members.map((member) => (
+                <li key={member.id} className="flex flex-wrap items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="break-all text-sm font-medium text-ink">{member.email}</p>
+                    <p className="text-xs text-muted">{t("team.members.joined", { date: new Date(member.joinedAt).toLocaleDateString() })}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="text-sm text-ink">
+                      <span className="sr-only">{t("team.members.roleFor", { email: member.email })}</span>
+                      <select
+                        value={member.role}
+                        disabled={busyId === member.id}
+                        onChange={(event) => void handleRoleChange(member.id, event.target.value as BusinessRole)}
+                        className={styles.control}
+                      >
+                        <option value="Restricted">{BUSINESS_ROLE_LABELS.Restricted}</option>
+                        <option value="Admin">{BUSINESS_ROLE_LABELS.Admin}</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveMember(member.id)}
+                      disabled={busyId === member.id}
+                      className="rounded-full border border-status-overdue-fg/25 px-3 py-1 text-sm font-semibold text-status-overdue-fg hover:bg-status-overdue-bg/55 disabled:opacity-50"
+                    >
+                      {t("team.members.remove")}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SettingsPanel>
+      </div>
+    </>
   );
 }

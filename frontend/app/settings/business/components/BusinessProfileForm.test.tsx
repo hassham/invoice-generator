@@ -55,6 +55,8 @@ describe("BusinessProfileForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Business name is required.");
     expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Business Name")).toHaveFocus();
+    expect(screen.getByLabelText("Business Name")).toHaveAccessibleDescription("Business name is required.");
   });
 
   it("submits a request with blank optional fields converted to null and numeric fields parsed", async () => {
