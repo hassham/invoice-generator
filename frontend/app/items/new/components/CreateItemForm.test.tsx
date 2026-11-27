@@ -9,6 +9,19 @@ afterEach(() => {
 });
 
 describe("CreateItemForm", () => {
+  it("shows the entered item and decimal price in the invoice-line preview", async () => {
+    const user = userEvent.setup();
+    render(<CreateItemForm />);
+    await user.type(screen.getByLabelText("Name"), "Design time");
+    await user.type(screen.getByLabelText("Unit"), "hour");
+    await user.type(screen.getByLabelText("Unit Price"), "125.50");
+    const preview = screen.getByRole("complementary", { name: "Item preview" });
+    expect(preview).toHaveTextContent("Design time");
+    expect(preview).toHaveTextContent("125.50 / hour");
+    expect(screen.getByLabelText("Unit Price")).toHaveAttribute("step", "any");
+    expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/items");
+  });
+
   it("creates the item and navigates to its detail page", async () => {
     vi.stubGlobal(
       "fetch",

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { WorkspaceHeading, WorkspaceRowButton, WorkspaceState } from "../../../components/ui/WorkspaceCollection";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
 import { useEffect, useState } from "react";
 import { archiveItem, getItem, updateItem, type CatalogItem, type CatalogItemRequest } from "../../../lib/items";
 import { ItemForm, type ItemFormValues } from "../../components/ItemForm";
@@ -89,40 +90,20 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-muted">Loading item…</p>;
+    return <WorkspaceState area="item" kind="loading">Loading item&hellip;</WorkspaceState>;
   }
-
   if (state === "error" || !item) {
-    return (
-      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-        {loadError}
-      </p>
-    );
+    return <WorkspaceState area="item" kind="error">{loadError}</WorkspaceState>;
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/items" className="text-sm font-medium text-muted hover:underline">
-            ← Back to items
-          </Link>
-          <h1 className="workspace-heading mt-2 ">{item.name}</h1>
-          {item.isArchived ? (
-            <span className="mt-1 inline-block rounded-full bg-status-draft-bg px-3 py-1 text-xs font-semibold text-muted">Archived</span>
-          ) : null}
-        </div>
-        {!item.isArchived ? (
-          <button
-            type="button"
-            onClick={handleArchive}
-            disabled={archiving}
-            className="rounded-full border border-status-overdue-fg/40 px-4 py-2 text-sm font-semibold text-status-overdue-fg transition-colors hover:bg-status-overdue-bg/55 disabled:opacity-50"
-          >
-            {archiving ? "Archiving…" : "Archive"}
-          </button>
-        ) : null}
-      </div>
+      <WorkspaceHeading area="item" eyebrow="Workspace / Item record" title={item.name}
+        back={{ href: "/items", label: "Back to items" }}
+        description={item.isArchived ? <StatusBadge tone="draft" label="Archived" /> : undefined}
+        actions={!item.isArchived ? <WorkspaceRowButton danger onClick={handleArchive} disabled={archiving}>
+          {archiving ? "Archiving..." : "Archive"}
+        </WorkspaceRowButton> : undefined} />
 
       {savedAt ? (
         <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
@@ -130,7 +111,7 @@ export function ItemDetail({ itemId }: ItemDetailProps) {
         </p>
       ) : null}
 
-      <div className="mt-6">
+      <div className="record-edit-sheet">
         <ItemForm
           initialValues={toFormValues(item)}
           submitting={submitting}

@@ -23,5 +23,5 @@ export function CreateItemForm() {
     }
   };
 
-  return <ItemForm submitting={submitting} submitLabel="Create item" error={error} onSubmit={handleSubmit} />;
+  return <ItemForm isNew submitting={submitting} submitLabel="Create item" error={error} onSubmit={handleSubmit} />;
 }

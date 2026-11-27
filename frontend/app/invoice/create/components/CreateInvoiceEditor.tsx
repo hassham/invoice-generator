@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceHeading } from "../../../components/ui/WorkspaceCollection";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -989,9 +991,14 @@ export function CreateInvoiceEditor() {
     <InvoiceEditorLayout
       backHref={isAuthenticated ? "/dashboard" : "/"}
       backLabel={isAuthenticated ? "Back to Dashboard" : "Back to Home"}
+      workspaceHeading={isAuthenticated ? (
+        <WorkspaceHeading area="invoice" eyebrow="Workspace / Billing" title="New invoice"
+          description="Add your details and check the preview before you save."
+          back={{ href: "/dashboard", label: "Back to Dashboard" }} />
+      ) : undefined}
       editor={
-        <div className="rounded-2xl border border-border bg-paper p-6 text-ink">
-          <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-border bg-paper px-6 py-4">
+        <div className={isAuthenticated ? "invoice-edit-panel invoice-create-panel text-ink" : "rounded-2xl border border-border bg-paper p-6 text-ink"}>
+          <div className={isAuthenticated ? "invoice-create-toolbar" : "sticky top-0 z-30 -mx-6 -mt-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-border bg-paper px-6 py-4"}>
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
             <div className="flex flex-wrap gap-3">
               <button

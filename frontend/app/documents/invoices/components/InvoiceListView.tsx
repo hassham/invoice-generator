@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { formatDate } from "../../../dashboard/components/DashboardPresentation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { computePeriodRange, PERIOD_PRESET_LABELS, type PeriodPreset } from "../../../dashboard/lib/period";
 import { listCustomers, type Customer } from "../../../lib/customers";
 import { Button } from "../../../components/ui/Button";
-import { DataTable } from "../../../components/ui/DataTable";
+import { WorkspaceCollection, WorkspaceCreateLink, WorkspaceHeading, WorkspaceRecordName, WorkspaceRowButton, WorkspaceRowLink, WorkspaceState } from "../../../components/ui/WorkspaceCollection";
 import { StatusBadge, toneForInvoiceStatus } from "../../../components/ui/StatusBadge";
 import {
   INVOICE_SORT_OPTIONS,
@@ -74,10 +74,13 @@ export function InvoiceListView() {
   const customStart = searchParams.get("startDate") ?? "";
   const customEnd = searchParams.get("endDate") ?? "";
 
+  const extraFilterCount = Number(Boolean(customerId)) + Number(datePreset !== "All");
+  const [moreFilters, setMoreFilters] = useState(extraFilterCount > 0);
   const [searchInput, setSearchInput] = useState(search);
   const [state, setState] = useState<LoadState>("loading");
   const [result, setResult] = useState<InvoiceListResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   const [customers, setCustomers] = useState<Customer[]>([]);
 
   useEffect(() => {
@@ -134,7 +137,7 @@ export function InvoiceListView() {
     // those three primitives directly (already in the array) avoids re-running from a new object
     // identity alone.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, search, status, customerId, sort, datePreset, customStart, customEnd]);
+  }, [page, pageSize, search, status, customerId, sort, datePreset, customStart, customEnd, retry]);
 
   const buildUrl = (overrides: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams.toString());
@@ -163,202 +166,172 @@ export function InvoiceListView() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Invoices</h1>
-          <Link
-            href="/invoice/create"
-            className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a]"
-          >
-            New invoice
-          </Link>
-        </div>
-        {hasActiveFilters ? (
-          <button type="button" onClick={handleClearFilters} className="text-sm font-medium text-muted hover:text-ink hover:underline">
-            Clear filters
-          </button>
-        ) : null}
-      </div>
+      <WorkspaceHeading area="invoice" eyebrow="Workspace / Billing" title="Invoices"
+        description="Find a saved invoice, check its status, or start a new one."
+        actions={<WorkspaceCreateLink href="/invoice/create">New invoice</WorkspaceCreateLink>} />
 
-      <form onSubmit={handleSearchSubmit} className="mt-5 flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-paper p-4 sm:p-5">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-search" className="text-sm font-semibold text-ink">
+      <form onSubmit={handleSearchSubmit} className="collection-filters" aria-label="Invoice filters">
+        <div className="collection-filter-field collection-filter-search">
+            <label htmlFor="invoice-search" className="text-sm font-semibold text-ink">
+              Search
+            </label>
+            <input
+              id="invoice-search"
+              type="text"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Invoice number, reference or customer…"
+              className="workspace-field rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            />
+          </div>
+          <Button type="submit" variant="secondary" className="collection-search">
             Search
-          </label>
-          <input
-            id="invoice-search"
-            type="text"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Invoice number, reference or customer…"
-            className="workspace-field rounded-lg border border-border bg-paper px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-          />
+          </Button>
+
+          <div className="collection-filter-field">
+            <label htmlFor="invoice-status-filter" className="text-sm font-semibold text-ink">
+              Status
+            </label>
+            <select
+              id="invoice-status-filter"
+              value={status}
+              onChange={(event) => navigate({ status: event.target.value || undefined, page: "1" })}
+              className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            >
+              <option value="">All statuses</option>
+              {INVOICE_STATUS_FILTER_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="collection-filter-field">
+            <label htmlFor="invoice-sort" className="text-sm font-semibold text-ink">
+              Sort
+            </label>
+            <select
+              id="invoice-sort"
+              value={sort}
+              onChange={(event) => navigate({ sort: event.target.value === DEFAULT_SORT ? undefined : event.target.value })}
+              className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            >
+              {INVOICE_SORT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {INVOICE_SORT_OPTION_LABELS[option]}
+                </option>
+              ))}
+            </select>
+          </div>
+        <div className="collection-filter-controls">
+          <button type="button" className="workspace-button-secondary"
+            aria-expanded={moreFilters} aria-controls="invoice-extra-filters"
+            onClick={() => setMoreFilters((open) => !open)}>
+            More filters{extraFilterCount > 0 ? " (" + extraFilterCount + ")" : ""}
+            <span aria-hidden="true">{moreFilters ? "−" : "+"}</span>
+          </button>
+          {hasActiveFilters ? <button type="button" onClick={handleClearFilters} className="collection-clear">Clear filters</button> : null}
         </div>
-        <Button type="submit" variant="secondary">
-          Search
-        </Button>
+        <div id="invoice-extra-filters" className="collection-extra-filters" hidden={!moreFilters}>
+          <div className="collection-filter-field">
+            <label htmlFor="invoice-customer-filter" className="text-sm font-semibold text-ink">
+              Customer
+            </label>
+            <select
+              id="invoice-customer-filter"
+              value={customerId}
+              onChange={(event) => navigate({ customerId: event.target.value || undefined, page: "1" })}
+              className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            >
+              <option value="">All customers</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.businessName ?? customer.contactName ?? "(unnamed)"}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-status-filter" className="text-sm font-semibold text-ink">
-            Status
-          </label>
-          <select
-            id="invoice-status-filter"
-            value={status}
-            onChange={(event) => navigate({ status: event.target.value || undefined, page: "1" })}
-            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-          >
-            <option value="">All statuses</option>
-            {INVOICE_STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="collection-filter-field">
+            <label htmlFor="invoice-date-filter" className="text-sm font-semibold text-ink">
+              Date
+            </label>
+            <select
+              id="invoice-date-filter"
+              value={datePreset}
+              onChange={(event) => navigate({ datePreset: event.target.value === "All" ? undefined : event.target.value, startDate: undefined, endDate: undefined, page: "1" })}
+              className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            >
+              <option value="All">All time</option>
+              {DATE_PRESETS.filter((preset) => preset !== "All").map((preset) => (
+                <option key={preset} value={preset}>
+                  {preset === "Custom" ? "Custom" : PERIOD_PRESET_LABELS[preset as PeriodPreset]}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-customer-filter" className="text-sm font-semibold text-ink">
-            Customer
-          </label>
-          <select
-            id="invoice-customer-filter"
-            value={customerId}
-            onChange={(event) => navigate({ customerId: event.target.value || undefined, page: "1" })}
-            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-          >
-            <option value="">All customers</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.businessName ?? customer.contactName ?? "(unnamed)"}
-              </option>
-            ))}
-          </select>
-        </div>
+          {datePreset === "Custom" ? (
+            <>
+              <div className="collection-filter-field">
+                <label htmlFor="invoice-date-start" className="text-sm font-semibold text-ink">
+                  From
+                </label>
+                <input
+                  id="invoice-date-start"
+                  type="date"
+                  value={customStart}
+                  onChange={(event) => navigate({ startDate: event.target.value || undefined, page: "1" })}
+                  className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                />
+              </div>
+              <div className="collection-filter-field">
+                <label htmlFor="invoice-date-end" className="text-sm font-semibold text-ink">
+                  To
+                </label>
+                <input
+                  id="invoice-date-end"
+                  type="date"
+                  value={customEnd}
+                  onChange={(event) => navigate({ endDate: event.target.value || undefined, page: "1" })}
+                  className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                />
+              </div>
+            </>
+          ) : null}
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-date-filter" className="text-sm font-semibold text-ink">
-            Date
-          </label>
-          <select
-            id="invoice-date-filter"
-            value={datePreset}
-            onChange={(event) => navigate({ datePreset: event.target.value === "All" ? undefined : event.target.value, startDate: undefined, endDate: undefined, page: "1" })}
-            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-          >
-            <option value="All">All time</option>
-            {DATE_PRESETS.filter((preset) => preset !== "All").map((preset) => (
-              <option key={preset} value={preset}>
-                {preset === "Custom" ? "Custom" : PERIOD_PRESET_LABELS[preset as PeriodPreset]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {datePreset === "Custom" ? (
-          <>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="invoice-date-start" className="text-sm font-semibold text-ink">
-                From
-              </label>
-              <input
-                id="invoice-date-start"
-                type="date"
-                value={customStart}
-                onChange={(event) => navigate({ startDate: event.target.value || undefined, page: "1" })}
-                className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="invoice-date-end" className="text-sm font-semibold text-ink">
-                To
-              </label>
-              <input
-                id="invoice-date-end"
-                type="date"
-                value={customEnd}
-                onChange={(event) => navigate({ endDate: event.target.value || undefined, page: "1" })}
-                className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-              />
-            </div>
-          </>
-        ) : null}
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="invoice-sort" className="text-sm font-semibold text-ink">
-            Sort
-          </label>
-          <select
-            id="invoice-sort"
-            value={sort}
-            onChange={(event) => navigate({ sort: event.target.value === DEFAULT_SORT ? undefined : event.target.value })}
-            className="workspace-field rounded-lg border border-border bg-paper px-2 py-2 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-          >
-            {INVOICE_SORT_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {INVOICE_SORT_OPTION_LABELS[option]}
-              </option>
-            ))}
-          </select>
         </div>
       </form>
 
-      {error ? (
-        <p role="alert" className="mt-6 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
-          {error}
-        </p>
+      {state === "error" && error ? (
+        <WorkspaceState area="invoice" kind="error"
+          action={<WorkspaceRowButton onClick={() => setRetry((next) => next + 1)}>Try again</WorkspaceRowButton>}>{error}</WorkspaceState>
       ) : null}
-
-      {state === "loading" ? <p className="mt-6 text-sm text-muted">Loading invoices…</p> : null}
-
-      {state === "loaded" && result && result.items.length === 0 && !hasActiveFilters ? (
-        <p className="mt-6 text-sm text-muted">
-          No invoices yet.{" "}
-          <Link href="/invoice/create" className="font-semibold text-ink underline-offset-4 hover:underline">
-            Create your first invoice
-          </Link>
-          .
-        </p>
-      ) : null}
-
-      {state === "loaded" && result && result.items.length === 0 && hasActiveFilters ? (
-        <p className="mt-6 text-sm text-muted">
-          No invoices match these criteria.{" "}
-          <button type="button" onClick={handleClearFilters} className="font-semibold text-ink underline-offset-4 hover:underline">
-            Clear filters
-          </button>
-          .
-        </p>
+      {state === "loading" ? <WorkspaceState area="invoice" kind="loading">Loading invoices&hellip;</WorkspaceState> : null}
+      {state === "loaded" && result && result.items.length === 0 ? (
+        <WorkspaceState area="invoice" kind="empty" action={!hasActiveFilters ? <WorkspaceRowLink href="/invoice/create">Create your first invoice</WorkspaceRowLink> : undefined}>
+          <strong>{hasActiveFilters ? "No invoices match these criteria." : "No invoices yet."}</strong>
+          <p className="text-muted">{hasActiveFilters ? "Try a different search or clear the filters." : "Your saved invoices will appear here."}</p>
+        </WorkspaceState>
       ) : null}
 
       {state === "loaded" && result && result.items.length > 0 ? (
-        <>
-          <DataTable
-            className="mt-6"
-            caption="Invoices"
-            columns={[
-              { key: "number", header: "Invoice Number", render: (invoice) => <span className="font-mono font-semibold">{invoice.invoiceNumber}</span> },
-              { key: "customer", header: "Customer", render: (invoice) => invoice.customerName || "—" },
-              { key: "issue", header: "Date", render: (invoice) => invoice.issueDate },
-              { key: "due", header: "Due Date", render: (invoice) => invoice.dueDate },
-              { key: "amount", header: "Amount", align: "right", render: (invoice) => formatCurrency(invoice.totalAmount, invoice.currency) },
-              { key: "due-amount", header: "Amount Due", align: "right", render: (invoice) => formatCurrency(invoice.amountDue, invoice.currency) },
-              { key: "status", header: "Status", render: (invoice) => <StatusBadge tone={toneForInvoiceStatus(invoice.status)} label={invoice.status} /> },
-              {
-                key: "actions",
-                header: "Actions",
-                render: (invoice) => (
-                  <Link href={`/documents/invoices/${invoice.id}`} className="font-semibold underline-offset-4 hover:underline">
-                    View
-                  </Link>
-                ),
-              },
-            ]}
-            rows={result.items}
-            getRowKey={(invoice) => invoice.id}
-          />
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
+        <WorkspaceCollection area="invoice" title="Invoice register" caption="Invoices"
+          note={result.totalCount + (result.totalCount === 1 ? " matching invoice" : " matching invoices")}
+          rows={result.items} rowKey={(invoice) => invoice.id}
+          columns={[
+            { key: "number", label: "Invoice Number", render: (invoice) => <WorkspaceRecordName area="invoice"><span className="font-mono">{invoice.invoiceNumber}</span></WorkspaceRecordName> },
+            { key: "customer", label: "Customer", render: (invoice) => invoice.customerName || "-" },
+            { key: "issue", label: "Issue Date", render: (invoice) => <time dateTime={invoice.issueDate}>{formatDate(invoice.issueDate)}</time> },
+            { key: "due", label: "Due Date", render: (invoice) => <time dateTime={invoice.dueDate}>{formatDate(invoice.dueDate)}</time> },
+            { key: "amount", label: "Amount", align: "end", render: (invoice) => formatCurrency(invoice.totalAmount, invoice.currency) },
+            { key: "due-amount", label: "Amount Due", align: "end", render: (invoice) => formatCurrency(invoice.amountDue, invoice.currency) },
+            { key: "status", label: "Status", render: (invoice) => <StatusBadge tone={toneForInvoiceStatus(invoice.status)} label={invoice.status === "PartiallyPaid" ? "Partially paid" : invoice.status} /> },
+            { key: "actions", label: "Actions", render: (invoice) => <WorkspaceRowLink href={"/documents/invoices/" + invoice.id}>View</WorkspaceRowLink> },
+          ]}
+          footer={
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
             <div className="flex items-center gap-2">
               <label htmlFor="invoice-page-size" className="font-medium">
                 Per page
@@ -377,12 +350,12 @@ export function InvoiceListView() {
               </select>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => navigate({ page: String(page - 1) })}
                 disabled={page <= 1}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 font-semibold text-ink hover:bg-canvas disabled:opacity-50"
+                className="workspace-button-secondary"
               >
                 Previous
               </button>
@@ -393,13 +366,13 @@ export function InvoiceListView() {
                 type="button"
                 onClick={() => navigate({ page: String(page + 1) })}
                 disabled={page >= totalPages}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 font-semibold text-ink hover:bg-canvas disabled:opacity-50"
+                className="workspace-button-secondary"
               >
                 Next
               </button>
             </div>
           </div>
-        </>
+          } />
       ) : null}
     </div>
   );

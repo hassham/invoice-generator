@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { WorkspaceCollection, WorkspaceCreateLink, WorkspaceHeading, WorkspaceRecordName, WorkspaceRowButton, WorkspaceRowLink, WorkspaceState } from "../../components/ui/WorkspaceCollection";
 import { useEffect, useState } from "react";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import { archiveItem, duplicateItem, listItems, type CatalogItem } from "../../lib/items";
 
 type LoadState = "loading" | "loaded" | "error";
@@ -62,84 +63,43 @@ export function ItemListView() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="workspace-heading">Items</h1>
-        <Link
-          href="/items/new"
-          className="workspace-button-primary"
-        >
-          Add item
-        </Link>
-      </div>
+      <WorkspaceHeading area="item" eyebrow="Workspace / Catalogue" title="Items"
+        description="Save the products and services you bill for so you can add them to invoices in seconds."
+        actions={<WorkspaceCreateLink href="/items/new">Add item</WorkspaceCreateLink>} />
 
-      {error ? (
-        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {error}
-        </p>
-      ) : null}
-
-      {state === "loading" ? <p role="status" className="workspace-state mt-6">Loading items…</p> : null}
-
+      {error ? <WorkspaceState area="item" kind="error">{error}</WorkspaceState> : null}
+      {state === "loading" ? <WorkspaceState area="item" kind="loading">Loading items&hellip;</WorkspaceState> : null}
       {state === "loaded" && items.length === 0 ? (
-        <p className="workspace-state mt-6">
-          No items yet. <Link href="/items/new" className="font-medium text-ink hover:underline">Add your first item</Link>.
-        </p>
+        <WorkspaceState area="item" kind="empty"
+          action={<WorkspaceRowLink href="/items/new">Add your first item</WorkspaceRowLink>}>
+          <strong>No items yet.</strong><p className="text-muted">Start with a product or service you bill for often.</p>
+        </WorkspaceState>
       ) : null}
-
       {state === "loaded" && items.length > 0 ? (
-        <div role="region" aria-label="Items" tabIndex={0} className="mt-6 workspace-table-scroll">
-          <table className="w-full text-left text-sm">
-            <caption className="sr-only">Items</caption>
-            <thead>
-              <tr className="border-b border-border text-muted">
-                <th className="py-2 pr-4 font-medium">Name</th>
-                <th className="py-2 pr-4 font-medium">Description</th>
-                <th className="py-2 pr-4 font-medium">Unit</th>
-                <th className="py-2 pr-4 font-medium">Price</th>
-                <th className="py-2 pr-4 font-medium">Tax</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 pr-4 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-b border-border">
-                  <td className="py-2 pr-4 text-ink">{item.name}</td>
-                  <td className="py-2 pr-4 text-ink">{item.description ?? "—"}</td>
-                  <td className="py-2 pr-4 text-ink">{item.unit ?? "—"}</td>
-                  <td className="py-2 pr-4 text-ink">{formatPrice(item)}</td>
-                  <td className="py-2 pr-4 text-ink">{formatTaxRate(item)}</td>
-                  <td className="py-2 pr-4 text-ink">{item.isArchived ? "Archived" : "Active"}</td>
-                  <td className="py-2 pr-4">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/items/${item.id}`} className="font-medium text-ink hover:underline">
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicate(item.id)}
-                        disabled={duplicatingId === item.id}
-                        className="font-medium text-ink hover:underline disabled:opacity-50"
-                      >
-                        {duplicatingId === item.id ? "Duplicating…" : "Duplicate"}
-                      </button>
-                      {!item.isArchived ? (
-                        <button
-                          type="button"
-                          onClick={() => handleArchive(item.id)}
-                          disabled={archivingId === item.id}
-                          className="font-medium text-status-overdue-fg hover:underline disabled:opacity-50"
-                        >
-                          {archivingId === item.id ? "Archiving…" : "Archive"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <WorkspaceCollection area="item" title="Product and service catalogue" caption="Items"
+          note={items.length + (items.length === 1 ? " saved item" : " saved items")}
+          rows={items} rowKey={(item) => item.id}
+          columns={[
+            { key: "name", label: "Name", render: (item) => <WorkspaceRecordName area="item">{item.name}</WorkspaceRecordName> },
+            { key: "description", label: "Description", render: (item) => item.description ?? "-" },
+            { key: "unit", label: "Unit", render: (item) => item.unit ?? "-" },
+            { key: "price", label: "Price", align: "end", render: formatPrice },
+            { key: "tax", label: "Tax", align: "end", render: formatTaxRate },
+            { key: "status", label: "Status", render: (item) => <StatusBadge tone={item.isArchived ? "draft" : "paid"} label={item.isArchived ? "Archived" : "Active"} /> },
+            { key: "actions", label: "Actions", wide: true, render: (item) => (
+              <div className="flex flex-wrap gap-2">
+                <WorkspaceRowLink href={"/items/" + item.id}>Edit</WorkspaceRowLink>
+                <WorkspaceRowButton onClick={() => handleDuplicate(item.id)} disabled={duplicatingId === item.id}>
+                  {duplicatingId === item.id ? "Duplicating..." : "Duplicate"}
+                </WorkspaceRowButton>
+                {!item.isArchived ? (
+                  <WorkspaceRowButton danger onClick={() => handleArchive(item.id)} disabled={archivingId === item.id}>
+                    {archivingId === item.id ? "Archiving..." : "Archive"}
+                  </WorkspaceRowButton>
+                ) : null}
+              </div>
+            ) },
+          ]} />
       ) : null}
     </div>
   );

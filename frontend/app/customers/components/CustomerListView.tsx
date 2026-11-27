@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { WorkspaceCollection, WorkspaceCreateLink, WorkspaceHeading, WorkspaceRecordName, WorkspaceRowButton, WorkspaceRowLink, WorkspaceState } from "../../components/ui/WorkspaceCollection";
 import { useEffect, useState } from "react";
 import { archiveCustomer, listCustomers, type Customer } from "../../lib/customers";
 
@@ -54,70 +54,36 @@ export function CustomerListView() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="workspace-heading">Customers</h1>
-        <Link
-          href="/customers/new"
-          className="workspace-button-primary"
-        >
-          Add customer
-        </Link>
-      </div>
+      <WorkspaceHeading area="customer" eyebrow="Workspace / Client directory" title="Customers"
+        description="Keep billing contacts and customer details ready for your next invoice."
+        actions={<WorkspaceCreateLink href="/customers/new">Add customer</WorkspaceCreateLink>} />
 
-      {error ? (
-        <p role="alert" className="mt-6 rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {error}
-        </p>
-      ) : null}
-
-      {state === "loading" ? <p role="status" className="workspace-state mt-6">Loading customers…</p> : null}
-
+      {error ? <WorkspaceState area="customer" kind="error">{error}</WorkspaceState> : null}
+      {state === "loading" ? <WorkspaceState area="customer" kind="loading">Loading customers&hellip;</WorkspaceState> : null}
       {state === "loaded" && customers.length === 0 ? (
-        <p className="workspace-state mt-6">
-          No customers yet. <Link href="/customers/new" className="font-medium text-ink hover:underline">Add your first customer</Link>.
-        </p>
+        <WorkspaceState area="customer" kind="empty"
+          action={<WorkspaceRowLink href="/customers/new">Add your first customer</WorkspaceRowLink>}>
+          <strong>No customers yet.</strong><p className="text-muted">Save a billing contact once and reuse their details on new invoices.</p>
+        </WorkspaceState>
       ) : null}
-
       {state === "loaded" && customers.length > 0 ? (
-        <div role="region" aria-label="Customers" tabIndex={0} className="mt-6 workspace-table-scroll">
-          <table className="w-full text-left text-sm">
-            <caption className="sr-only">Customers</caption>
-            <thead>
-              <tr className="border-b border-border text-muted">
-                <th className="py-2 pr-4 font-medium">Customer Name</th>
-                <th className="py-2 pr-4 font-medium">Contact</th>
-                <th className="py-2 pr-4 font-medium">Email</th>
-                <th className="py-2 pr-4 font-medium">Phone</th>
-                <th className="py-2 pr-4 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((customer) => (
-                <tr key={customer.id} className="border-b border-border">
-                  <td className="py-2 pr-4 text-ink">{displayName(customer)}</td>
-                  <td className="py-2 pr-4 text-ink">{displayContact(customer)}</td>
-                  <td className="py-2 pr-4 text-ink">{customer.email ?? "—"}</td>
-                  <td className="py-2 pr-4 text-ink">{customer.phone ?? "—"}</td>
-                  <td className="py-2 pr-4">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/customers/${customer.id}`} className="font-medium text-ink hover:underline">
-                        View
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleArchive(customer.id)}
-                        disabled={archivingId === customer.id}
-                        className="font-medium text-status-overdue-fg hover:underline disabled:opacity-50"
-                      >
-                        {archivingId === customer.id ? "Archiving…" : "Archive"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <WorkspaceCollection area="customer" title="Client directory" caption="Customers"
+          note={customers.length + (customers.length === 1 ? " saved customer" : " saved customers")}
+          rows={customers} rowKey={(customer) => customer.id}
+          columns={[
+            { key: "name", label: "Customer Name", render: (customer) => <WorkspaceRecordName area="customer">{displayName(customer)}</WorkspaceRecordName> },
+            { key: "contact", label: "Contact", render: displayContact },
+            { key: "email", label: "Email", render: (customer) => customer.email ?? "-" },
+            { key: "phone", label: "Phone", render: (customer) => customer.phone ?? "-" },
+            { key: "actions", label: "Actions", wide: true, render: (customer) => (
+              <div className="flex flex-wrap gap-2">
+                <WorkspaceRowLink href={"/customers/" + customer.id}>View</WorkspaceRowLink>
+                <WorkspaceRowButton danger onClick={() => handleArchive(customer.id)} disabled={archivingId === customer.id}>
+                  {archivingId === customer.id ? "Archiving..." : "Archive"}
+                </WorkspaceRowButton>
+              </div>
+            ) },
+          ]} />
       ) : null}
     </div>
   );

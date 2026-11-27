@@ -18,7 +18,6 @@ export const metadata: Metadata = {
 export default function CreateInvoicePage() {
   return (
     <main>
-      <h1 className="sr-only">Create an invoice</h1>
       {/* IG-204: CreateInvoiceEditor reads ?template=<templateCode> via useSearchParams
           (next/navigation) - the App Router requires a Suspense boundary around any such client
           component on a statically-rendered route, or `next build` fails with a "missing suspense

@@ -96,3 +96,47 @@ body {
     print-color-adjust: exact;
   }
 }
+
+/* Dashboard-inspired treatments for invoice, customer and item workspaces. */
+.collection-filters {
+  display:grid; grid-template-columns:minmax(10rem,1fr) auto minmax(7rem,.35fr) minmax(8rem,.4fr) auto;
+  align-items:end; gap:.55rem .65rem; margin-top:1.15rem; padding:.75rem;
+  border:1px solid var(--color-border); border-radius:.875rem; background:var(--color-paper);
+}
+.collection-filter-field { min-width:0; display:flex; flex-direction:column; gap:.2rem; }
+.collection-filters label { font-size:.75rem; }
+.collection-filters :is(select,input) { width:100%; min-width:0; min-height:2.5rem; }
+.collection-filters .collection-search { min-height:2.5rem; justify-self:start; }
+.collection-filter-controls { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .65rem; }
+.collection-filter-controls .workspace-button-secondary { gap:.35rem; white-space:nowrap; }
+.collection-clear { min-height:2.5rem; padding:.15rem .25rem; font-size:.8125rem; font-weight:600; text-decoration:underline; text-underline-offset:.2em; }
+.collection-clear:focus-visible { outline:2px solid var(--color-ink); outline-offset:2px; border-radius:.25rem; }
+.collection-extra-filters:not([hidden]) { grid-column:1/-1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.55rem .65rem; border-top:1px solid var(--color-border); padding-top:.55rem; }
+@media (max-width:53rem) {
+  .collection-filters { grid-template-columns:minmax(0,1fr) auto; }
+  .collection-filter-controls { grid-column:1/-1; }
+  .collection-extra-filters:not([hidden]) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+.invoice-action-bar { margin-top:1.25rem; border:1px solid var(--color-border); border-radius:.875rem; background:var(--color-paper); padding:.875rem; }
+.invoice-action-bar > p,.invoice-edit-kicker { margin-bottom:.5rem; font:700 .6875rem/1.35 var(--font-mono); text-transform:uppercase; letter-spacing:.065em; }
+.invoice-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; margin-top:1.25rem; }
+.invoice-summary > div { min-width:0; padding:.875rem; border:1px solid var(--color-ink); border-radius:.75rem; background:var(--color-paper); box-shadow:0 2px 0 var(--color-ink); }
+.invoice-summary [data-tone="lavender"] { background:var(--color-lavender); }
+.invoice-summary [data-tone="mint"] { background:var(--color-mint); }
+.invoice-summary [data-tone="yellow"] { background:var(--color-yellow); }
+.invoice-summary dt { font:700 .9rem/1.25 var(--font-display); }
+.invoice-summary dd { margin-top:.35rem; overflow-wrap:anywhere; font:700 clamp(1.125rem,2vw,1.55rem)/1.25 var(--font-mono); letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.invoice-edit-panel { margin-top:1.25rem; padding:clamp(.875rem,2.75vw,1.5rem); border:1px solid var(--color-ink); border-radius:1rem; background:var(--color-paper); }
+.invoice-edit-kicker { padding-bottom:.65rem; border-bottom:1px solid var(--color-border); }
+@media (max-width:45rem) {
+  .invoice-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+.invoice-create-panel { margin-top:0; }
+.invoice-create-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.65rem; margin-bottom:1rem; padding-bottom:.85rem; border-bottom:1px solid var(--color-border); }
+
+.record-edit-sheet { margin-top:1.5rem; border:1px solid var(--color-ink); border-radius:1rem; background:var(--color-paper); }
+.record-form-error { margin:.85rem; padding:.75rem; border:1px solid var(--color-status-overdue-fg); border-radius:.625rem; color:var(--color-status-overdue-fg); background:var(--color-status-overdue-bg); font-size:.875rem; }
+.record-form-disclosure > summary { cursor:pointer; min-height:2.75rem; border:1px solid var(--color-border); border-radius:.625rem; background:var(--color-canvas); padding:.65rem .75rem; font-size:.875rem; font-weight:700; }
+.record-form-disclosure > summary:focus-visible { outline:2px solid var(--color-ink); outline-offset:2px; }
+.record-form-disclosure > summary span { margin-inline-start:.35rem; color:var(--color-muted); font-size:.75rem; font-weight:500; }

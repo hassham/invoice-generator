@@ -18,7 +18,7 @@ export default function ItemsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-4xl">
+      <main className="workspace-main max-w-6xl">
         <ItemListView />
       </main>
       <SiteFooter workspace />

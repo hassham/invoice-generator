@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { RecordFormActions, RecordFormLayout, RecordFormPreview, RecordFormSection } from "../../components/ui/WorkspaceRecordForm";
 import type { CustomerRequest } from "../../lib/customers";
 
 export interface CustomerFormValues {
@@ -54,6 +55,7 @@ function toRequest(values: CustomerFormValues): CustomerRequest {
 
 interface CustomerFormProps {
   initialValues?: CustomerFormValues;
+  isNew?: boolean;
   submitting: boolean;
   submitLabel: string;
   error: string | null;
@@ -67,7 +69,7 @@ interface CustomerFormProps {
  * this only enforces that at least one of the two is filled, client-side, before ever calling the
  * backend.
  */
-export function CustomerForm({ initialValues = emptyCustomerFormValues, submitting, submitLabel, error, onSubmit }: CustomerFormProps) {
+export function CustomerForm({ initialValues = emptyCustomerFormValues, isNew = false, submitting, submitLabel, error, onSubmit }: CustomerFormProps) {
   const [values, setValues] = useState<CustomerFormValues>(initialValues);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -88,53 +90,45 @@ export function CustomerForm({ initialValues = emptyCustomerFormValues, submitti
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {error ? (
-        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {error}
-        </p>
-      ) : null}
-      {nameError ? (
-        <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-          {nameError}
-        </p>
-      ) : null}
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField id="customer-business-name" label="Business Name" value={values.businessName} onChange={setField("businessName")} />
-        <TextField id="customer-contact-name" label="Contact Name" value={values.contactName} onChange={setField("contactName")} />
-        <TextField id="customer-email" label="Email" type="email" value={values.email} onChange={setField("email")} />
-        <TextField id="customer-phone" label="Phone" value={values.phone} onChange={setField("phone")} />
-        <TextField id="customer-address-1" label="Address Line 1" value={values.addressLine1} onChange={setField("addressLine1")} />
-        <TextField id="customer-address-2" label="Address Line 2" value={values.addressLine2} onChange={setField("addressLine2")} />
-        <TextField id="customer-city" label="City" value={values.city} onChange={setField("city")} />
-        <TextField id="customer-state" label="State / Province" value={values.state} onChange={setField("state")} />
-        <TextField id="customer-postal-code" label="Postal Code" value={values.postalCode} onChange={setField("postalCode")} />
-        <TextField id="customer-country" label="Country" value={values.country} onChange={setField("country")} maxLength={2} />
-        <TextField id="customer-tax-number" label="Tax Number" value={values.taxNumber} onChange={setField("taxNumber")} />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="customer-notes" className="text-sm font-medium text-ink">
-          Notes
-        </label>
-        <textarea
-          id="customer-notes"
-          value={values.notes}
-          onChange={setField("notes")}
-          rows={4}
-          className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={submitting}
-        className="workspace-button-primary self-start disabled:opacity-50"
-      >
-        {submitting ? "Saving…" : submitLabel}
-      </button>
-    </form>
+    <RecordFormLayout kind="customer" preview={isNew ? (
+      <RecordFormPreview kind="customer" title={values.businessName.trim() || values.contactName.trim() || "Your customer name"}>
+        {values.contactName.trim() && values.businessName.trim() ? <p>{values.contactName.trim()}</p> : null}
+        <p>{values.email.trim() || "The billing email will appear here."}</p>
+        {values.phone.trim() ? <p>{values.phone.trim()}</p> : null}
+      </RecordFormPreview>
+    ) : undefined}>
+      <form onSubmit={handleSubmit}>
+        {error || nameError ? <p role="alert" className="record-form-error">{nameError ?? error}</p> : null}
+        <RecordFormSection number="01" title="Contact details" description="Enter a business name or a contact name. Email and phone are optional.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField id="customer-business-name" label="Business Name" value={values.businessName} onChange={setField("businessName")} />
+            <TextField id="customer-contact-name" label="Contact Name" value={values.contactName} onChange={setField("contactName")} />
+            <TextField id="customer-email" label="Email" type="email" value={values.email} onChange={setField("email")} />
+            <TextField id="customer-phone" label="Phone" type="tel" value={values.phone} onChange={setField("phone")} />
+          </div>
+        </RecordFormSection>
+        <RecordFormSection number="02" title="Billing details" description="Add an address, tax number or private note when you need them.">
+          <details className="record-form-disclosure" open={isNew ? undefined : true}>
+            <summary>Address, tax and notes <span>Optional</span></summary>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <TextField id="customer-address-1" label="Address Line 1" value={values.addressLine1} onChange={setField("addressLine1")} />
+              <TextField id="customer-address-2" label="Address Line 2" value={values.addressLine2} onChange={setField("addressLine2")} />
+              <TextField id="customer-city" label="City" value={values.city} onChange={setField("city")} />
+              <TextField id="customer-state" label="State / Province" value={values.state} onChange={setField("state")} />
+              <TextField id="customer-postal-code" label="Postal Code" value={values.postalCode} onChange={setField("postalCode")} />
+              <TextField id="customer-country" label="Country" value={values.country} onChange={setField("country")} maxLength={2} />
+              <TextField id="customer-tax-number" label="Tax Number" value={values.taxNumber} onChange={setField("taxNumber")} />
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label htmlFor="customer-notes" className="text-sm text-ink">Notes</label>
+                <textarea id="customer-notes" value={values.notes} onChange={setField("notes")} rows={3}
+                  className="workspace-field min-h-11 rounded-lg border px-3 py-2 text-sm text-ink" />
+              </div>
+            </div>
+          </details>
+        </RecordFormSection>
+        <RecordFormActions pending={submitting} label={submitLabel} cancelHref={isNew ? "/customers" : undefined} />
+      </form>
+    </RecordFormLayout>
   );
 }
 
@@ -159,7 +153,7 @@ function TextField({ id, label, value, type = "text", maxLength, onChange }: Tex
         value={value}
         maxLength={maxLength}
         onChange={onChange}
-        className="workspace-field rounded-md border border-border px-3 py-2 text-sm text-ink"
+        className="workspace-field min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-ink"
       />
     </div>
   );

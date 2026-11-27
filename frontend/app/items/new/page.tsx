@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { WorkspaceHeading } from "../../components/ui/WorkspaceCollection";
 import { SiteFooter } from "../../components/landing/SiteFooter";
 import { SiteHeader } from "../../components/landing/SiteHeader";
 import { CreateItemForm } from "./components/CreateItemForm";
@@ -18,12 +19,10 @@ export default function NewItemPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-2xl">
-        <h1 className="workspace-heading">New item</h1>
-        <p className="mt-2 text-sm text-muted">Save this item so you can reuse the details in future invoices.</p>
-        <div className="workspace-panel mt-6 p-4 sm:p-6">
-          <CreateItemForm />
-        </div>
+      <main className="workspace-main max-w-5xl">
+        <WorkspaceHeading area="item" eyebrow="Workspace / New record" title="New item"
+          description="Set up a reusable product or service with its unit, price and tax." back={{ href: "/items", label: "Back to items" }} />
+        <CreateItemForm />
       </main>
       <SiteFooter workspace />
     </>

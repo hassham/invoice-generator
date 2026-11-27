@@ -9,6 +9,18 @@ afterEach(() => {
 });
 
 describe("CreateCustomerForm", () => {
+  it("updates the billing-contact preview without requiring the optional address", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<CreateCustomerForm />);
+    const preview = screen.getByRole("complementary", { name: "Customer preview" });
+    expect(container.querySelector("details")).not.toHaveAttribute("open");
+    await user.type(screen.getByLabelText("Business Name"), "Fern Studio");
+    await user.type(screen.getByLabelText("Email"), "billing@example.com");
+    expect(preview).toHaveTextContent("Fern Studio");
+    expect(preview).toHaveTextContent("billing@example.com");
+    expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/customers");
+  });
+
   it("creates the customer and navigates to its detail page", async () => {
     vi.stubGlobal(
       "fetch",

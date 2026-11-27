@@ -223,6 +223,8 @@ describe("InvoiceListView", () => {
       render(<InvoiceListView />);
       await screen.findByText("INV-0001");
 
+      expect(screen.getByRole("button", { name: "More filters" })).toHaveAttribute("aria-expanded", "false");
+      await userEvent.click(screen.getByRole("button", { name: "More filters" }));
       expect(await screen.findByRole("option", { name: "Acme Pty Ltd" })).toBeInTheDocument();
     });
 
@@ -232,6 +234,7 @@ describe("InvoiceListView", () => {
       render(<InvoiceListView />);
       await screen.findByText("INV-0001");
 
+      await user.click(screen.getByRole("button", { name: "More filters" }));
       await user.selectOptions(screen.getByLabelText("Date"), "ThisYear");
 
       const [url] = pushMock.mock.calls[0];

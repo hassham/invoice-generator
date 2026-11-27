@@ -18,7 +18,7 @@ export default function CustomersPage() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-main max-w-4xl">
+      <main className="workspace-main max-w-6xl">
         <CustomerListView />
       </main>
       <SiteFooter workspace />

@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { WorkspaceHeading, WorkspaceState } from "../../../../components/ui/WorkspaceCollection";
+import { StatusBadge, toneForInvoiceStatus } from "../../../../components/ui/StatusBadge";
 import { useEffect, useMemo, useState } from "react";
 import { BILL_TO_FIELD, FROM_FIELD, SHIP_TO_FIELD, validateField } from "../../../../invoice/create/lib/fields";
 import { hasAnyError, validateHeaderFields, type FieldErrors, type FieldValues } from "../../../../invoice/create/lib/invoiceDraft";
@@ -163,7 +165,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   );
 
   if (state === "loading") {
-    return <p className="text-sm text-muted">Loading invoice…</p>;
+    return <WorkspaceState area="invoice" kind="loading">Loading invoice&hellip;</WorkspaceState>;
   }
 
   if (state === "error" || !detail || !editable) {
@@ -362,22 +364,20 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-muted">Invoice</p>
-          <h1 className="workspace-heading">{detail.invoiceNumber}</h1>
-          <p className="mt-1 text-sm text-muted">
-            <span className="rounded-full bg-status-draft-bg px-3 py-1 text-xs font-semibold text-ink">{detail.status}</span>
-          </p>
-        </div>
-        {/* IG-68: wraps onto a second line rather than overflowing horizontally at mobile
-            widths (320px) - four buttons in a non-wrapping row didn't fit. */}
+      <WorkspaceHeading area="invoice" eyebrow="Workspace / Saved invoice" title={detail.invoiceNumber}
+        back={{ href: "/documents/invoices", label: "Back to invoices" }}
+        description={<StatusBadge tone={toneForInvoiceStatus(detail.status)} label={detail.status === "PartiallyPaid" ? "Partially paid" : detail.status} />}
+        actions={<button type="button" onClick={() => void handleSave()} disabled={saveStatus === "saving"}
+          className="workspace-button-primary min-h-11">{saveStatus === "saving" ? "Saving..." : "Save"}</button>} />
+
+      <section aria-label="Invoice actions" className="invoice-action-bar">
+        <p>Invoice actions</p>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void handleDuplicate()}
             disabled={duplicating}
-            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
+            className="workspace-button-secondary"
           >
             {duplicating ? "Duplicating…" : "Duplicate"}
           </button>
@@ -385,7 +385,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             type="button"
             onClick={() => void handleDownloadPdf()}
             disabled={pdfDownloading}
-            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
+            className="workspace-button-secondary"
           >
             {pdfDownloading ? "Generating…" : "Download PDF"}
           </button>
@@ -395,7 +395,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
               setEmailSent(false);
               setEmailDialogOpen(true);
             }}
-            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
+            className="workspace-button-secondary"
           >
             Send by Email
           </button>
@@ -403,7 +403,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <button
               type="button"
               onClick={() => void handleMarkIssued()}
-              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
+              className="workspace-button-secondary"
             >
               Mark as Issued
             </button>
@@ -412,7 +412,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <button
               type="button"
               onClick={() => setActiveDialog("cancel")}
-              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
+              className="workspace-button-secondary"
             >
               Cancel Invoice
             </button>
@@ -424,16 +424,8 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           >
             Delete
           </button>
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={saveStatus === "saving"}
-            className="workspace-button-primary disabled:opacity-50"
-          >
-            {saveStatus === "saving" ? "Saving…" : "Save"}
-          </button>
         </div>
-      </div>
+      </section>
 
       {activeDialog === "cancel" ? (
         <ConfirmDialog
@@ -516,26 +508,19 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
         </p>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-2 gap-4 rounded-lg border border-border p-4 text-sm sm:grid-cols-4">
-        <div>
-          <p className="text-muted">Subtotal</p>
-          <p className="font-semibold text-ink">{formatCurrency(detail.subtotal, detail.currency)}</p>
-        </div>
-        <div>
-          <p className="text-muted">Tax</p>
-          <p className="font-semibold text-ink">{formatCurrency(detail.taxAmount, detail.currency)}</p>
-        </div>
-        <div>
-          <p className="text-muted">Total</p>
-          <p className="font-semibold text-ink">{formatCurrency(detail.totalAmount, detail.currency)}</p>
-        </div>
-        <div>
-          <p className="text-muted">Amount Due</p>
-          <p className="font-semibold text-ink">{formatCurrency(detail.amountDue, detail.currency)}</p>
-        </div>
-      </div>
+      <dl className="invoice-summary" aria-label="Invoice totals">
+        {([
+          ["Subtotal", detail.subtotal, "lavender"],
+          ["Tax", detail.taxAmount, "paper"],
+          ["Total", detail.totalAmount, "mint"],
+          ["Amount Due", detail.amountDue, "yellow"],
+        ] as const).map(([label, value, tone]) => <div key={label} data-tone={tone}>
+          <dt>{label}</dt><dd>{formatCurrency(value, detail.currency)}</dd>
+        </div>)}
+      </dl>
 
-      <div className="mt-6 rounded-lg border border-border p-6">
+      <div className="invoice-edit-panel">
+        <p className="invoice-edit-kicker">Edit invoice</p>
         <TemplateSelector
           templates={templates}
           selectedTemplateId={editable.templateId}

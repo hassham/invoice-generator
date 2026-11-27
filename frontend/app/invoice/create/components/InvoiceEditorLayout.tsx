@@ -12,6 +12,7 @@ interface InvoiceEditorLayoutProps {
   previewLabel?: string;
   backHref?: string;
   backLabel?: string;
+  workspaceHeading?: ReactNode;
 }
 
 const TABS: EditorTab[] = ["edit", "preview"];
@@ -38,6 +39,7 @@ export function InvoiceEditorLayout({
   previewLabel = "Preview",
   backHref,
   backLabel = "Back",
+  workspaceHeading,
 }: InvoiceEditorLayoutProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>("edit");
   const labels: Record<EditorTab, string> = { edit: editorLabel, preview: previewLabel };
@@ -62,7 +64,9 @@ export function InvoiceEditorLayout({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 print:max-w-none print:p-0">
-      {backHref ? (
+      {workspaceHeading ? <div className="mb-5 print:hidden">{workspaceHeading}</div> : null}
+      {!workspaceHeading ? <h1 className="sr-only">Create an invoice</h1> : null}
+      {!workspaceHeading && backHref ? (
         <Link
           href={backHref}
           className="mb-4 inline-block text-sm font-medium text-slate-600 hover:underline print:hidden"
@@ -97,7 +101,7 @@ export function InvoiceEditorLayout({
         })}
       </div>
 
-      <div className="md:grid md:grid-cols-[55%_45%] md:gap-6 print:block">
+      <div className="md:grid md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] md:gap-6 print:block">
         {TABS.map((tab) => (
           <div
             key={tab}
@@ -106,8 +110,8 @@ export function InvoiceEditorLayout({
             aria-labelledby={tabId(tab)}
             className={
               tab === "edit"
-                ? `${activeTab === tab ? "block" : "hidden md:block"} print:hidden`
-                : `${activeTab === tab ? "block" : "hidden md:block"} md:sticky md:top-6 md:self-start print:static`
+                ? `${activeTab === tab ? "block" : "hidden md:block"} min-w-0 print:hidden`
+                : `${activeTab === tab ? "block" : "hidden md:block"} min-w-0 md:sticky md:top-6 md:self-start print:static`
             }
           >
             {tab === "edit" ? editor : preview}

@@ -8,6 +8,15 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 **Compressed 2026-10-15.** The full execution history up to this date (per-issue logs, files changed, verification detail) is preserved verbatim at `archive/backlog-2026-10-15.md`. The earlier pre-2026-09-09 history is at `archive/backlog-2026-09-09.md`. Jira issue comments and git commit messages are the record of *what happened and why*; this file only tracks current state, open decisions and standing lessons.
 
+## Dashboard-style invoices, customers and items (2026-11-28, Sydney)
+
+- Scope: IG-329, invoice portions of IG-339 and customer/item portions of IG-340. User approved the dashboard as the visual reference, then requested a shorter invoice filter bar and a deeper redesign of both create forms. Jira was read but not changed.
+- The invoice register, customer directory and item catalogue use dashboard-style headings and table surfaces with one semantic table that stacks labelled rows on narrow screens. Invoice Search, Status and Sort remain immediately available; Customer, Date and custom dates live under More filters. URL filters, sorting and paging are retained.
+- New Customer and New Item use coloured, numbered form sections and a live preview based on input. Optional customer address, tax and notes can be expanded; item prices and tax accept decimals. Existing create/edit APIs and routes are kept. Saved invoices have dashboard-style totals and a clearer action hierarchy; the signed-in editor gets a branded heading and preserves dashboard navigation and existing document output.
+- Final focused regressions (61), targeted lint and all 41 production route builds passed. The live local routes served the compact filter and form styles, and the API database check was healthy.
+- Before moving on to other sections, smoke-test the three lists, both create forms, and invoice filters at desktop and phone widths. No backend or production deployment changes. The local app remains running for Hasham's review.
+
+
 ## Signed-in dashboard brand pass (2026-11-28, Sydney)
 
 - IG-329 dashboard only. Reapplied the approved lavender/mint/yellow/pink summary tiles and large Space Mono figures. The four cards label period activity separately from the current balances. Added a lime primary action, paper Recent Invoices section, distinct focusable row links, responsive labelled rows, and branded loading, first-invoice, and retry states.

@@ -23,5 +23,5 @@ export function CreateCustomerForm() {
     }
   };
 
-  return <CustomerForm submitting={submitting} submitLabel="Create customer" error={error} onSubmit={handleSubmit} />;
+  return <CustomerForm isNew submitting={submitting} submitLabel="Create customer" error={error} onSubmit={handleSubmit} />;
 }

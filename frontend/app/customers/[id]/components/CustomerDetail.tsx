@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { WorkspaceHeading, WorkspaceRowButton, WorkspaceState } from "../../../components/ui/WorkspaceCollection";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
 import { useEffect, useState } from "react";
 import { archiveCustomer, getCustomer, updateCustomer, type Customer, type CustomerRequest } from "../../../lib/customers";
 import { CustomerForm, type CustomerFormValues } from "../../components/CustomerForm";
@@ -99,40 +100,20 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
   };
 
   if (state === "loading") {
-    return <p className="text-sm text-muted">Loading customer…</p>;
+    return <WorkspaceState area="customer" kind="loading">Loading customer&hellip;</WorkspaceState>;
   }
-
   if (state === "error" || !customer) {
-    return (
-      <p role="alert" className="rounded-md border border-status-overdue-fg/25 bg-status-overdue-bg/55 px-4 py-3 text-sm text-status-overdue-fg">
-        {loadError}
-      </p>
-    );
+    return <WorkspaceState area="customer" kind="error">{loadError}</WorkspaceState>;
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/customers" className="text-sm font-medium text-muted hover:underline">
-            ← Back to customers
-          </Link>
-          <h1 className="workspace-heading mt-2 ">{customer.businessName ?? customer.contactName ?? "(unnamed)"}</h1>
-          {customer.isArchived ? (
-            <span className="mt-1 inline-block rounded-full bg-status-draft-bg px-3 py-1 text-xs font-semibold text-muted">Archived</span>
-          ) : null}
-        </div>
-        {!customer.isArchived ? (
-          <button
-            type="button"
-            onClick={handleArchive}
-            disabled={archiving}
-            className="rounded-full border border-status-overdue-fg/40 px-4 py-2 text-sm font-semibold text-status-overdue-fg transition-colors hover:bg-status-overdue-bg/55 disabled:opacity-50"
-          >
-            {archiving ? "Archiving…" : "Archive"}
-          </button>
-        ) : null}
-      </div>
+      <WorkspaceHeading area="customer" eyebrow="Workspace / Customer record" title={customer.businessName ?? customer.contactName ?? "(unnamed)"}
+        back={{ href: "/customers", label: "Back to customers" }}
+        description={customer.isArchived ? <StatusBadge tone="draft" label="Archived" /> : undefined}
+        actions={!customer.isArchived ? <WorkspaceRowButton danger onClick={handleArchive} disabled={archiving}>
+          {archiving ? "Archiving..." : "Archive"}
+        </WorkspaceRowButton> : undefined} />
 
       {savedAt ? (
         <p role="status" className="mt-6 rounded-md border border-status-paid-fg/25 bg-status-paid-bg/65 px-4 py-3 text-sm text-status-paid-fg">
@@ -140,7 +121,7 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
         </p>
       ) : null}
 
-      <div className="mt-6">
+      <div className="record-edit-sheet">
         <CustomerForm
           initialValues={toFormValues(customer)}
           submitting={submitting}
