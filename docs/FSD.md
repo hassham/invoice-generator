@@ -725,6 +725,8 @@ Clear fields rather than remove row.
 
 ---
 
+On Create Invoice, Basic mode uses Description, Amount and Tax for a one-quantity line without a unit or discount. Advanced mode exposes the full line. A line with populated details keeps its full fields even when returning to Basic.
+
 # 25. Item Catalogue Lookup
 
 For registered users:

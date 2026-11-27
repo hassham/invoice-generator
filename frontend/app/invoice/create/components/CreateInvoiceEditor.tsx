@@ -1011,63 +1011,8 @@ export function CreateInvoiceEditor() {
           <div className={styles.toolbar}>
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
             <a href={`#${appearanceId}`} className="text-sm font-semibold text-ink underline underline-offset-4">Change template</a>
-            <div className={styles.actions}>
-              <button
-                type="button"
-                onClick={handleReviewInvoice}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
-              >
-                Review invoice
-              </button>
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
-              >
-                Print
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={pdfDownloading}
-                className={isAuthenticated ? "workspace-button-secondary disabled:opacity-50" : "workspace-button-primary disabled:opacity-50"}
-              >
-                {pdfDownloading ? "Generating…" : "Download PDF"}
-              </button>
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saveStatus === "saving"}
-                  className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a] disabled:opacity-50"
-                >
-                  {saveStatus === "saving" ? "Saving…" : "Save"}
-                </button>
-              ) : null}
-            </div>
           </div>
           <div className={styles.body}>
-          {isAuthenticated && saveStatus !== "idle" ? (
-            saveStatus === "error" ? (
-              <p role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
-                <span>{saveError}</span>
-                <button type="button" onClick={handleSave} className="font-semibold underline">
-                  Retry
-                </button>
-              </p>
-            ) : (
-              <p className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-mint px-4 py-3 text-sm font-semibold text-[#166534]">
-                <span role="status">{saveStatus === "saving" ? "Saving…" : "Saved."}</span>
-                {/* IG-47: the only way to reach the detail/edit page today - no invoice list
-                    exists yet (Epic IG-10), so this is the sole reachability path once saved. */}
-                {saveStatus === "saved" && savedInvoiceId ? (
-                  <Link href={`/documents/invoices/${savedInvoiceId}`} className="font-semibold underline">
-                    View saved invoice
-                  </Link>
-                ) : null}
-              </p>
-            )
-          ) : null}
           {pendingGateAction ? <AccountGateModal action={pendingGateAction} onClose={handleCloseAccountGate} /> : null}
           {draftRestored ? (
             <p role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink bg-lavender px-4 py-3 text-sm font-semibold text-ink">
@@ -1076,22 +1021,6 @@ export function CreateInvoiceEditor() {
                 Discard draft and start over
               </button>
             </p>
-          ) : null}
-          {pdfError ? (
-            <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {pdfError}
-            </p>
-          ) : null}
-          {reviewed ? (
-            invalidSectionLabels.length > 0 ? (
-              <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                This invoice isn&apos;t ready yet. Fix the highlighted fields in: {invalidSectionLabels.join(", ")}.
-              </p>
-            ) : (
-              <p role="status" className="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                This invoice looks ready.
-              </p>
-            )
           ) : null}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Who’s on this invoice?</h2>
@@ -1121,6 +1050,7 @@ export function CreateInvoiceEditor() {
           </div>
           <LineItemsSection
             compact
+            basic={!advancedVisible}
             focusDescriptionId={focusItemId}
             beforeItems={isAuthenticated ? (
               <div className={styles.catalogue}>
@@ -1170,6 +1100,77 @@ export function CreateInvoiceEditor() {
               onPaymentInstructionBlur={handlePaymentInstructionBlur}
             />
           </div>
+            <div className={styles.actions}>
+              <button
+                type="button"
+                onClick={handleReviewInvoice}
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
+              >
+                Review invoice
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
+              >
+                Print
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={pdfDownloading}
+                className={isAuthenticated ? "workspace-button-secondary disabled:opacity-50" : "workspace-button-primary disabled:opacity-50"}
+              >
+                {pdfDownloading ? "Generating…" : "Download PDF"}
+              </button>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saveStatus === "saving"}
+                  className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a] disabled:opacity-50"
+                >
+                  {saveStatus === "saving" ? "Saving…" : "Save"}
+                </button>
+              ) : null}
+            </div>
+          {isAuthenticated && saveStatus !== "idle" ? (
+            saveStatus === "error" ? (
+              <p role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-pink px-4 py-3 text-sm font-semibold text-[#991b1b]">
+                <span>{saveError}</span>
+                <button type="button" onClick={handleSave} className="font-semibold underline">
+                  Retry
+                </button>
+              </p>
+            ) : (
+              <p className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-ink bg-mint px-4 py-3 text-sm font-semibold text-[#166534]">
+                <span role="status">{saveStatus === "saving" ? "Saving…" : "Saved."}</span>
+                {/* IG-47: the only way to reach the detail/edit page today - no invoice list
+                    exists yet (Epic IG-10), so this is the sole reachability path once saved. */}
+                {saveStatus === "saved" && savedInvoiceId ? (
+                  <Link href={`/documents/invoices/${savedInvoiceId}`} className="font-semibold underline">
+                    View saved invoice
+                  </Link>
+                ) : null}
+              </p>
+            )
+          ) : null}
+          {pdfError ? (
+            <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {pdfError}
+            </p>
+          ) : null}
+          {reviewed ? (
+            invalidSectionLabels.length > 0 ? (
+              <p role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                This invoice isn&apos;t ready yet. Fix the highlighted fields in: {invalidSectionLabels.join(", ")}.
+              </p>
+            ) : (
+              <p role="status" className="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                This invoice looks ready.
+              </p>
+            )
+          ) : null}
           <section id={appearanceId} tabIndex={-1} className={styles.design} aria-label="Invoice appearance">
             <h2 className={styles.sectionTitle}>Invoice appearance</h2>
             <TemplateSelector

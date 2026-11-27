@@ -12,8 +12,9 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 - User-requested follow-up to IG-338 (Done, subtask of IG-329 In Progress). Jira was read, not changed.
 - Based on Invoice Home’s public first-invoice and saved-items guides, the create editor now starts with From and Bill To, keeps Basic/Advanced and entered values, and puts template, colour and logo controls in a separate appearance section with a direct jump link. Wide screens show the live preview alongside the form; narrower screens retain Edit/Preview tabs.
+- After inspecting the supplied Invoice Home Basic screenshot, simple rows show Description, Amount and Tax; Advanced exposes Quantity, Unit, Unit Price and Discount. Existing detailed values stay visible in Basic. Review, Print, PDF and Save sit after the billing form and before the template picker.
 - Compact line cards keep all existing fields. Add Item focuses its new description. One separate saved-item search uses an available blank line or appends without overwriting manual descriptions and prices. The shared saved-invoice editor keeps its current layout.
-- TypeScript, targeted lint, and all 167 invoice editor component tests passed. The local editor returned 200 and served the billing-first form and new CSS; the API database check was healthy. Next: smoke-test the signed-in flow and browser printing on a phone. No backend, PDF rendering, production deployment or database changes.
+- TypeScript, targeted lint, and all 168 invoice editor component tests passed. The local editor returned 200 and served the billing-first form and new CSS; the API database check was healthy. Next: smoke-test the signed-in flow and browser printing on a phone. No backend, PDF rendering, production deployment or database changes.
 
 ## Invoice template collection (2026-11-28, Sydney)
 

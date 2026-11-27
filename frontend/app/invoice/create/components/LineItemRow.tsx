@@ -2,10 +2,12 @@ import { useEffect, useId, useRef } from "react";
 import type { CatalogItem } from "../../../lib/items";
 import { computeLineTotals, TAX_RATE_PRESETS, UNIT_OPTIONS, type LineItem, type LineItemErrors } from "../lib/lineItems";
 import { ItemPicker } from "./ItemPicker";
+import styles from "./InvoiceCreation.module.css";
 
 interface LineItemRowProps {
   item: LineItem;
   compact?: boolean;
+  basic?: boolean;
   focusDescription?: boolean;
   index: number;
   itemCount: number;
@@ -33,6 +35,7 @@ function formatCurrency(amount: number): string {
 export function LineItemRow({
   item,
   compact = false,
+  basic = false,
   focusDescription = false,
   index,
   itemCount,
@@ -64,6 +67,10 @@ export function LineItemRow({
   const position = index + 1;
   const isOnlyItem = itemCount === 1;
   const totals = computeLineTotals(item);
+  // Preserve visibility of detail already entered in Advanced (or copied from a saved item).
+  // "Amount" only describes the price correctly when the quantity is one and no line discount applies.
+  const simpleLine = basic && Number(item.quantity) === 1 && !item.unit
+    && Number(item.discount) === 0 && !errors.quantity && !errors.discount;
 
   const change = (field: keyof LineItem) => (event: { target: { value: string } }) =>
     onFieldChange(item.id, field, event.target.value);
@@ -116,7 +123,8 @@ export function LineItemRow({
         </div>
       ) : null}
 
-      <div className="mt-3 flex flex-col gap-1">
+      <div className={simpleLine ? styles.quickLine : undefined}>
+      <div className={simpleLine ? "flex min-w-0 flex-col gap-1" : "mt-3 flex flex-col gap-1"}>
         <label htmlFor={descriptionId} className="text-sm font-semibold text-ink">
           Description<span aria-hidden="true"> *</span>
         </label>
@@ -144,8 +152,8 @@ export function LineItemRow({
         ) : null}
       </div>
 
-      <div className={compact ? "mt-2 grid min-w-0 grid-cols-2 gap-2 [&>*]:min-w-0 sm:grid-cols-3" : "mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"}>
-        <div className="flex flex-col gap-1">
+      <div className={simpleLine ? styles.quickNumbers : compact ? "mt-2 grid min-w-0 grid-cols-2 gap-2 [&>*]:min-w-0 sm:grid-cols-3" : "mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"}>
+        <div hidden={simpleLine} className={simpleLine ? undefined : "flex flex-col gap-1"}>
           <label htmlFor={quantityId} className="text-sm font-semibold text-ink">
             Quantity<span aria-hidden="true"> *</span>
           </label>
@@ -172,7 +180,7 @@ export function LineItemRow({
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div hidden={simpleLine} className={simpleLine ? undefined : "flex flex-col gap-1"}>
           <label htmlFor={unitId} className="text-sm font-semibold text-ink">
             Unit
           </label>
@@ -193,7 +201,7 @@ export function LineItemRow({
 
         <div className="flex flex-col gap-1">
           <label htmlFor={unitPriceId} className="text-sm font-semibold text-ink">
-            Unit Price<span aria-hidden="true"> *</span>
+            {simpleLine ? "Amount" : "Unit Price"}<span aria-hidden="true"> *</span>
           </label>
           <input
             id={unitPriceId}
@@ -238,7 +246,7 @@ export function LineItemRow({
         </div>
 
         {item.taxRatePreset === "custom" ? (
-          <div className="flex flex-col gap-1">
+          <div className={simpleLine ? "col-span-2 flex flex-col gap-1" : "flex flex-col gap-1"}>
             <label htmlFor={customTaxRateId} className="text-sm font-semibold text-ink">
               Custom Tax Rate (%)<span aria-hidden="true"> *</span>
             </label>
@@ -268,7 +276,7 @@ export function LineItemRow({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-1">
+        <div hidden={simpleLine} className={simpleLine ? undefined : "flex flex-col gap-1"}>
           <label htmlFor={discountId} className="text-sm font-semibold text-ink">
             Discount
           </label>
@@ -293,6 +301,7 @@ export function LineItemRow({
             </p>
           ) : null}
         </div>
+      </div>
       </div>
 
       <p className="mt-3 text-right text-sm font-semibold text-ink">

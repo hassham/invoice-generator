@@ -273,6 +273,26 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.getByLabelText("Currency")).toHaveValue("AUD");
   });
 
+  it("uses quick Amount entry in Basic and preserves detailed lines when leaving Advanced", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+    const edit = screen.getByRole("tabpanel", { name: "Edit" });
+    expect(within(edit).getByLabelText(/^Amount/)).toBeVisible();
+    expect(within(edit).getByRole("combobox", { name: "Tax Rate" })).toBeVisible();
+    expect(within(edit).queryByRole("spinbutton", { name: /Quantity/ })).not.toBeInTheDocument();
+    await user.type(within(edit).getByLabelText(/^Amount/), "125");
+
+    await user.click(within(edit).getByRole("button", { name: "Advanced" }));
+    const quantity = within(edit).getByRole("spinbutton", { name: /Quantity/ });
+    expect(within(edit).getByLabelText(/^Unit Price/)).toHaveValue(125);
+    await user.clear(quantity);
+    await user.type(quantity, "3");
+
+    await user.click(within(edit).getByRole("button", { name: "Basic" }));
+    expect(within(edit).getByRole("spinbutton", { name: /Quantity/ })).toHaveValue(3);
+    expect(within(edit).getByLabelText(/^Unit Price/)).toHaveValue(125);
+  });
+
   it("puts billing and item entry before appearance, and links directly to appearance", () => {
     render(<CreateInvoiceEditor />);
     const edit = screen.getByRole("tabpanel", { name: "Edit" });
@@ -350,9 +370,10 @@ describe("CreateInvoiceEditor", () => {
     render(<CreateInvoiceEditor />);
 
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.clear(screen.getByLabelText(/Quantity/));
     await user.type(screen.getByLabelText(/Quantity/), "2");
-    await user.type(screen.getByLabelText(/Unit Price/), "50");
+    await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
 
     const preview = screen.getByRole("tabpanel", { name: "Preview" });
     expect(within(preview).getByText("Consulting")).toBeInTheDocument();
@@ -375,7 +396,7 @@ describe("CreateInvoiceEditor", () => {
     render(<CreateInvoiceEditor />);
 
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-    await user.type(screen.getByLabelText(/Unit Price/), "100");
+    await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "100");
     // Default tax rate is 10%: subtotal 100, tax 10, total 110 before any invoice discount.
 
     await user.selectOptions(screen.getByLabelText("Invoice Discount"), "Percentage");
@@ -459,7 +480,7 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
     await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-    await user.type(screen.getByLabelText(/Unit Price/), "50");
+    await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
 
     await user.click(screen.getByRole("button", { name: "Review invoice" }));
 
@@ -682,7 +703,7 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
     await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-    await user.type(screen.getByLabelText(/Unit Price/), "50");
+    await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
 
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
@@ -702,7 +723,7 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
     await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-    await user.type(screen.getByLabelText(/Unit Price/), "50");
+    await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
 
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
@@ -734,7 +755,7 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
     await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-    await user.type(screen.getByLabelText(/Unit Price/), "50");
+    await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
     await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.type(screen.getByLabelText("Ship To"), "Warehouse 3");
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
@@ -819,7 +840,7 @@ describe("CreateInvoiceEditor", () => {
       await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
       await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
       await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
       await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
       await screen.findByRole("dialog");
@@ -952,7 +973,7 @@ describe("CreateInvoiceEditor", () => {
       await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
       await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
       await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
       await user.click(screen.getByRole("button", { name: "Download PDF" }));
       await screen.findByRole("dialog");
       unmount();
@@ -1064,7 +1085,7 @@ describe("CreateInvoiceEditor", () => {
       await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
       await user.type(screen.getByLabelText("Bill To", { exact: false }), "Jane's Cafe");
       await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
     }
 
     it("shows no Save button or status area for an anonymous visitor", async () => {
@@ -1189,7 +1210,7 @@ describe("CreateInvoiceEditor", () => {
         // A further edit here must reset the pending timer, not just leave it running -
         // fireEvent instead of userEvent, since userEvent's own internal delays don't advance
         // under a faked clock.
-        fireEvent.change(screen.getByLabelText(/Unit Price/), { target: { value: "60" } });
+        fireEvent.change(screen.getByLabelText(/^(Unit Price|Amount)/), { target: { value: "60" } });
 
         await vi.advanceTimersByTimeAsync(AUTO_SAVE_DEBOUNCE_MS - 500);
         expect(mockedCreateInvoice).not.toHaveBeenCalled();
@@ -1299,7 +1320,7 @@ describe("CreateInvoiceEditor", () => {
       await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
       await user.type(screen.getByLabelText("From", { exact: false }), "My Business");
       await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
@@ -1321,7 +1342,7 @@ describe("CreateInvoiceEditor", () => {
       await user.type(screen.getByLabelText(/Invoice Number/), "INV-000001");
       await user.type(screen.getByLabelText("From", { exact: false }), "My Business");
       await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
-      await user.type(screen.getByLabelText(/Unit Price/), "50");
+      await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => expect(mockedCreateInvoice).toHaveBeenCalledTimes(1));
@@ -1395,7 +1416,7 @@ describe("CreateInvoiceEditor", () => {
       await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
 
       expect(screen.getByLabelText("Description", { exact: false })).toHaveValue("One hour of consulting");
-      expect(screen.getByLabelText(/Unit Price/)).toHaveValue(150);
+      expect(screen.getByLabelText(/^(Unit Price|Amount)/)).toHaveValue(150);
       expect(screen.getByLabelText("Tax Rate")).toHaveValue("10");
     });
 
@@ -1406,7 +1427,8 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
 
-      await user.clear(screen.getByLabelText(/Quantity/));
+      await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.clear(screen.getByLabelText(/Quantity/));
       await user.type(screen.getByLabelText(/Quantity/), "4");
       await user.type(screen.getByLabelText("Search saved items"), "Consult");
       await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));

@@ -23,7 +23,18 @@
 }
 
 .body { padding: clamp(.85rem, 2vw, 1.25rem); }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .45rem;
+  margin-block: 1.1rem .65rem;
+  padding: .65rem;
+  border: 1px solid var(--color-border);
+  border-radius: .7rem;
+  background: var(--color-canvas);
+}
 .actions button { min-height: 2.5rem; }
 .section { min-width: 0; margin-block: 0 1rem; }
 .sectionTitle {
@@ -71,13 +82,26 @@
 }
 .previewLabel p:first-child { font-weight: 700; }
 .catalogue { margin: .3rem 0 .75rem; }
+.quickLine {
+  display: grid;
+  gap: .55rem;
+  margin-top: .6rem;
+}
+.quickNumbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .55rem;
+  min-width: 0;
+}
+.quickNumbers > * { min-width: 0; }
 @media (min-width: 36rem) {
   .parties { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shipping { grid-column: 1 / -1; }
+  .quickLine { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
 }
 @media (max-width: 35.99rem) {
   .toolbar { position: static; }
-  .actions { width: 100%; }
+  .actions { width: 100%; justify-content: flex-start; }
 }
 @media print {
   .previewLabel { display: none; }

@@ -6,6 +6,7 @@ import { LineItemRow } from "./LineItemRow";
 interface LineItemsSectionProps {
   items: LineItem[];
   compact?: boolean;
+  basic?: boolean;
   focusDescriptionId?: string;
   beforeItems?: ReactNode;
   errors: Record<string, LineItemErrors>;
@@ -28,6 +29,7 @@ interface LineItemsSectionProps {
 export function LineItemsSection({
   items,
   compact = false,
+  basic = false,
   focusDescriptionId,
   beforeItems,
   errors,
@@ -52,6 +54,7 @@ export function LineItemsSection({
             key={item.id}
             item={item}
             compact={compact}
+            basic={basic}
             focusDescription={item.id === focusDescriptionId}
             index={index}
             itemCount={items.length}
@@ -72,7 +75,7 @@ export function LineItemsSection({
       <button
         type="button"
         onClick={onAdd}
-        className={compact ? "workspace-button-secondary mt-3" : "mt-4 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"}
+        className={compact ? "workspace-button-secondary mt-3 w-full justify-center" : "mt-4 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"}
       >
         Add Item
       </button>
