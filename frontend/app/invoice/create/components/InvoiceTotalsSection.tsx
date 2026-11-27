@@ -2,6 +2,7 @@ import { useId } from "react";
 import type { InvoiceDiscountType, InvoiceTotalsResult } from "../lib/invoiceTotals";
 
 interface InvoiceTotalsSectionProps {
+  compact?: boolean;
   currency: string;
   discountType: InvoiceDiscountType;
   discountValue: string;
@@ -32,6 +33,7 @@ function formatCurrency(amount: number): string {
  * settings page to source it from yet (Epic IG-8), so this page always calculates exclusive.
  */
 export function InvoiceTotalsSection({
+  compact = false,
   currency,
   discountType,
   discountValue,
@@ -45,10 +47,10 @@ export function InvoiceTotalsSection({
   const discountValueId = useId();
 
   return (
-    <fieldset className="mt-6 border-t border-border pt-6">
-      <legend className="font-display text-lg font-bold text-ink">Totals</legend>
+    <fieldset className={compact ? "mt-4 border-t border-border pt-2" : "mt-6 border-t border-border pt-6"}>
+      <legend className={compact ? "sr-only" : "font-display text-lg font-bold text-ink"}>Totals</legend>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div hidden={compact} className={compact ? undefined : "mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"}>
         <div className="flex flex-col gap-1">
           <label htmlFor={discountTypeId} className="text-sm font-semibold text-ink">
             Invoice Discount
@@ -100,10 +102,12 @@ export function InvoiceTotalsSection({
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt className="text-muted">Subtotal</dt>
-        <dd className="text-right text-ink">
-          {currency} {formatCurrency(totals.subtotal)}
-        </dd>
+        {!compact ? (
+          <>
+            <dt className="text-muted">Subtotal</dt>
+            <dd className="text-right text-ink">{currency} {formatCurrency(totals.subtotal)}</dd>
+          </>
+        ) : null}
         {totals.discountAmount > 0 ? (
           <>
             <dt className="text-muted">Discount</dt>
@@ -112,18 +116,22 @@ export function InvoiceTotalsSection({
             </dd>
           </>
         ) : null}
-        <dt className="text-muted">Tax</dt>
-        <dd className="text-right text-ink">
-          {currency} {formatCurrency(totals.taxAmount)}
-        </dd>
-        <dt className="font-semibold text-ink">Total</dt>
-        <dd className="text-right font-semibold text-ink">
+        {!compact || totals.taxAmount !== 0 ? (
+          <>
+            <dt className="text-muted">Tax</dt>
+            <dd className="text-right text-ink">{currency} {formatCurrency(totals.taxAmount)}</dd>
+          </>
+        ) : null}
+        <dt className={compact ? "text-base font-bold text-ink" : "font-semibold text-ink"}>Total</dt>
+        <dd className={compact ? "text-right text-base font-bold text-ink" : "text-right font-semibold text-ink"}>
           {currency} {formatCurrency(totals.totalAmount)}
         </dd>
-        <dt className="text-muted">Amount Due</dt>
-        <dd className="text-right text-ink">
-          {currency} {formatCurrency(totals.amountDue)}
-        </dd>
+        {!compact || totals.amountDue !== totals.totalAmount ? (
+          <>
+            <dt className="text-muted">Amount Due</dt>
+            <dd className="text-right text-ink">{currency} {formatCurrency(totals.amountDue)}</dd>
+          </>
+        ) : null}
       </dl>
     </fieldset>
   );

@@ -6,6 +6,7 @@ interface TextAreaFieldProps {
   value: string;
   error?: string;
   rows?: number;
+  placeholder?: string;
   onChange: (name: string, value: string) => void;
   onBlur: (name: string) => void;
 }
@@ -15,7 +16,7 @@ interface TextAreaFieldProps {
  * straight through, never cleared), for the long-form content fields (Notes, Terms and
  * Conditions, Custom Instructions) that don't fit a single-line input.
  */
-export function TextAreaField({ field, value, error, rows = 4, onChange, onBlur }: TextAreaFieldProps) {
+export function TextAreaField({ field, value, error, rows = 4, placeholder, onChange, onBlur }: TextAreaFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
 
@@ -35,6 +36,7 @@ export function TextAreaField({ field, value, error, rows = 4, onChange, onBlur 
         onChange={handleChange}
         onBlur={() => onBlur(field.name)}
         rows={rows}
+        placeholder={placeholder}
         maxLength={field.maxLength}
         required={field.required}
         aria-required={field.required}

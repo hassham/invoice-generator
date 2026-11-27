@@ -120,6 +120,7 @@ export function CreateInvoiceEditor() {
   const selectedTemplateCode = selectedTemplate?.templateCode ?? "";
   const savedItemPickerId = useId();
   const appearanceId = useId();
+  const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [focusItemId, setFocusItemId] = useState<string>();
 
   // IG-124: "nothing typed yet" baselines for the unsaved-changes guard below. lineItems/discount/
@@ -756,7 +757,7 @@ export function CreateInvoiceEditor() {
     setInvoiceDiscountError(result.invoiceDiscountError);
     setSupportingContentErrors(result.supportingContentErrors);
     setReviewed(true);
-    if (hasAdvancedOnlyError(result)) {
+    if (hasAdvancedOnlyError(result) || result.invoiceDiscountError || result.supportingContentErrors.terms) {
       setAdvancedVisible(true);
     }
   };
@@ -1010,7 +1011,18 @@ export function CreateInvoiceEditor() {
         <div className={styles.editor}>
           <div className={styles.toolbar}>
             <EditorModeTabs advancedVisible={advancedVisible} onChange={setAdvancedVisible} />
-            <a href={`#${appearanceId}`} className="text-sm font-semibold text-ink underline underline-offset-4">Change template</a>
+            <a href={`#${appearanceId}`}
+              onClick={(event) => {
+                const appearance = appearanceRef.current;
+                if (!appearance || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                appearance.open = true;
+                appearance.querySelector("summary")?.focus({ preventScroll: true });
+                appearance.scrollIntoView?.({ block: "start" });
+              }}
+              className="text-sm font-semibold text-ink underline underline-offset-4">
+              Change template
+            </a>
           </div>
           <div className={styles.body}>
           {pendingGateAction ? <AccountGateModal action={pendingGateAction} onClose={handleCloseAccountGate} /> : null}
@@ -1022,40 +1034,46 @@ export function CreateInvoiceEditor() {
               </button>
             </p>
           ) : null}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Who’s on this invoice?</h2>
+          <div className={styles.start}>
             <div className={styles.parties}>
               <div className={styles.party}>
-                <TextAreaField field={FROM_FIELD} value={draft.seller} error={sellerError} rows={3} onChange={handleSellerChange} onBlur={handleSellerBlur} />
+                <TextAreaField field={FROM_FIELD} placeholder="Your name, address and contact details" value={draft.seller} error={sellerError} rows={3} onChange={handleSellerChange} onBlur={handleSellerBlur} />
               </div>
               <div className={styles.party}>
-                {isAuthenticated ? <CustomerPicker customers={customers} onSelect={handleSelectCustomer} /> : null}
-                <TextAreaField field={BILL_TO_FIELD} value={draft.customer} error={customerError} rows={3} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
+                <TextAreaField field={BILL_TO_FIELD} placeholder="Customer name, address and contact details" value={draft.customer} error={customerError} rows={3} onChange={handleCustomerChange} onBlur={handleCustomerBlur} />
+                {isAuthenticated ? (
+                  <details className={styles.optional}>
+                    <summary>Use a saved customer</summary>
+                    <CustomerPicker customers={customers} onSelect={handleSelectCustomer} />
+                  </details>
+                ) : null}
               </div>
-              <div className={`${styles.party} ${styles.shipping}`} hidden={!advancedVisible}>
+              <div className={styles.party} hidden={!advancedVisible}>
                 <TextAreaField field={SHIP_TO_FIELD} value={draft.shipTo} error={shipToError} rows={3} onChange={handleShipToChange} onBlur={handleShipToBlur} />
               </div>
             </div>
-          </div>
-          <div className={styles.details}>
-            <InvoiceHeaderSection
-              values={draft.header}
-              currency={draft.currency}
-              errors={headerErrors}
-              advancedVisible={advancedVisible}
-              onFieldChange={handleHeaderChange}
-              onFieldBlur={handleHeaderBlur}
-              onCurrencyChange={handleCurrencyChange}
-            />
+            <div className={styles.details}>
+              <InvoiceHeaderSection
+                compact
+                values={draft.header}
+                currency={draft.currency}
+                errors={headerErrors}
+                advancedVisible={advancedVisible}
+                onFieldChange={handleHeaderChange}
+                onFieldBlur={handleHeaderBlur}
+                onCurrencyChange={handleCurrencyChange}
+              />
+            </div>
           </div>
           <LineItemsSection
             compact
             basic={!advancedVisible}
             focusDescriptionId={focusItemId}
             beforeItems={isAuthenticated ? (
-              <div className={styles.catalogue}>
+              <details className={styles.optional}>
+                <summary>Use a saved item</summary>
                 <ItemPicker id={savedItemPickerId} items={catalogItems} onSelect={handleAddCatalogItem} />
-              </div>
+              </details>
             ) : null}
             items={lineItems}
             errors={lineItemErrors}
@@ -1068,6 +1086,7 @@ export function CreateInvoiceEditor() {
             onRemove={handleRemoveLineItem}
           />
           <InvoiceTotalsSection
+            compact={!advancedVisible}
             currency={draft.currency}
             discountType={invoiceDiscountType}
             discountValue={invoiceDiscountValue}
@@ -1077,20 +1096,20 @@ export function CreateInvoiceEditor() {
             onDiscountBlur={handleInvoiceDiscountBlur}
             totals={totals}
           />
-          <fieldset className="mt-6 border-t border-border pt-6">
-            <legend className="font-display text-lg font-bold text-ink">Terms and Conditions</legend>
-            <div className="mt-4">
-              <TextAreaField
-                field={TERMS_FIELD}
-                value={supportingContent.terms}
-                error={supportingContentErrors.terms}
-                rows={3}
-                onChange={handleSupportingContentChange}
-                onBlur={handleSupportingContentBlur}
-              />
-            </div>
-          </fieldset>
           <div hidden={!advancedVisible}>
+            <fieldset className="mt-6 border-t border-border pt-6">
+              <legend className="font-display text-lg font-bold text-ink">Terms and Conditions</legend>
+              <div className="mt-4">
+                <TextAreaField
+                  field={TERMS_FIELD}
+                  value={supportingContent.terms}
+                  error={supportingContentErrors.terms}
+                  rows={3}
+                  onChange={handleSupportingContentChange}
+                  onBlur={handleSupportingContentBlur}
+                />
+              </div>
+            </fieldset>
             <SupportingContentSection
               values={supportingContent}
               errors={supportingContentErrors}
@@ -1101,20 +1120,13 @@ export function CreateInvoiceEditor() {
             />
           </div>
             <div className={styles.actions}>
-              <button
-                type="button"
-                onClick={handleReviewInvoice}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
-              >
-                Review invoice
-              </button>
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas"
-              >
-                Print
-              </button>
+              <details className={styles.moreActions}>
+                <summary>More actions</summary>
+                <div className={styles.actionChoices}>
+                  <button type="button" onClick={handleReviewInvoice}>Review invoice</button>
+                  <button type="button" onClick={handlePrint}>Print</button>
+                </div>
+              </details>
               <button
                 type="button"
                 onClick={handleDownloadPdf}
@@ -1128,7 +1140,7 @@ export function CreateInvoiceEditor() {
                   type="button"
                   onClick={handleSave}
                   disabled={saveStatus === "saving"}
-                  className="rounded-full border-[1.5px] border-ink bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#c4ee1a] disabled:opacity-50"
+                  className="workspace-button-primary disabled:opacity-50"
                 >
                   {saveStatus === "saving" ? "Saving…" : "Save"}
                 </button>
@@ -1171,18 +1183,20 @@ export function CreateInvoiceEditor() {
               </p>
             )
           ) : null}
-          <section id={appearanceId} tabIndex={-1} className={styles.design} aria-label="Invoice appearance">
-            <h2 className={styles.sectionTitle}>Invoice appearance</h2>
-            <TemplateSelector
-              templates={templates}
-              selectedTemplateId={draft.templateId}
-              loading={templatesLoading}
-              error={templatesError}
-              onSelect={handleTemplateSelect}
-            />
-            <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
-            <LogoUpload logo={draft.logo} onLogoChange={handleLogoChange} />
-          </section>
+          <details ref={appearanceRef} id={appearanceId} className={styles.design}>
+            <summary>Invoice appearance</summary>
+            <div role="region" aria-label="Invoice appearance" className="mt-4">
+              <TemplateSelector
+                templates={templates}
+                selectedTemplateId={draft.templateId}
+                loading={templatesLoading}
+                error={templatesError}
+                onSelect={handleTemplateSelect}
+              />
+              <TemplateCustomizationPanel customization={draft.templateCustomization} onChange={handleCustomizationChange} />
+              <LogoUpload logo={draft.logo} onLogoChange={handleLogoChange} />
+            </div>
+          </details>
           </div>
         </div>
       }

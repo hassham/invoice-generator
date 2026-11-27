@@ -1,6 +1,6 @@
 .editor {
   --editor-radius: .85rem;
-  position: relative;
+  container-type: inline-size;
   min-width: 0;
   border: 1px solid var(--color-ink);
   border-radius: var(--editor-radius);
@@ -23,85 +23,74 @@
 }
 
 .body { padding: clamp(.85rem, 2vw, 1.25rem); }
+.start, .parties { display: grid; align-items: start; gap: .75rem; min-width: 0; }
+.party, .details { min-width: 0; }
+.party textarea { width: 100%; }
+.details input, .details select { min-width: 0; max-width: 100%; }
 .actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: .45rem;
-  margin-block: 1.1rem .65rem;
-  padding: .65rem;
+  gap: .5rem .75rem;
+  margin-block: 1rem .65rem;
+}
+.actions button, .addItem { min-height: 2.5rem; }
+.optional, .moreActions, .rowActions, .design { color: var(--color-ink); font-size: .875rem; }
+.optional > summary, .moreActions > summary, .rowActions > summary, .design > summary {
+  cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+  padding-block: .35rem;
+}
+.optional[open] > summary { margin-bottom: .35rem; }
+.moreActions, .rowActions { position: relative; }
+.moreActions > summary, .rowActions > summary { min-height: 2.25rem; }
+.actionChoices, .rowActions > div {
+  position: absolute;
+  z-index: 5;
   border: 1px solid var(--color-border);
-  border-radius: .7rem;
-  background: var(--color-canvas);
+  border-radius: .5rem;
+  background: var(--color-paper);
+  padding: .35rem;
+  box-shadow: 0 4px 12px rgb(0 0 0 / .12);
 }
-.actions button { min-height: 2.5rem; }
-.section { min-width: 0; margin-block: 0 1rem; }
-.sectionTitle {
-  margin-bottom: .75rem;
-  color: var(--color-ink);
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
+.actionChoices { right: 0; bottom: 100%; min-width: 9rem; }
+.actionChoices button {
+  display: block;
+  width: 100%;
+  padding: .35rem .55rem;
+  border-radius: .25rem;
+  text-align: left;
+  white-space: nowrap;
 }
-.parties {
-  display: grid;
-  gap: .65rem;
-}
-.party {
-  min-width: 0;
-  border: 1px solid var(--color-border);
-  border-radius: .7rem;
-  background: var(--color-canvas);
-  padding: .7rem;
-}
-.party textarea { width: 100%; }
-.details {
-  border: 1px solid var(--color-border);
-  border-radius: .7rem;
-  padding: .7rem;
-}
-.design {
-  border-top: 1px solid var(--color-border);
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  scroll-margin-top: 7rem;
-}
-.design:focus { outline: 2px solid var(--color-ink); outline-offset: 3px; }
+.actionChoices button:hover { background: var(--color-canvas); }
+.rowActions > div { right: 0; width: min(14rem, 72cqi); justify-content: flex-end; }
+.design { border-top: 1px solid var(--color-border); margin-top: 1rem; padding-top: .65rem; scroll-margin-top: 6rem; }
 .previewLabel {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
   gap: .4rem;
-  border: 1px solid var(--color-border);
-  border-radius: .7rem;
-  padding: .65rem .8rem;
   margin-bottom: .5rem;
-  background: var(--color-lavender);
+  color: var(--color-muted);
+  font-size: .875rem;
+  font-weight: 600;
 }
-.previewLabel p:first-child { font-weight: 700; }
-.catalogue { margin: .3rem 0 .75rem; }
-.quickLine {
-  display: grid;
-  gap: .55rem;
-  margin-top: .6rem;
-}
-.quickNumbers {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .55rem;
-  min-width: 0;
-}
+.line { min-width: 0; border-bottom: 1px solid var(--color-border); padding-block: .2rem .65rem; }
+.addItem { padding-inline: .15rem; font-size: .875rem; font-weight: 700; text-decoration: underline; text-underline-offset: .2em; }
+.quickLine { display: grid; gap: .55rem; margin-top: .25rem; }
+.quickNumbers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; min-width: 0; }
 .quickNumbers > * { min-width: 0; }
-@media (min-width: 36rem) {
-  .parties { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .shipping { grid-column: 1 / -1; }
+
+@container (min-width: 30rem) {
+  .start { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.25rem; }
   .quickLine { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
 }
 @media (max-width: 35.99rem) {
   .toolbar { position: static; }
-  .actions { width: 100%; justify-content: flex-start; }
+  .actionChoices { right: auto; left: 0; }
+  .actions { justify-content: flex-start; }
 }
 @media print {
   .previewLabel { display: none; }

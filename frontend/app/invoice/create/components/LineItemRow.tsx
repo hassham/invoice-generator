@@ -75,46 +75,55 @@ export function LineItemRow({
   const change = (field: keyof LineItem) => (event: { target: { value: string } }) =>
     onFieldChange(item.id, field, event.target.value);
 
+  const rowActions = (
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        onClick={() => onMoveUp(item.id)}
+        disabled={index === 0}
+        aria-label={`Move item ${position} up`}
+        className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-40"
+      >
+        ↑
+      </button>
+      <button
+        type="button"
+        onClick={() => onMoveDown(item.id)}
+        disabled={index === itemCount - 1}
+        aria-label={`Move item ${position} down`}
+        className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-40"
+      >
+        ↓
+      </button>
+      <button
+        type="button"
+        onClick={() => onDuplicate(item.id)}
+        aria-label={`Duplicate item ${position}`}
+        className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas"
+      >
+        Duplicate
+      </button>
+      <button
+        type="button"
+        onClick={() => onRemove(item.id)}
+        aria-label={isOnlyItem ? `Clear item ${position}` : `Remove item ${position}`}
+        className="rounded-full border-[1.5px] border-[#991b1b] bg-paper px-3 py-1 text-xs font-semibold text-[#991b1b] hover:bg-pink"
+      >
+        {isOnlyItem ? "Clear" : "Remove"}
+      </button>
+    </div>
+  );
+
   return (
-    <div className={compact ? "min-w-0 rounded-xl border border-border bg-canvas p-2.5 sm:p-3" : "rounded-xl border border-border bg-paper p-4"}>
+    <div className={compact ? styles.line : "rounded-xl border border-border bg-paper p-4"}>
       <div className="flex flex-wrap items-center justify-between gap-1.5">
         <p className="whitespace-nowrap text-sm font-semibold text-ink">Item {position}</p>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => onMoveUp(item.id)}
-            disabled={index === 0}
-            aria-label={`Move item ${position} up`}
-            className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-40"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            onClick={() => onMoveDown(item.id)}
-            disabled={index === itemCount - 1}
-            aria-label={`Move item ${position} down`}
-            className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-40"
-          >
-            ↓
-          </button>
-          <button
-            type="button"
-            onClick={() => onDuplicate(item.id)}
-            aria-label={`Duplicate item ${position}`}
-            className="rounded-full border-[1.5px] border-ink bg-paper px-3 py-1 text-xs font-semibold text-ink hover:bg-canvas"
-          >
-            Duplicate
-          </button>
-          <button
-            type="button"
-            onClick={() => onRemove(item.id)}
-            aria-label={isOnlyItem ? `Clear item ${position}` : `Remove item ${position}`}
-            className="rounded-full border-[1.5px] border-[#991b1b] bg-paper px-3 py-1 text-xs font-semibold text-[#991b1b] hover:bg-pink"
-          >
-            {isOnlyItem ? "Clear" : "Remove"}
-          </button>
-        </div>
+        {basic ? (
+          <details className={styles.rowActions}>
+            <summary aria-label={`Options for item ${position}`}>Options</summary>
+            {rowActions}
+          </details>
+        ) : rowActions}
       </div>
 
       {showItemPicker ? (
@@ -304,7 +313,7 @@ export function LineItemRow({
       </div>
       </div>
 
-      <p className="mt-3 text-right text-sm font-semibold text-ink">
+      <p hidden={simpleLine} className="mt-3 text-right text-sm font-semibold text-ink">
         Line Total: {formatCurrency(totals.lineTotal)}
       </p>
     </div>

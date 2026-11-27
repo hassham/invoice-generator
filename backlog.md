@@ -10,11 +10,10 @@ Jira project: <https://appitometechnologies.atlassian.net/jira/software/projects
 
 ## Create Invoice workflow follow-up (2026-11-28, Sydney)
 
-- User-requested follow-up to IG-338 (Done, subtask of IG-329 In Progress). Jira was read, not changed.
-- Based on Invoice Home’s public first-invoice and saved-items guides, the create editor now starts with From and Bill To, keeps Basic/Advanced and entered values, and puts template, colour and logo controls in a separate appearance section with a direct jump link. Wide screens show the live preview alongside the form; narrower screens retain Edit/Preview tabs.
-- After inspecting the supplied Invoice Home Basic screenshot, simple rows show Description, Amount and Tax; Advanced exposes Quantity, Unit, Unit Price and Discount. Existing detailed values stay visible in Basic. Review, Print, PDF and Save sit after the billing form and before the template picker.
-- Compact line cards keep all existing fields. Add Item focuses its new description. One separate saved-item search uses an available blank line or appends without overwriting manual descriptions and prices. The shared saved-invoice editor keeps its current layout.
-- TypeScript, targeted lint, and all 168 invoice editor component tests passed. The local editor returned 200 and served the billing-first form and new CSS; the API database check was healthy. Next: smoke-test the signed-in flow and browser printing on a phone. No backend, PDF rendering, production deployment or database changes.
+- Direct user follow-up to IG-338 (Done, under IG-329 In Progress). Jira read on 2026-11-28 Sydney; no Jira changes. Use the Invoice Home reference for a short billing workflow without redesigning the restored page heading.
+- Basic reads as one form: From and Bill To with entry hints, compact number/date/currency, Description/Amount/Tax, Add Item, Total and a clear completion action. Saved lookups, routine row operations, print/review and invoice appearance open on demand. Wide screens retain the live preview beside the form; narrower screens retain Edit/Preview tabs. Saved invoice and estimate screens keep their original shared-component defaults.
+- Advanced retains detailed line fields, invoice discount, terms, shipping, references and payment instructions. Basic does not discard them, and output validation reopens Advanced when a hidden value needs attention. No changes to API, calculations, numbering, draft handling or account gating.
+- Changed CreateInvoiceEditor and its tests, InvoiceCreation styles, and opt-in shared field, header, line-item and totals presentation. TypeScript, targeted ESLint and invoice-create regressions passed. Local Create Invoice returned 200 and served the simplified form. Next: visual smoke test at desktop and phone widths. No production deployment.
 
 ## Invoice template collection (2026-11-28, Sydney)
 

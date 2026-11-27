@@ -19,9 +19,7 @@ interface SupportingContentSectionProps {
 
 /**
  * FSD sections 30, 32: Notes and Payment Instructions. Terms and Conditions (FSD section 31) is
- * rendered separately, inline in CreateInvoiceEditor's Basic view - IG-193 moved this section
- * (Notes/Payment Instructions/Custom Instructions) behind the Advanced toggle as supplementary
- * content, but Terms stays visible by default since it's commonly filled.
+ * rendered separately by the caller. In Create Invoice, both groups are available in Advanced.
  */
 export function SupportingContentSection({
   values,

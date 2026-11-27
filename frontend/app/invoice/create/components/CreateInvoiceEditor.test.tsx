@@ -157,6 +157,12 @@ const SAMPLE_BUSINESS_PROFILE: BusinessProfile = {
   updatedAt: "2026-08-01T00:00:00Z",
 };
 
+async function clickMoreAction(user: ReturnType<typeof userEvent.setup>, action: "Print" | "Review invoice") {
+  const summary = screen.getByText("More actions", { selector: "summary" });
+  if (!summary.closest("details")?.open) await user.click(summary);
+  await user.click(screen.getByRole("button", { name: action }));
+}
+
 describe("CreateInvoiceEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -293,16 +299,33 @@ describe("CreateInvoiceEditor", () => {
     expect(within(edit).getByLabelText(/^Unit Price/)).toHaveValue(125);
   });
 
-  it("puts billing and item entry before appearance, and links directly to appearance", () => {
+  it("keeps appearance out of the Basic form and opens it from Change template", async () => {
+    const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
     const edit = screen.getByRole("tabpanel", { name: "Edit" });
-    const sender = within(edit).getByLabelText(/From/);
     const description = within(edit).getByLabelText(/Description/);
-    const appearance = within(edit).getByRole("region", { name: "Invoice appearance" });
-    expect(sender.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(description.compareDocumentPosition(appearance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(edit).getByRole("link", { name: "Change template" })).toHaveAttribute("href", "#" + appearance.id);
+    const summary = within(edit).getByText("Invoice appearance", { selector: "summary" });
+    expect(description.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(edit).getByLabelText("Primary Color")).not.toBeVisible();
+
+    const link = within(edit).getByRole("link", { name: "Change template" });
+    expect(link).toHaveAttribute("href", "#" + summary.closest("details")?.id);
+    await user.click(link);
+    expect(within(edit).getByLabelText("Primary Color")).toBeVisible();
     expect(within(screen.getByRole("tabpanel", { name: "Preview" })).getByText("Live invoice preview")).toBeInTheDocument();
+  });
+
+  it("keeps row actions out of the way but still lets a Basic user duplicate an item", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+    const edit = screen.getByRole("tabpanel", { name: "Edit" });
+    const options = within(edit).getByText("Options", { selector: "summary" });
+    expect(options.closest("details")).not.toHaveAttribute("open");
+    await user.type(within(edit).getByLabelText(/^Description/), "Design work");
+    await user.click(options);
+    await user.click(within(edit).getByRole("button", { name: "Duplicate item 1" }));
+    expect(within(edit).getAllByLabelText(/^Description/).map((field) => (field as HTMLTextAreaElement).value))
+      .toEqual(["Design work", "Design work"]);
   });
 
   it("focuses the new description when adding an invoice line", async () => {
@@ -322,10 +345,11 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.getByLabelText("Ship To")).not.toBeVisible();
     expect(screen.getByLabelText("Notes")).not.toBeVisible();
     expect(screen.getByLabelText("Bank Name")).not.toBeVisible();
-    // Basic-tier fields, including Terms, stay visible.
+    // Only everyday billing fields stay visible; terms and discount are optional.
     expect(screen.getByLabelText("From", { exact: false })).toBeVisible();
     expect(screen.getByLabelText("Bill To", { exact: false })).toBeVisible();
-    expect(screen.getByLabelText("Terms and Conditions")).toBeVisible();
+    expect(screen.getByLabelText("Terms and Conditions")).not.toBeVisible();
+    expect(screen.getByLabelText("Invoice Discount")).not.toBeVisible();
   });
 
   it("switching to Advanced reveals Due Date, Reference, Ship To, Notes and Payment Instructions", async () => {
@@ -339,6 +363,8 @@ describe("CreateInvoiceEditor", () => {
     expect(screen.getByLabelText("Ship To")).toBeVisible();
     expect(screen.getByLabelText("Notes")).toBeVisible();
     expect(screen.getByLabelText("Bank Name")).toBeVisible();
+    expect(screen.getByLabelText("Terms and Conditions")).toBeVisible();
+    expect(screen.getByLabelText("Invoice Discount")).toBeVisible();
   });
 
   it("keeps typed Advanced-only content after toggling back to Basic and forward again", async () => {
@@ -399,13 +425,34 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "100");
     // Default tax rate is 10%: subtotal 100, tax 10, total 110 before any invoice discount.
 
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.selectOptions(screen.getByLabelText("Invoice Discount"), "Percentage");
     await user.type(screen.getByLabelText(/Discount \(%\)/), "10");
+
+    await user.click(screen.getByRole("button", { name: "Basic" }));
+    const edit = screen.getByRole("tabpanel", { name: "Edit" });
+    expect(within(edit).getByLabelText("Invoice Discount")).not.toBeVisible();
+    expect(within(edit).getByText("AUD 99.00")).toBeVisible();
 
     // Subtotal 100, 10% invoice discount = 10, adjusted 90, tax on 90 @ 10% = 9, total = 99.
     const preview = screen.getByRole("tabpanel", { name: "Preview" });
     expect(within(preview).getByText("-AUD 10.00")).toBeInTheDocument();
     expect(within(preview).getAllByText("AUD 99.00").length).toBeGreaterThan(0);
+  });
+
+  it("reveals an invalid Advanced discount if the user tries to download from Basic", async () => {
+    const user = userEvent.setup();
+    render(<CreateInvoiceEditor />);
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.selectOptions(screen.getByLabelText("Invoice Discount"), "Percentage");
+    await user.type(screen.getByLabelText(/Discount \(%\)/), "101");
+    await user.click(screen.getByRole("button", { name: "Basic" }));
+    expect(screen.getByLabelText("Invoice Discount")).not.toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Download PDF" }));
+    expect(screen.getByText("Discount percentage must be between 0 and 100.")).toBeVisible();
+    expect(screen.getByLabelText(/Discount \(%\)/)).toHaveValue(101);
+    expect(mockedDownloadInvoicePdf).not.toHaveBeenCalled();
   });
 
   it("does not show Notes, Terms or Payment Instructions sections in the preview when empty - IG-122", () => {
@@ -425,9 +472,9 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.click(screen.getByLabelText("Terms and Conditions"));
     await user.paste("Due in 14 days.");
-    await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.click(screen.getByLabelText("Notes"));
     await user.paste("Thank you.");
     await user.click(screen.getByLabelText("Bank Name"));
@@ -460,7 +507,7 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
-    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+    await clickMoreAction(user, "Review invoice");
 
     // Not screen.getByRole("alert") - individual field errors (e.g. "Invoice Number is required.")
     // also use role="alert", so that would match several elements. The summary banner is the only
@@ -482,7 +529,7 @@ describe("CreateInvoiceEditor", () => {
     await user.type(screen.getByLabelText("Description", { exact: false }), "Consulting");
     await user.type(screen.getByLabelText(/^(Unit Price|Amount)/), "50");
 
-    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+    await clickMoreAction(user, "Review invoice");
 
     expect(screen.getByRole("status")).toHaveTextContent("This invoice looks ready.");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -492,7 +539,7 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
 
-    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+    await clickMoreAction(user, "Review invoice");
     expect(screen.getByText(/This invoice isn't ready yet/)).toHaveTextContent("From");
 
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
@@ -512,7 +559,7 @@ describe("CreateInvoiceEditor", () => {
     await user.click(screen.getByRole("button", { name: "Basic" }));
     expect(screen.getByLabelText(/Due Date/)).not.toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Review invoice" }));
+    await clickMoreAction(user, "Review invoice");
 
     expect(screen.getByRole("button", { name: "Advanced" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText(/Due Date/)).toBeVisible();
@@ -541,6 +588,7 @@ describe("CreateInvoiceEditor", () => {
 
   it("auto-selects the first template once the template fetch resolves", async () => {
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true");
@@ -550,6 +598,7 @@ describe("CreateInvoiceEditor", () => {
   it("selects the template requested via ?template=<templateCode> (IG-204) instead of the sort-order default", async () => {
     currentSearchParams = new URLSearchParams({ template: "modern" });
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Modern/ })).toHaveAttribute("aria-pressed", "true");
@@ -560,6 +609,7 @@ describe("CreateInvoiceEditor", () => {
   it("falls back to the sort-order default when ?template= doesn't match any loaded template", async () => {
     currentSearchParams = new URLSearchParams({ template: "does-not-exist" });
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true");
@@ -569,6 +619,7 @@ describe("CreateInvoiceEditor", () => {
   it("selecting a different template preserves already-typed invoice content", async () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toBeInTheDocument());
 
     await user.type(screen.getByLabelText("From", { exact: false }), "Acme Pty Ltd");
@@ -583,6 +634,7 @@ describe("CreateInvoiceEditor", () => {
 
   it("does not warn via beforeunload just because the template auto-selected itself", async () => {
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
 
     const event = new Event("beforeunload", { cancelable: true });
@@ -593,6 +645,7 @@ describe("CreateInvoiceEditor", () => {
 
   it("customisation defaults to the auto-selected template's colors", async () => {
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
 
     await waitFor(() => {
       expect(screen.getByLabelText("Primary Color")).toHaveValue(getDefaultCustomization("classic").primaryColor);
@@ -602,6 +655,7 @@ describe("CreateInvoiceEditor", () => {
   it("switching templates resets customisation to the new template's defaults", async () => {
     const user = userEvent.setup();
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
 
     // Manually customise while on Classic, then switch templates.
@@ -615,6 +669,7 @@ describe("CreateInvoiceEditor", () => {
 
   it("changing the accent color updates the live preview immediately - IG-41", async () => {
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.change(screen.getByLabelText("Accent Color"), { target: { value: "#ff0000" } });
@@ -625,6 +680,7 @@ describe("CreateInvoiceEditor", () => {
 
   it("warns via beforeunload once appearance has been customised", async () => {
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Classic/ })).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.change(screen.getByLabelText("Primary Color"), { target: { value: "#ff0000" } });
@@ -639,6 +695,7 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,abc" });
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
 
     await user.upload(
       screen.getByLabelText("Upload logo"),
@@ -653,6 +710,7 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,abc" });
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
     await user.upload(
       screen.getByLabelText("Upload logo"),
       new File([new Uint8Array([1, 2, 3])], "logo.png", { type: "image/png" }),
@@ -669,6 +727,7 @@ describe("CreateInvoiceEditor", () => {
     const user = userEvent.setup();
     mockedProcessLogoUpload.mockResolvedValue({ dataUrl: "data:image/png;base64,abc" });
     render(<CreateInvoiceEditor />);
+    fireEvent.click(screen.getByRole("link", { name: "Change template" }));
 
     await user.upload(
       screen.getByLabelText("Upload logo"),
@@ -737,7 +796,7 @@ describe("CreateInvoiceEditor", () => {
     render(<CreateInvoiceEditor />);
     await waitFor(() => expect(mockedGetCurrentSession).toHaveResolvedTimes(1));
 
-    await user.click(screen.getByRole("button", { name: "Print" }));
+    await clickMoreAction(user, "Print");
 
     expect(printSpy).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -779,7 +838,7 @@ describe("CreateInvoiceEditor", () => {
       const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
 
       expect(await screen.findByRole("dialog")).toBeInTheDocument();
       expect(printSpy).not.toHaveBeenCalled();
@@ -790,7 +849,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
 
       const dialog = await screen.findByRole("dialog");
       expect(within(dialog).getByText("Create a free account to download and securely save your invoice.")).toBeInTheDocument();
@@ -802,7 +861,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
       await screen.findByRole("dialog");
       await user.click(screen.getByRole("button", { name: "Not now" }));
 
@@ -813,7 +872,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
       await screen.findByRole("dialog");
       await user.keyboard("{Escape}");
 
@@ -826,7 +885,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
 
       await screen.findByRole("dialog");
       expect(loadPendingGateAction()).toBe("print");
@@ -851,7 +910,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
       await screen.findByRole("dialog");
       await user.click(screen.getByRole("button", { name: "Not now" }));
 
@@ -862,7 +921,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
       await screen.findByRole("dialog");
       await user.keyboard("{Escape}");
 
@@ -877,7 +936,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
       await screen.findByRole("dialog");
 
       expect(sink.track).toHaveBeenCalledWith({ name: "anonymous_gate_shown", properties: { action: "print" } });
@@ -889,7 +948,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
 
-      await user.click(screen.getByRole("button", { name: "Print" }));
+      await clickMoreAction(user, "Print");
       await screen.findByRole("dialog");
       await user.click(screen.getByRole("button", { name: "Not now" }));
 
@@ -1300,7 +1359,7 @@ describe("CreateInvoiceEditor", () => {
       mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
       render(<CreateInvoiceEditor />);
 
-      expect(await screen.findByLabelText("Search saved customers")).toBeInTheDocument();
+      expect(await screen.findByLabelText("Search saved customers")).not.toBeVisible();
       await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
     });
 
@@ -1312,6 +1371,7 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
 
+      await user.click(screen.getByText("Use a saved customer", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved customers"), "Acme");
       await user.click(await screen.findByRole("button", { name: /Acme Pty Ltd/ }));
 
@@ -1335,6 +1395,7 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
 
+      await user.click(screen.getByText("Use a saved customer", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved customers"), "Acme");
       await user.click(await screen.findByRole("button", { name: /Acme Pty Ltd/ }));
       await user.type(screen.getByLabelText("Bill To", { exact: false }), " (edited)");
@@ -1356,6 +1417,7 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
 
+      await user.click(screen.getByText("Use a saved customer", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved customers"), "Zephyr");
 
       expect(await screen.findByText("No matching customers.")).toBeInTheDocument();
@@ -1368,6 +1430,7 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListCustomers).toHaveBeenCalledTimes(1));
 
+      await user.click(screen.getByText("Use a saved customer", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved customers"), "A");
 
       expect(screen.queryByRole("button", { name: /Acme Pty Ltd/ })).not.toBeInTheDocument();
@@ -1401,7 +1464,7 @@ describe("CreateInvoiceEditor", () => {
       mockedGetCurrentSession.mockResolvedValue(AUTHENTICATED_ACCOUNT);
       render(<CreateInvoiceEditor />);
 
-      expect(await screen.findByLabelText("Search saved items")).toBeInTheDocument();
+      expect(await screen.findByLabelText("Search saved items")).not.toBeVisible();
       await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
     });
 
@@ -1412,6 +1475,7 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
 
+      await user.click(screen.getByText("Use a saved item", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved items"), "Consult");
       await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
 
@@ -1430,6 +1494,7 @@ describe("CreateInvoiceEditor", () => {
       await user.click(screen.getByRole("button", { name: "Advanced" }));
     await user.clear(screen.getByLabelText(/Quantity/));
       await user.type(screen.getByLabelText(/Quantity/), "4");
+      await user.click(screen.getByText("Use a saved item", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved items"), "Consult");
       await user.click(await screen.findByRole("button", { name: /Consulting Hour/ }));
 
@@ -1442,6 +1507,7 @@ describe("CreateInvoiceEditor", () => {
       const user = userEvent.setup();
       render(<CreateInvoiceEditor />);
       const search = await screen.findByLabelText("Search saved items");
+      await user.click(screen.getByText("Use a saved item", { selector: "summary" }));
       const description = screen.getByLabelText(/Description/);
       await user.type(description, "Manual work");
       await user.type(search, "Consult");
@@ -1462,6 +1528,7 @@ describe("CreateInvoiceEditor", () => {
       render(<CreateInvoiceEditor />);
       await waitFor(() => expect(mockedListItems).toHaveBeenCalledTimes(1));
 
+      await user.click(screen.getByText("Use a saved item", { selector: "summary" }));
       await user.type(screen.getByLabelText("Search saved items"), "Zephyr");
 
       expect(await screen.findByText("No matching items.")).toBeInTheDocument();

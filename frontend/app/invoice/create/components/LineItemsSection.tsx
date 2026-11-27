@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CatalogItem } from "../../../lib/items";
 import type { LineItem, LineItemErrors } from "../lib/lineItems";
 import { LineItemRow } from "./LineItemRow";
+import styles from "./InvoiceCreation.module.css";
 
 interface LineItemsSectionProps {
   items: LineItem[];
@@ -45,7 +46,7 @@ export function LineItemsSection({
   onRemove,
 }: LineItemsSectionProps) {
   return (
-    <fieldset className="mt-6 border-t border-border pt-6">
+    <fieldset className={compact ? "mt-4 border-t border-border pt-3" : "mt-6 border-t border-border pt-6"}>
       <legend className="font-display text-lg font-bold text-ink">Items</legend>
       {beforeItems}
       <div className={compact ? "mt-2 flex min-w-0 flex-col gap-2" : "mt-4 flex flex-col gap-4"}>
@@ -75,7 +76,7 @@ export function LineItemsSection({
       <button
         type="button"
         onClick={onAdd}
-        className={compact ? "workspace-button-secondary mt-3 w-full justify-center" : "mt-4 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"}
+        className={compact ? styles.addItem : "mt-4 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"}
       >
         Add Item
       </button>

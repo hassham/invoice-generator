@@ -4,6 +4,7 @@ import type { FieldErrors, FieldValues } from "../lib/invoiceDraft";
 import { FormField } from "./FormField";
 
 interface InvoiceHeaderSectionProps {
+  compact?: boolean;
   values: FieldValues;
   currency: string;
   errors: FieldErrors;
@@ -26,6 +27,7 @@ interface InvoiceHeaderSectionProps {
  * Basic and forward again, matching InvoiceEditorLayout's existing Edit/Preview pattern.
  */
 export function InvoiceHeaderSection({
+  compact = false,
   values,
   currency,
   errors,
@@ -41,7 +43,7 @@ export function InvoiceHeaderSection({
   return (
     <fieldset>
       <legend className="text-base font-semibold text-ink">{legend}</legend>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={compact ? "mt-2 grid gap-2.5" : "mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"}>
         {fields.map((field) => {
           const isAdvanced = ADVANCED_HEADER_FIELD_NAMES.includes(field.name);
           return (
